@@ -1,29 +1,52 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { Sparkles, CheckCircle2, Loader2, CreditCard } from 'lucide-react';
-
-declare global {
-  interface Window { PaystackPop: any; }
-}
+import React, { useState, useEffect, useRef } from 'react';
+import {
+  Sparkles,
+  CheckCircle2,
+  Smartphone,
+  Loader2,
+  PhoneCall,
+  Zap,
+  Check,
+  X,
+  ShieldCheck,
+} from 'lucide-react';
 
 export default function PackagesPage() {
   const [packages, setPackages] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [upgradingId, setUpgradingId] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState('');
+  const [selectedPkg, setSelectedPkg] = useState<any>(null);
+  const [mpesaPhone, setMpesaPhone] = useState('');
+  const [submittingStk, setSubmittingStk] = useState(false);
+  const [stkPending, setStkPending] = useState(false);
+  const [stkInfo, setStkInfo] = useState<{
+    checkoutRequestId?: string;
+    depositId?: string;
+    message?: string;
+  } | null>(null);
+  const [simulating, setSimulating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
-  const [scriptLoaded, setScriptLoaded] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchUserAndPackages = async () => {
     try {
-      const [pRes, uRes] = await Promise.all([fetch('/api/packages'), fetch('/api/auth/me')]);
-      const pData = await pRes.json();
-      const uData = await uRes.json();
-      if (pData.packages) setPackages(pData.packages);
-      if (uData.user) setUser(uData.user);
+      const [resPkg, resUser] = await Promise.all([
+        fetch('/api/packages'),
+        fetch('/api/auth/me'),
+      ]);
+      const dataPkg = await resPkg.json();
+      const dataUser = await resUser.json();
+
+      setPackages(dataPkg.packages || []);
+      if (dataUser?.user) {
+        setUser(dataUser.user);
+        setMpesaPhone(dataUser.user.mpesaNumber || dataUser.user.phone || '');
+      }
     } catch (e) {
+      console.error(e);
     } finally {
       setLoading(false);
     }
@@ -31,83 +54,127 @@ export default function PackagesPage() {
 
   useEffect(() => {
     fetchUserAndPackages();
-
-    // Load Paystack inline script
-    const script = document.createElement('script');
-    script.src = 'https://js.paystack.co/v1/inline.js';
-    script.async = true;
-    script.onload = () => setScriptLoaded(true);
-    document.body.appendChild(script);
-    return () => { document.body.removeChild(script); };
+    return () => {
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
   }, []);
 
-  const handleSelectPackage = async (pkg: any) => {
-    if (!user) { window.location.href = '/login'; return; }
+  const openMpesaModal = (pkg: any) => {
+    if (!user) {
+      window.location.href = '/login';
+      return;
+    }
+    setSelectedPkg(pkg);
+    setErrorMsg('');
+    setStkPending(false);
+    setStkInfo(null);
+  };
 
-    setUpgradingId(pkg.id);
-    setSuccessMsg('');
+  const closeModal = () => {
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    setSelectedPkg(null);
+    setStkPending(false);
+    setStkInfo(null);
+    setErrorMsg('');
+  };
+
+  const startPolling = (depositId: string, checkoutRequestId?: string) => {
+    if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const query = checkoutRequestId
+          ? `checkoutRequestId=${checkoutRequestId}`
+          : `depositId=${depositId}`;
+        const res = await fetch(`/api/mpesa/status?${query}`);
+        if (!res.ok) return;
+
+        const data = await res.json();
+        if (data.isCompleted) {
+          if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+          setStkPending(false);
+          setSuccessMsg(`🌟 Upgraded to ${selectedPkg?.name} Tier successfully!`);
+          closeModal();
+          fetchUserAndPackages();
+        }
+      } catch (err) {
+        console.error('Polling error:', err);
+      }
+    }, 2500);
+  };
+
+  const handleInitiateMpesa = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedPkg || !mpesaPhone) return;
+
+    setSubmittingStk(true);
     setErrorMsg('');
 
     try {
-      // 1. Initialize payment on server
-      const res = await fetch('/api/paystack/initialize', {
+      const res = await fetch('/api/mpesa/stkpush', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: pkg.price, type: 'PACKAGE' }),
+        body: JSON.stringify({
+          phone: mpesaPhone,
+          amount: selectedPkg.price,
+          type: 'PACKAGE',
+        }),
       });
 
       const data = await res.json();
-      if (!res.ok || !data.success) throw new Error(data.error || 'Failed to initialize payment');
+      if (!res.ok || data.error) {
+        throw new Error(data.error || 'Failed to send M-Pesa STK Push');
+      }
 
-      const publicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || '';
+      setStkPending(true);
+      setStkInfo({
+        checkoutRequestId: data.checkoutRequestId,
+        depositId: data.depositId,
+        message: data.CustomerMessage || `STK Push sent to ${mpesaPhone}. Enter your PIN.`,
+      });
 
-      if (scriptLoaded && window.PaystackPop && publicKey) {
-        // 2a. Paystack popup
-        const handler = window.PaystackPop.setup({
-          key: publicKey,
-          email: user.email,
-          amount: Math.round(pkg.price * 100), // to kobo
-          currency: 'KES',
-          ref: data.reference,
-          label: user.fullName,
-          channels: ['mobile_money', 'card', 'bank', 'ussd'],
-          metadata: { packageId: pkg.id, packageName: pkg.name, userId: user.id },
-          onClose: () => {
-            setUpgradingId(null);
-            setErrorMsg('Payment window closed. Try again to complete your upgrade.');
-          },
-          callback: async (response: any) => {
-            try {
-              // 3. Activate package after payment
-              await fetch('/api/packages/purchase', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ packageId: pkg.id, reference: response.reference }),
-              });
-              setSuccessMsg(`🌟 Congratulations! You have successfully upgraded to the ${pkg.name} Tier.`);
-              await fetchUserAndPackages();
-            } catch {
-              setErrorMsg('Payment received but activation failed. Please contact support.');
-            } finally {
-              setUpgradingId(null);
-            }
-          },
-        });
-        handler.openIframe();
-      } else {
-        // 2b. Redirect fallback
-        window.location.href = data.authorizationUrl;
+      if (data.depositId) {
+        startPolling(data.depositId, data.checkoutRequestId);
       }
     } catch (err: any) {
+      setErrorMsg(err.message || 'M-Pesa transaction failed.');
+    } finally {
+      setSubmittingStk(false);
+    }
+  };
+
+  const handleSimulatePayment = async () => {
+    if (!stkInfo?.checkoutRequestId && !stkInfo?.depositId) return;
+    setSimulating(true);
+
+    try {
+      const res = await fetch('/api/mpesa/simulate-success', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          checkoutRequestId: stkInfo.checkoutRequestId,
+          depositId: stkInfo.depositId,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Simulation failed');
+
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      setSuccessMsg(`🌟 Upgraded to ${selectedPkg?.name} Tier successfully!`);
+      closeModal();
+      fetchUserAndPackages();
+    } catch (err: any) {
       setErrorMsg(err.message);
-      setUpgradingId(null);
+    } finally {
+      setSimulating(false);
     }
   };
 
   if (loading) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-emerald-500 border-t-transparent animate-spin" />
       </div>
     );
   }
@@ -120,7 +187,7 @@ export default function PackagesPage() {
           Choose a platform tier that suits your work capacity and task access level.
         </p>
 
-        {errorMsg && (
+        {errorMsg && !selectedPkg && (
           <div className="max-w-3xl mx-auto p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold">
             {errorMsg}
           </div>
@@ -135,11 +202,9 @@ export default function PackagesPage() {
 
         {/* Payment methods supported */}
         <div className="flex flex-wrap gap-2 justify-center pt-1">
-          {['M-Pesa', 'Visa / Mastercard', 'Bank Transfer', 'USSD'].map((m) => (
-            <span key={m} className="text-[11px] font-semibold px-3 py-1 rounded-full bg-slate-800 text-gray-400 border border-slate-700 flex items-center gap-1.5">
-              <CreditCard className="w-3 h-3" /> {m}
-            </span>
-          ))}
+          <span className="text-[11px] font-semibold px-3 py-1 rounded-full bg-emerald-950/60 text-emerald-300 border border-emerald-700/60 flex items-center gap-1.5">
+            <Smartphone className="w-3.5 h-3.5 text-emerald-400" /> Safaricom M-Pesa STK Push
+          </span>
         </div>
 
         <div className="max-w-3xl mx-auto p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs text-left leading-relaxed">
@@ -151,13 +216,12 @@ export default function PackagesPage() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {packages.map((pkg) => {
           const isCurrent = user?.packageId === pkg.id;
-          const isUpgrading = upgradingId === pkg.id;
 
           return (
             <div
               key={pkg.id}
-              className={`p-6 rounded-3xl glass-card flex flex-col justify-between space-y-6 relative ${
-                pkg.name === 'GOLD' ? 'border-brand-500/50 glow-emerald' : ''
+              className={`p-6 rounded-3xl glass-card flex flex-col justify-between space-y-6 relative border transition-all ${
+                pkg.name === 'GOLD' ? 'border-emerald-500/50 shadow-lg shadow-emerald-500/10' : 'border-slate-800'
               }`}
             >
               {isCurrent && (
@@ -166,7 +230,7 @@ export default function PackagesPage() {
                 </span>
               )}
               {pkg.name === 'GOLD' && !isCurrent && (
-                <span className="absolute -top-3 right-6 px-3 py-1 rounded-full bg-brand-500 text-dark-900 text-[10px] font-black uppercase tracking-wider">
+                <span className="absolute -top-3 right-6 px-3 py-1 rounded-full bg-emerald-400 text-dark-900 text-[10px] font-black uppercase tracking-wider">
                   Popular Choice
                 </span>
               )}
@@ -182,7 +246,7 @@ export default function PackagesPage() {
                 <ul className="space-y-2.5 pt-4 border-t border-slate-800 text-xs text-gray-300">
                   {pkg.features?.map((feat: string, i: number) => (
                     <li key={i} className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-brand-400 shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
                       <span>{feat}</span>
                     </li>
                   ))}
@@ -190,26 +254,132 @@ export default function PackagesPage() {
               </div>
 
               <button
-                disabled={isCurrent || isUpgrading !== false}
-                onClick={() => handleSelectPackage(pkg)}
+                disabled={isCurrent}
+                onClick={() => openMpesaModal(pkg)}
                 className={`w-full py-3.5 rounded-xl font-extrabold text-xs transition-all text-center flex items-center justify-center gap-2 ${
                   isCurrent
                     ? 'bg-slate-800 text-gray-500 cursor-default border border-slate-700'
-                    : 'bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white shadow-lg shadow-brand-500/20 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100'
+                    : 'bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white shadow-lg shadow-emerald-500/20 hover:scale-105'
                 }`}
               >
                 {isCurrent ? (
                   'Active Membership Tier'
-                ) : isUpgrading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Opening Payment...</>
                 ) : (
-                  <><CreditCard className="w-4 h-4" /> Pay KES {pkg.price}</>
+                  <>
+                    <Smartphone className="w-4 h-4" /> Pay KES {pkg.price} via M-Pesa
+                  </>
                 )}
               </button>
             </div>
           );
         })}
       </div>
+
+      {/* M-Pesa Upgrade Modal */}
+      {selectedPkg && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-md bg-slate-900 border border-slate-700 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl relative">
+            <button
+              onClick={closeModal}
+              className="absolute top-5 right-5 text-gray-400 hover:text-white transition-colors"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            <div className="text-center space-y-1">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto text-emerald-400">
+                <Smartphone className="w-6 h-6" />
+              </div>
+              <h3 className="text-xl font-bold text-white">Upgrade to {selectedPkg.name}</h3>
+              <p className="text-xs text-gray-400">
+                Amount: <strong className="text-emerald-400 text-sm">KES {selectedPkg.price}.00</strong>
+              </p>
+            </div>
+
+            {errorMsg && (
+              <div className="p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs">
+                {errorMsg}
+              </div>
+            )}
+
+            {stkPending ? (
+              <div className="space-y-4 text-center bg-slate-800/80 p-5 rounded-2xl border border-emerald-500/40">
+                <div className="w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center mx-auto animate-pulse">
+                  <Smartphone className="w-6 h-6 text-emerald-400" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold text-white">STK Prompt Sent!</h4>
+                  <p className="text-xs text-gray-300 mt-1">
+                    Check your phone (<strong>{mpesaPhone}</strong>) and enter your M-Pesa PIN.
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 text-xs text-emerald-400 py-1.5 px-3 bg-emerald-950/40 rounded-lg border border-emerald-800/40">
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  <span>Waiting for confirmation...</span>
+                </div>
+
+                <div className="pt-2 border-t border-slate-700/60 space-y-2">
+                  <p className="text-[11px] text-gray-400">Testing locally? Instant simulator:</p>
+                  <button
+                    type="button"
+                    onClick={handleSimulatePayment}
+                    disabled={simulating}
+                    className="w-full py-2.5 px-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-emerald-300 font-bold text-xs border border-emerald-500/30 flex items-center justify-center gap-2"
+                  >
+                    {simulating ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <>
+                        <Zap className="w-4 h-4 text-amber-400" />
+                        Simulate Payment &amp; Activate Tier
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleInitiateMpesa} className="space-y-4">
+                <div className="space-y-1.5 text-left">
+                  <label className="text-xs font-semibold text-gray-300 flex items-center justify-between">
+                    <span>M-Pesa Phone Number</span>
+                    <span className="text-[10px] text-emerald-400">Safaricom</span>
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-emerald-400">
+                      <PhoneCall className="w-4 h-4" />
+                    </div>
+                    <input
+                      type="tel"
+                      required
+                      value={mpesaPhone}
+                      onChange={(e) => setMpesaPhone(e.target.value)}
+                      placeholder="e.g. 0712345678"
+                      className="w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-white text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={submittingStk || !mpesaPhone}
+                  className="w-full py-3.5 rounded-xl bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white font-bold text-sm shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {submittingStk ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" /> Sending STK Push...
+                    </>
+                  ) : (
+                    <>
+                      <Smartphone className="w-4 h-4" /> Pay KES {selectedPkg.price} via M-Pesa
+                    </>
+                  )}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

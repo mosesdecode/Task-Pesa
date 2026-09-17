@@ -304,7 +304,7 @@ export async function processPaystackSuccess(
     }
 
     return { success: true, depositId: deposit.id };
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 }
 
 // ─── Generate Unique Payment Reference ───────────────────────────────────────

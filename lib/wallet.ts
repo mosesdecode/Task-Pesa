@@ -55,7 +55,7 @@ export async function creditTaskReward(userId: string, amount: number, taskTitle
     });
 
     return updatedWallet;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 }
 
 export async function requestWithdrawal(userId: string, mpesaNumber: string, amount: number) {
@@ -113,7 +113,7 @@ export async function requestWithdrawal(userId: string, mpesaNumber: string, amo
     });
 
     return withdrawal;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 }
 
 export async function adminAdjustBalance(
@@ -168,5 +168,5 @@ export async function adminAdjustBalance(
     });
 
     return txRecord;
-  });
+  }, { maxWait: 15000, timeout: 30000 });
 }
