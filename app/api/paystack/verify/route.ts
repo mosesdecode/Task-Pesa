@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { verifyPaystackTransaction, processPaystackSuccess } from '@/lib/paystack';
 import { requireAuth } from '@/lib/auth';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * GET /api/paystack/verify?reference=PSK_xxxx
  *
