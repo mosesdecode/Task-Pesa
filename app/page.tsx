@@ -72,7 +72,7 @@ export default function LandingPage() {
           {/* Stats Bar */}
           <div className="pt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             <div className="p-4 rounded-2xl glass-card text-center space-y-1">
-              <p className="text-2xl font-black text-white">KES 100</p>
+              <p className="text-2xl font-black text-white">KES 200</p>
               <p className="text-xs text-gray-400 font-medium">Access Fee (Anti-Spam)</p>
             </div>
             <div className="p-4 rounded-2xl glass-card text-center space-y-1">
@@ -104,7 +104,7 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {[
             { step: '01', title: 'Create Your Account', desc: 'Sign up with your phone number, email, and safe password in under 60 seconds.' },
-            { step: '02', title: 'Activate Account (KES 100)', desc: 'Pay the mandatory KES 100 access fee via M-Pesa STK push to verify identity and prevent spam.' },
+            { step: '02', title: 'Activate Account (KES 200)', desc: 'Pay the mandatory KES 200 access fee via Paystack to verify identity and prevent spam.' },
             { step: '03', title: 'Choose Available Tasks', desc: 'Browse Data Annotation, Sponsored Ads, WhatsApp promo campaigns, or microtasks.' },
             { step: '04', title: 'Complete Work', desc: 'Submit accurate annotations, watch required ad durations, or upload status screenshots.' },
             { step: '05', title: 'Track & Accumulate Rewards', desc: 'Watch your available and pending balances update automatically upon approval.' },
@@ -213,8 +213,8 @@ export default function LandingPage() {
         <div className="space-y-4">
           {[
             {
-              q: '1. How do I get started and why is there a KES 100 access fee?',
-              a: 'Simply register an account and complete identity verification via M-Pesa STK Push. The KES 100 access fee acts as an anti-spam filter to prevent bot registrations and ensure only genuine workers access paid brand campaigns.',
+              q: '1. How do I get started and why is there a KES 200 access fee?',
+              a: 'Simply register an account and complete identity verification via Paystack. The KES 200 access fee acts as an anti-spam filter to prevent bot registrations and ensure only genuine workers access paid brand campaigns.',
             },
             {
               q: '2. How do I earn money on Task Mint?',

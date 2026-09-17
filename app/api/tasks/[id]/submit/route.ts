@@ -15,7 +15,7 @@ export async function POST(
 
     if (user.status !== 'ACTIVE') {
       return NextResponse.json(
-        { error: 'Account activation required. Please pay the KES 100 access fee to unlock task submissions.' },
+        { error: 'Account activation required. Please pay the KES 200 access fee to unlock task submissions.' },
         { status: 403 }
       );
     }

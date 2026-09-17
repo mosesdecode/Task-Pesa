@@ -18,7 +18,7 @@ export async function POST(
 
     if (user.status !== 'ACTIVE') {
       return NextResponse.json(
-        { error: 'Account activation required. Please pay KES 100 access fee to participate in WhatsApp status campaigns.' },
+        { error: 'Account activation required. Please pay KES 200 access fee to participate in WhatsApp status campaigns.' },
         { status: 403 }
       );
     }

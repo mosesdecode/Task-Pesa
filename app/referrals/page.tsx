@@ -93,7 +93,7 @@ export default function ReferralsPage() {
         <div className="p-6 rounded-3xl glass-card space-y-2">
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pending Invites</span>
           <p className="text-3xl font-black text-amber-400">{stats.pendingReferrals || 0}</p>
-          <p className="text-[11px] text-gray-400">Awaiting KES 100 activation</p>
+          <p className="text-[11px] text-gray-400">Awaiting KES 200 activation</p>
         </div>
 
         <div className="p-6 rounded-3xl glass-card space-y-2">

@@ -1,4 +1,7 @@
 {
+  "env": {
+    "DATABASE_URL": "file:./dev.db"
+  },
   "framework": "nextjs",
   "buildCommand": "prisma generate && next build",
   "installCommand": "npm install",

@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         referralCode: userReferralCode,
         referredById: referrerId,
         packageId: bronzePackage?.id,
-        status: 'PENDING_ACTIVATION', // Access fee KES 100 required
+        status: 'PENDING_ACTIVATION', // Access fee KES 200 required
         wallet: {
           create: {
             availableBalance: 0.0,
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       data: {
         userId: user.id,
         title: 'Welcome to TaskPesa! 👋',
-        message: 'Your account has been created. Please complete the KES 100 platform access payment to activate your account and start completing tasks.',
+        message: 'Your account has been created. Please complete the KES 200 platform access payment to activate your account and start completing tasks.',
         type: 'INFO',
       },
     });

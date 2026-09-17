@@ -151,7 +151,7 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p>Your data is processed strictly for legitimate operational purposes:</p>
             <ul className="list-disc list-inside space-y-1.5 text-slate-300 text-xs pl-2">
-              <li>Verifying user identity and processing KES 100 account activations via Safaricom Daraja STK Push.</li>
+              <li>Verifying user identity and processing KES 200 account activations via Paystack.</li>
               <li>Reviewing, validating, and approving worker task submissions for correct reward allocation.</li>
               <li>Processing weekly M-Pesa withdrawal payouts to verified member numbers.</li>
               <li>Preventing fraudulent submissions, duplicate account abuse, and automated spamming.</li>

@@ -70,7 +70,7 @@ function RegisterForm() {
         throw new Error(data.error || 'Registration failed');
       }
 
-      // Redirect to account activation page (KES 100)
+      // Redirect to account activation page (KES 200)
       router.push('/activate');
     } catch (err: any) {
       setError(err.message);
@@ -92,14 +92,14 @@ function RegisterForm() {
           <p className="text-xs text-gray-400">Join Kenya’s verified digital task marketplace</p>
         </div>
 
-        {/* KES 100 Activation Fee Disclaimer */}
+        {/* KES 200 Activation Fee Disclaimer */}
         <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs space-y-1 leading-relaxed">
           <p className="font-bold flex items-center gap-1.5 text-amber-200">
             <Shield className="w-4 h-4 text-amber-400 shrink-0" />
             Account Activation & Platform Access Policy:
           </p>
           <p>
-            "The activation fee of KES 100 provides access to the platform and helps prevent fraudulent and duplicate accounts. Earnings depend on the availability and successful completion of eligible tasks. No fixed income or guaranteed returns are promised."
+            "The activation fee of KES 200 provides access to the platform and helps prevent fraudulent and duplicate accounts. Earnings depend on the availability and successful completion of eligible tasks. No fixed income or guaranteed returns are promised."
           </p>
         </div>
 
@@ -202,7 +202,7 @@ function RegisterForm() {
             disabled={loading}
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white font-black text-sm shadow-xl shadow-brand-500/20 transition-all hover:scale-[1.02] flex items-center justify-center gap-2"
           >
-            {loading ? 'Creating Account...' : 'Continue to KES 100 Account Activation'}
+            {loading ? 'Creating Account...' : 'Continue to KES 200 Account Activation'}
             <ArrowRight className="w-4 h-4" />
           </button>
         </form>

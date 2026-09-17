@@ -180,9 +180,9 @@ export default function SupportPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-5 rounded-2xl glass-card space-y-2">
-            <h4 className="font-bold text-white text-sm">1. How do I get started and why is there a KES 100 access fee?</h4>
+            <h4 className="font-bold text-white text-sm">1. How do I get started and why is there a KES 200 access fee?</h4>
             <p className="text-xs text-gray-300 leading-relaxed">
-              Create an account and complete verification via M-Pesa STK Push. The KES 100 fee serves as an anti-spam identity check to maintain genuine worker campaign access.
+              Create an account and complete verification via Paystack. The KES 200 fee serves as an anti-spam identity check to maintain genuine worker campaign access.
             </p>
           </div>
 
