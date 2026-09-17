@@ -7,7 +7,6 @@ import {
   Smartphone,
   Loader2,
   PhoneCall,
-  Zap,
   Check,
   X,
   ShieldCheck,
@@ -26,7 +25,6 @@ export default function PackagesPage() {
     depositId?: string;
     message?: string;
   } | null>(null);
-  const [simulating, setSimulating] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -140,34 +138,6 @@ export default function PackagesPage() {
       setErrorMsg(err.message || 'M-Pesa transaction failed.');
     } finally {
       setSubmittingStk(false);
-    }
-  };
-
-  const handleSimulatePayment = async () => {
-    if (!stkInfo?.checkoutRequestId && !stkInfo?.depositId) return;
-    setSimulating(true);
-
-    try {
-      const res = await fetch('/api/mpesa/simulate-success', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          checkoutRequestId: stkInfo.checkoutRequestId,
-          depositId: stkInfo.depositId,
-        }),
-      });
-
-      const data = await res.json();
-      if (!res.ok || data.error) throw new Error(data.error || 'Simulation failed');
-
-      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-      setSuccessMsg(`🌟 Upgraded to ${selectedPkg?.name} Tier successfully!`);
-      closeModal();
-      fetchUserAndPackages();
-    } catch (err: any) {
-      setErrorMsg(err.message);
-    } finally {
-      setSimulating(false);
     }
   };
 
@@ -317,25 +287,6 @@ export default function PackagesPage() {
                 <div className="flex items-center justify-center gap-2 text-xs text-emerald-400 py-1.5 px-3 bg-emerald-950/40 rounded-lg border border-emerald-800/40">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
                   <span>Waiting for confirmation...</span>
-                </div>
-
-                <div className="pt-2 border-t border-slate-700/60 space-y-2">
-                  <p className="text-[11px] text-gray-400">Testing locally? Instant simulator:</p>
-                  <button
-                    type="button"
-                    onClick={handleSimulatePayment}
-                    disabled={simulating}
-                    className="w-full py-2.5 px-3 rounded-xl bg-slate-700 hover:bg-slate-600 text-emerald-300 font-bold text-xs border border-emerald-500/30 flex items-center justify-center gap-2"
-                  >
-                    {simulating ? (
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                    ) : (
-                      <>
-                        <Zap className="w-4 h-4 text-amber-400" />
-                        Simulate Payment &amp; Activate Tier
-                      </>
-                    )}
-                  </button>
                 </div>
               </div>
             ) : (

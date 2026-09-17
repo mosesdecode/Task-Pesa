@@ -4,6 +4,10 @@ import { processPaymentSuccess } from '@/lib/mpesa';
 import { prisma } from '@/lib/prisma';
 
 export async function POST(req: NextRequest) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Simulation is disabled in production.' }, { status: 403 });
+  }
+
   try {
     const user = await requireAuth(req);
     const body = await req.json();

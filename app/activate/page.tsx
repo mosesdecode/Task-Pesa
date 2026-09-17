@@ -11,14 +11,12 @@ import {
   ArrowRight,
   Loader2,
   CreditCard,
-  Zap,
 } from 'lucide-react';
 
 export default function ActivatePage() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
-  const [simulating, setSimulating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -64,30 +62,6 @@ export default function ActivatePage() {
     } catch (err: any) {
       setError(err.message || 'Payment initialization failed. Please try again.');
       setLoading(false);
-    }
-  };
-
-  // Instant local simulation for testing without paying real money
-  const handleInstantSimulate = async () => {
-    setSimulating(true);
-    setError(null);
-
-    try {
-      const res = await fetch('/api/mpesa/simulate-success', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      });
-
-      const data = await res.json();
-      if (!res.ok || data.error) {
-        throw new Error(data.error || 'Simulation failed');
-      }
-
-      router.push('/dashboard?activated=true');
-    } catch (err: any) {
-      setError(err.message);
-      setSimulating(false);
     }
   };
 
@@ -187,7 +161,7 @@ export default function ActivatePage() {
 
           <button
             type="submit"
-            disabled={loading || simulating}
+            disabled={loading}
             className="w-full py-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 text-white font-black text-sm shadow-xl shadow-emerald-500/25 transition-all hover:scale-[1.02] flex items-center justify-center gap-2.5 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
             {loading ? (
@@ -207,31 +181,6 @@ export default function ActivatePage() {
           <p className="text-center text-xs text-gray-400">
             Secured by <strong className="text-emerald-400 font-semibold">Paystack</strong> · Sends live M-Pesa STK Push prompt to your phone
           </p>
-
-          {/* Quick Local Testing Button */}
-          <div className="pt-4 border-t border-slate-700/60 text-center space-y-2">
-            <p className="text-[11px] text-gray-400">
-              Want to test locally without real money?
-            </p>
-            <button
-              type="button"
-              onClick={handleInstantSimulate}
-              disabled={simulating || loading}
-              className="w-full py-3 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-emerald-300 font-bold text-xs border border-emerald-500/30 flex items-center justify-center gap-2 transition-all hover:scale-[1.01] disabled:opacity-50"
-            >
-              {simulating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Activating Account in Supabase...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4 text-amber-400" />
-                  ⚡ Instant Local Test: Activate Account Free
-                </>
-              )}
-            </button>
-          </div>
         </form>
       </div>
     </div>
