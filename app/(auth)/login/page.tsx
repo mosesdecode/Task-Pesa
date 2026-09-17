@@ -97,11 +97,7 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50 text-[11px] text-gray-400 text-center space-y-1">
-          <p className="font-semibold text-gray-300">Demo Accounts Available:</p>
-          <p>Admin: <code className="text-brand-400 font-mono">admin@taskpesa.co.ke</code> / <code className="text-gray-300 font-mono">Admin@12345</code></p>
-          <p>User: <code className="text-brand-400 font-mono">john@example.co.ke</code> / <code className="text-gray-300 font-mono">User@12345</code></p>
-        </div>
+
 
         <p className="text-center text-xs text-gray-400 pt-2">
           Don't have an account yet?{' '}
