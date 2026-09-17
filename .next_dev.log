@@ -1,0 +1,36 @@
+
+> taskpesa@1.0.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+  - Environments: .env
+
+ ✓ Starting...
+ ✓ Ready in 6s
+ ○ Compiling /middleware ...
+ ✓ Compiled /middleware in 1744ms (152 modules)
+ ○ Compiling /login ...
+ ✓ Compiled /login in 10.5s (560 modules)
+ HEAD /login 200 in 11045ms
+ ✓ Compiled in 890ms (286 modules)
+ GET /login 200 in 122ms
+ ○ Compiling /api/notifications ...
+ ✓ Compiled /packages in 9.6s (399 modules)
+ ✓ Compiled in 611ms (275 modules)
+ GET /api/auth/me 401 in 10656ms
+ GET /api/notifications 401 in 10660ms
+ GET /api/auth/me 401 in 387ms
+ GET /api/notifications 401 in 397ms
+ ✓ Compiled /api/packages in 266ms (408 modules)
+ GET /api/auth/me 401 in 692ms
+ GET /api/notifications 401 in 686ms
+ GET /api/auth/me 401 in 37ms
+prisma:info Starting a sqlite pool with 5 connections.
+ GET /api/auth/me 401 in 31ms
+prisma:query SELECT `main`.`MembershipPackage`.`id`, `main`.`MembershipPackage`.`name`, `main`.`MembershipPackage`.`price`, `main`.`MembershipPackage`.`description`, `main`.`MembershipPackage`.`taskLimitDaily`, `main`.`MembershipPackage`.`dataAnnotationAccess`, `main`.`MembershipPackage`.`watchAdsLimit`, `main`.`MembershipPackage`.`whatsappTasksLimit`, `main`.`MembershipPackage`.`referralBonus`, `main`.`MembershipPackage`.`durationDays`, `main`.`MembershipPackage`.`isActive`, `main`.`MembershipPackage`.`featuresJson`, `main`.`MembershipPackage`.`createdAt`, `main`.`MembershipPackage`.`updatedAt` FROM `main`.`MembershipPackage` WHERE `main`.`MembershipPackage`.`isActive` = ? ORDER BY `main`.`MembershipPackage`.`price` ASC LIMIT ? OFFSET ?
+ GET /api/packages 200 in 885ms
+prisma:query SELECT `main`.`MembershipPackage`.`id`, `main`.`MembershipPackage`.`name`, `main`.`MembershipPackage`.`price`, `main`.`MembershipPackage`.`description`, `main`.`MembershipPackage`.`taskLimitDaily`, `main`.`MembershipPackage`.`dataAnnotationAccess`, `main`.`MembershipPackage`.`watchAdsLimit`, `main`.`MembershipPackage`.`whatsappTasksLimit`, `main`.`MembershipPackage`.`referralBonus`, `main`.`MembershipPackage`.`durationDays`, `main`.`MembershipPackage`.`isActive`, `main`.`MembershipPackage`.`featuresJson`, `main`.`MembershipPackage`.`createdAt`, `main`.`MembershipPackage`.`updatedAt` FROM `main`.`MembershipPackage` WHERE `main`.`MembershipPackage`.`isActive` = ? ORDER BY `main`.`MembershipPackage`.`price` ASC LIMIT ? OFFSET ?
+ GET /api/packages 200 in 56ms
+ GET /api/auth/me 401 in 31ms
+ GET /api/notifications 401 in 44ms

@@ -1,0 +1,359 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id               String        @id @default(uuid())
+  fullName         String
+  username         String        @unique
+  email            String        @unique
+  phone            String        @unique
+  mpesaNumber      String
+  passwordHash     String
+  role             String        @default("USER") // USER, ADMIN
+  status           String        @default("PENDING_ACTIVATION") // PENDING_ACTIVATION, ACTIVE, SUSPENDED
+  isVerified       Boolean       @default(false)
+  referralCode     String        @unique
+  referredById     String?
+  referredBy       User?         @relation("UserReferrals", fields: [referredById], references: [id])
+  referralsMade    User[]        @relation("UserReferrals")
+  packageId        String?
+  package          MembershipPackage? @relation(fields: [packageId], references: [id])
+  packageExpiresAt DateTime?
+
+  firstName        String?
+  surname          String?
+  profilePhoto     String?
+  emailVerified    Boolean       @default(false)
+  phoneVerified    Boolean       @default(false)
+  country          String?       @default("KE")
+
+  wallet               Wallet?
+  userPackages         UserPackage[]
+  taskSubmissions      TaskSubmission[]
+  adViews              AdView[]
+  whatsappSubmissions  WhatsappSubmission[]
+  referralsGiven       Referral[]       @relation("Referrer")
+  referralReceived     Referral?        @relation("ReferredUser")
+  walletTransactions   WalletTransaction[]
+  deposits             Deposit[]
+  withdrawals          Withdrawal[]
+  mpesaTransactions    MpesaTransaction[]
+  notifications        Notification[]
+  supportTickets       SupportTicket[]
+  supportMessages      SupportMessage[]
+  adminAuditLogs       AdminAuditLog[]  @relation("AdminLogs")
+  verificationRecords  VerificationRecord[]
+  deviceLogs           DeviceLog[]
+  otpCodes             OtpCode[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model MembershipPackage {
+  id                   String   @id @default(uuid())
+  name                 String   @unique
+  price                Float
+  description          String
+  taskLimitDaily       Int
+  dataAnnotationAccess Boolean  @default(true)
+  watchAdsLimit        Int      @default(5)
+  whatsappTasksLimit   Int      @default(2)
+  referralBonus        Float    @default(50)
+  durationDays         Int      @default(30)
+  isActive             Boolean  @default(true)
+  featuresJson         String   // Stored as JSON array string
+  users                User[]
+  userPackages         UserPackage[]
+  tasks                Task[]
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+model UserPackage {
+  id             String            @id @default(uuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  packageId      String
+  package        MembershipPackage @relation(fields: [packageId], references: [id])
+  activatedAt    DateTime          @default(now())
+  expiresAt      DateTime
+  status         String            @default("ACTIVE")
+  paymentReceipt String?
+  createdAt      DateTime          @default(now())
+}
+
+model TaskCategory {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  icon        String   @default("CheckCircle")
+  description String
+  tasks       Task[]
+  createdAt   DateTime @default(now())
+}
+
+model Task {
+  id              String           @id @default(uuid())
+  title           String
+  instructions    String
+  categoryId      String
+  category        TaskCategory     @relation(fields: [categoryId], references: [id])
+  reward          Float
+  minPackageTier  String           @default("BRONZE")
+  packageId       String?
+  package         MembershipPackage? @relation(fields: [packageId], references: [id])
+  durationSeconds Int              @default(60)
+  totalSlots      Int              @default(100)
+  remainingSlots  Int              @default(100)
+  deadline        DateTime?
+  status          String           @default("ACTIVE")
+  dataPayloadJson String?          // JSON string for annotation data (images, text, options)
+  submissions     TaskSubmission[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+model TaskSubmission {
+  id                 String   @id @default(uuid())
+  taskId             String
+  task               Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  userId             String
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status             String   @default("PENDING") // PENDING, UNDER_REVIEW, APPROVED, REJECTED
+  proofUrl           String?
+  submissionDataJson String?
+  adminNotes         String?
+  reviewedAt         DateTime?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
+
+model Advertisement {
+  id              String   @id @default(uuid())
+  title           String
+  advertiser      String
+  mediaUrl        String
+  targetUrl       String?
+  durationSeconds Int      @default(30)
+  reward          Float
+  dailyLimit      Int      @default(10)
+  minPackageTier  String   @default("BRONZE")
+  status          String   @default("ACTIVE")
+  views           AdView[]
+  createdAt       DateTime @default(now())
+}
+
+model AdView {
+  id               String        @id @default(uuid())
+  adId             String
+  advertisement    Advertisement @relation(fields: [adId], references: [id], onDelete: Cascade)
+  userId           String
+  user             User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  viewedAt         DateTime      @default(now())
+  rewarded         Boolean       @default(false)
+  watchTimeSeconds Int           @default(0)
+}
+
+model WhatsappCampaign {
+  id              String               @id @default(uuid())
+  campaignName    String
+  mediaUrl        String
+  caption         String
+  instructions    String
+  reward          Float
+  maxParticipants Int                  @default(50)
+  minPackageTier  String               @default("BRONZE")
+  deadline        DateTime?
+  status          String               @default("ACTIVE")
+  submissions     WhatsappSubmission[]
+  createdAt       DateTime             @default(now())
+}
+
+model WhatsappSubmission {
+  id          String           @id @default(uuid())
+  campaignId  String
+  campaign    WhatsappCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  proofUrl    String
+  status      String           @default("PENDING") // PENDING, APPROVED, REJECTED
+  adminNotes  String?
+  submittedAt DateTime         @default(now())
+}
+
+model Referral {
+  id             String    @id @default(uuid())
+  referrerId     String
+  referrer       User      @relation("Referrer", fields: [referrerId], references: [id])
+  referredUserId String    @unique
+  referredUser   User      @relation("ReferredUser", fields: [referredUserId], references: [id])
+  rewardAmount   Float     @default(50)
+  status         String    @default("PENDING") // PENDING, QUALIFIED, REJECTED
+  qualifiedAt    DateTime?
+  createdAt      DateTime  @default(now())
+}
+
+model Wallet {
+  id               String              @id @default(uuid())
+  userId           String              @unique
+  user             User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  availableBalance Float               @default(0.0)
+  pendingBalance   Float               @default(0.0)
+  totalEarned      Float               @default(0.0)
+  totalWithdrawn   Float               @default(0.0)
+  transactions     WalletTransaction[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+}
+
+model WalletTransaction {
+  id          String   @id @default(uuid())
+  walletId    String
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  amount      Float
+  type        String   // ACTIVATION_FEE, PACKAGE_PURCHASE, TASK_REWARD, REFERRAL_REWARD, AD_REWARD, WHATSAPP_REWARD, WITHDRAWAL, REFUND, ADMIN_ADJUSTMENT
+  status      String   @default("COMPLETED") // PENDING, COMPLETED, FAILED, CANCELLED
+  description String
+  referenceId String?
+  createdAt   DateTime @default(now())
+}
+
+model Deposit {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mpesaReceipt      String?  @unique
+  amount            Float
+  phone             String
+  status            String   @default("PENDING") // PENDING, COMPLETED, FAILED
+  checkoutRequestId String?  @unique
+  merchantRequestId String?
+  type              String   @default("ACTIVATION") // ACTIVATION or PACKAGE
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model Withdrawal {
+  id           String    @id @default(uuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mpesaNumber  String
+  amount       Float
+  fee          Float     @default(0.0)
+  status       String    @default("PENDING") // PENDING, PROCESSING, PAID, FAILED, REJECTED, CANCELLED
+  mpesaReceipt String?
+  adminNotes   String?
+  requestedAt  DateTime  @default(now())
+  processedAt  DateTime?
+}
+
+model MpesaTransaction {
+  id                String   @id @default(uuid())
+  userId            String?
+  user              User?    @relation(fields: [userId], references: [id])
+  checkoutRequestId String   @unique
+  merchantRequestId String
+  mpesaReceipt      String?
+  amount            Float
+  phoneNumber       String
+  resultCode        Int?
+  resultDesc        String?
+  rawPayload        String?
+  createdAt         DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   @default("INFO")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model SupportTicket {
+  id        String           @id @default(uuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subject   String
+  category  String
+  status    String           @default("OPEN") // OPEN, IN_PROGRESS, WAITING_FOR_USER, RESOLVED, CLOSED
+  priority  String           @default("NORMAL")
+  messages  SupportMessage[]
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+model SupportMessage {
+  id            String        @id @default(uuid())
+  ticketId      String
+  ticket        SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  senderId      String
+  sender        User          @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  message       String
+  attachmentUrl String?
+  createdAt     DateTime      @default(now())
+}
+
+model AdminAuditLog {
+  id          String   @id @default(uuid())
+  adminId     String
+  admin       User     @relation("AdminLogs", fields: [adminId], references: [id])
+  action      String
+  targetType  String
+  targetId    String?
+  detailsJson String?
+  createdAt   DateTime @default(now())
+}
+
+model VerificationRecord {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nationalId     String?
+  idDocumentUrl  String?
+  status         String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  verifiedAt     DateTime?
+  createdAt      DateTime @default(now())
+}
+
+model SystemSetting {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String
+  updatedAt   DateTime @updatedAt
+}
+
+model DeviceLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  ipAddress String
+  userAgent String?
+  country   String?
+  isBlocked Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model OtpCode {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code      String
+  type      String   // EMAIL, PHONE
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
