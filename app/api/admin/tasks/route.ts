@@ -6,20 +6,23 @@ export async function GET(req: NextRequest) {
   try {
     await requireAdmin(req);
 
-    const tasks = await prisma.task.findMany({
-      include: { category: true },
-      orderBy: { createdAt: 'desc' },
-    });
+    const [tasks, ads, whatsappCampaigns, categories] = await Promise.all([
+      prisma.task.findMany({
+        include: { category: true },
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.advertisement.findMany({
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.whatsappCampaign.findMany({
+        orderBy: { createdAt: 'desc' },
+      }),
+      prisma.taskCategory.findMany({
+        orderBy: { name: 'asc' },
+      }),
+    ]);
 
-    const ads = await prisma.advertisement.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-
-    const whatsappCampaigns = await prisma.whatsappCampaign.findMany({
-      orderBy: { createdAt: 'desc' },
-    });
-
-    return NextResponse.json({ tasks, ads, whatsappCampaigns });
+    return NextResponse.json({ tasks, ads, whatsappCampaigns, categories });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 403 });
   }

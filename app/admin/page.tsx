@@ -144,6 +144,8 @@ export default function AdminDashboardPage() {
     } catch (e) {}
   };
 
+  const [categoriesList, setCategoriesList] = useState<any[]>([]);
+
   const fetchExistingTasks = async () => {
     try {
       const res = await fetch('/api/admin/tasks');
@@ -154,8 +156,28 @@ export default function AdminDashboardPage() {
           ads: data.ads || [],
           whatsappCampaigns: data.whatsappCampaigns || [],
         });
+        if (data.categories) setCategoriesList(data.categories);
       }
     } catch (e) {}
+  };
+
+  const handleToggleTaskStatus = async (taskId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: taskId, status: newStatus }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update task status');
+      setSuccessMsg(`Task status updated to ${newStatus}`);
+      fetchExistingTasks();
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   const handleDeleteItem = async (id: string, type: 'TASK' | 'AD' | 'WHATSAPP') => {
@@ -762,6 +784,36 @@ export default function AdminDashboardPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Task Category</label>
+                  <select
+                    value={taskForm.categorySlug}
+                    onChange={(e) => setTaskForm({ ...taskForm, categorySlug: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
+                  >
+                    {categoriesList.length > 0 ? (
+                      categoriesList.map((cat) => (
+                        <option key={cat.id} value={cat.slug}>
+                          {cat.name}
+                        </option>
+                      ))
+                    ) : (
+                      <>
+                        <option value="image-labelling">Image Labelling</option>
+                        <option value="data-annotation">Data Annotation</option>
+                        <option value="audio-transcription">Audio Transcription</option>
+                        <option value="whatsapp-posting">WhatsApp Posting</option>
+                        <option value="watching-ads">Watching Ads</option>
+                        <option value="following-channels">Following Channels (Instagram, YouTube)</option>
+                        <option value="web-testing">Web Testing</option>
+                        <option value="app-testing">App Testing</option>
+                        <option value="surveys-reviews">Surveys & Reviews</option>
+                        <option value="product-comparison">User Experience Product Comparison</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+
+                <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Reward (KES)</label>
                   <input
                     type="number"
@@ -772,7 +824,9 @@ export default function AdminDashboardPage() {
                     className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
                   />
                 </div>
+              </div>
 
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Minimum Package Required</label>
                   <select
@@ -785,6 +839,18 @@ export default function AdminDashboardPage() {
                     <option value="GOLD">GOLD (KES 1,500)</option>
                     <option value="PLATINUM">PLATINUM (KES 3,000)</option>
                   </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Total Available Slots</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={taskForm.totalSlots}
+                    onChange={(e) => setTaskForm({ ...taskForm, totalSlots: e.target.value })}
+                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
+                  />
                 </div>
               </div>
 
@@ -901,6 +967,16 @@ export default function AdminDashboardPage() {
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="font-bold text-emerald-400 text-sm">KES {t.reward}</span>
+                          <button
+                            onClick={() => handleToggleTaskStatus(t.id, t.status)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
+                              t.status === 'ACTIVE'
+                                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
+                                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
+                            }`}
+                          >
+                            {t.status === 'ACTIVE' ? 'Disable Task' : 'Enable Task'}
+                          </button>
                           <button
                             onClick={() => handleDeleteItem(t.id, 'TASK')}
                             className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"

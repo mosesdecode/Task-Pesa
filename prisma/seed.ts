@@ -118,11 +118,16 @@ async function main() {
 
   // 3. Task Categories
   const categories = [
-    { name: 'Data Annotation', slug: 'data-annotation', icon: 'BrainCircuit', description: 'Label images, classify sentiment, and transcribe audio for AI models.' },
-    { name: 'Microtasks', slug: 'microtasks', icon: 'CheckSquare', description: 'Quick digital verification, text checking, and data entry tasks.' },
-    { name: 'Watch Ads', slug: 'watch-ads', icon: 'PlaySquare', description: 'Watch verified brand advertisements and claim instant rewards.' },
-    { name: 'WhatsApp Promotions', slug: 'whatsapp-promotions', icon: 'Share2', description: 'Post approved campaign material to your WhatsApp status.' },
-    { name: 'Referral Rewards', slug: 'referral-rewards', icon: 'Users', description: 'Invite friends to activate their accounts and earn referral bonuses.' },
+    { name: 'Image Labelling', slug: 'image-labelling', icon: 'BrainCircuit', description: 'Draw bounding boxes and label produce, object, or street images.' },
+    { name: 'Data Annotation', slug: 'data-annotation', icon: 'BrainCircuit', description: 'Classify text sentiment, entity tagging, and data dataset validation.' },
+    { name: 'Audio Transcription', slug: 'audio-transcription', icon: 'FileText', description: 'Transcribe Swahili or English voice recordings to text.' },
+    { name: 'WhatsApp Posting', slug: 'whatsapp-posting', icon: 'Share2', description: 'Post campaign promotional material to status and submit screenshot proof.' },
+    { name: 'Watching Ads', slug: 'watching-ads', icon: 'PlaySquare', description: 'Watch brand sponsor video advertisements to earn instant rewards.' },
+    { name: 'Following Channels (Instagram, YouTube)', slug: 'following-channels', icon: 'Users', description: 'Follow official social media pages or subscribe to YouTube channels.' },
+    { name: 'Web Testing', slug: 'web-testing', icon: 'Zap', description: 'Test website navigation, speed, and responsiveness, then submit feedback.' },
+    { name: 'App Testing', slug: 'app-testing', icon: 'Smartphone', description: 'Install and test mobile application features and submit review screenshots.' },
+    { name: 'Surveys & Reviews', slug: 'surveys-reviews', icon: 'CheckSquare', description: 'Complete market research questionnaires and brand opinion surveys.' },
+    { name: 'User Experience Product Comparison', slug: 'product-comparison', icon: 'Layers', description: 'Compare e-commerce or product features and rate user experience.' },
   ];
 
   const categoryMap: Record<string, string> = {};
