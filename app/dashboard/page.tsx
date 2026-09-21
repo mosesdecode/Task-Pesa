@@ -133,7 +133,7 @@ export default function UserDashboard() {
             KES {availableBalance.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
           </p>
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-gray-400">Min Payout: KES 2,500</span>
+            <span className="text-gray-400">Min Payout: KES 500</span>
             <Link href="/wallet" className="text-brand-400 font-bold hover:underline">
               Withdraw →
             </Link>
@@ -215,18 +215,18 @@ export default function UserDashboard() {
         <div className="space-y-6">
           {/* Withdrawal Progress Bar */}
           <div className="p-6 rounded-3xl glass-card space-y-4">
-            <h4 className="text-sm font-bold text-white">Withdrawal Progress (KES 2,500 Min)</h4>
+            <h4 className="text-sm font-bold text-white">Withdrawal Progress (KES 500 Min)</h4>
             <div className="space-y-1.5">
               <div className="flex justify-between text-xs font-semibold">
                 <span className="text-gray-400">Current Balance</span>
                 <span className="text-brand-400">
-                  {Math.min(100, Math.round((availableBalance / 2500) * 100))}%
+                  {Math.min(100, Math.round((availableBalance / 500) * 100))}%
                 </span>
               </div>
               <div className="w-full h-3 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
                 <div
                   className="h-full bg-gradient-to-r from-brand-500 to-emerald-400 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, (availableBalance / 2500) * 100)}%` }}
+                  style={{ width: `${Math.min(100, (availableBalance / 500) * 100)}%` }}
                 />
               </div>
             </div>

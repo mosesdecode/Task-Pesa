@@ -119,7 +119,7 @@ export default function LandingPage() {
             { step: '03', title: 'Choose Available Tasks', desc: 'Browse Data Annotation, Sponsored Ads, WhatsApp promo campaigns, or microtasks.' },
             { step: '04', title: 'Complete Work', desc: 'Submit accurate annotations, watch required ad durations, or upload status screenshots.' },
             { step: '05', title: 'Track & Accumulate Rewards', desc: 'Watch your available and pending balances update automatically upon approval.' },
-            { step: '06', title: 'Withdraw via M-Pesa', desc: 'Request direct Safaricom M-Pesa payouts once your available balance reaches KES 2,500.' },
+            { step: '06', title: 'Withdraw via M-Pesa', desc: 'Request direct Safaricom M-Pesa payouts once your available balance reaches KES 500.' },
           ].map((item, idx) => (
             <div key={idx} className="p-6 rounded-3xl glass-card glass-card-hover space-y-3 relative">
               <span className="text-4xl font-black text-brand-500/30 absolute top-4 right-6 font-mono">
@@ -200,12 +200,13 @@ export default function LandingPage() {
                   ))}
                 </ul>
               </div>
-              <Link
-                href="/register"
-                className="w-full py-3 rounded-xl bg-slate-800 hover:bg-brand-500 hover:text-dark-900 text-white font-extrabold text-xs transition-all text-center border border-slate-700"
+              <button
+                disabled
+                className="w-full py-3.5 rounded-xl font-extrabold text-xs transition-all text-center flex items-center justify-center gap-2 bg-slate-800/80 text-amber-400/90 border border-amber-500/30 cursor-not-allowed opacity-90 shadow-inner"
               >
-                Select {pkg.name} Package
-              </Link>
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                Coming Soon
+              </button>
             </div>
           ))}
         </div>
@@ -233,7 +234,7 @@ export default function LandingPage() {
             },
             {
               q: '3. What are the withdrawal rules and minimum payout threshold?',
-              a: 'The minimum withdrawable balance is KES 2,500. Once your available balance reaches KES 2,500, you can request direct M-Pesa payouts. Withdrawals are processed weekly on Fridays between 9:00 AM and 5:00 PM EAT.',
+              a: 'The minimum withdrawable balance is KES 500. Once your available balance reaches KES 500, you can request direct M-Pesa payouts. Withdrawals are processed within 48 hours of review.',
             },
             {
               q: '4. How do membership packages work?',

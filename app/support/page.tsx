@@ -196,7 +196,7 @@ export default function SupportPage() {
           <div className="p-5 rounded-2xl glass-card space-y-2">
             <h4 className="font-bold text-white text-sm">3. What are the withdrawal rules and minimum threshold?</h4>
             <p className="text-xs text-gray-300 leading-relaxed">
-              The minimum withdrawable balance is KES 2,500. Request direct Safaricom M-Pesa payouts once reached. Disbursed weekly on Fridays between 9:00 AM and 5:00 PM EAT.
+              The minimum withdrawable balance is KES 500. Request direct Safaricom M-Pesa payouts once reached. Processed within 48 hours of review.
             </p>
           </div>
 
