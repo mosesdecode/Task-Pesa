@@ -28,7 +28,13 @@ import {
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'add-task' | 'packages' | 'submissions' | 'withdrawals' | 'users' | 'admin-settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'add-task' | 'packages' | 'submissions' | 'withdrawals' | 'users' | 'banners-social' | 'admin-settings'>('overview');
+  const [bannersList, setBannersList] = useState<any[]>([]);
+  const [socialLinksList, setSocialLinksList] = useState<any[]>([]);
+
+  // Banner form state
+  const [bannerForm, setBannerForm] = useState({ title: '', imageUrl: '', linkUrl: '', sortOrder: '0' });
+  const [socialForm, setSocialForm] = useState({ platform: 'whatsapp', label: 'WhatsApp Community', url: '' });
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -70,6 +76,7 @@ export default function AdminDashboardPage() {
     categorySlug: 'data-annotation',
     reward: '150',
     instructions: '',
+    proofRequired: 'Submit text, link, or screenshot proof',
     durationSeconds: '120',
     totalSlots: '100',
     minPackageTier: 'BRONZE',
@@ -169,6 +176,104 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const fetchBanners = async () => {
+    try {
+      const res = await fetch('/api/admin/banners');
+      if (res.ok) {
+        const data = await res.json();
+        setBannersList(data.banners || []);
+      }
+    } catch (e) {}
+  };
+
+  const fetchSocialLinks = async () => {
+    try {
+      const res = await fetch('/api/admin/social-links');
+      if (res.ok) {
+        const data = await res.json();
+        setSocialLinksList(data.links || []);
+      }
+    } catch (e) {}
+  };
+
+  const handleUserAction = async (userId: string, action: 'BAN' | 'UNBAN' | 'FLAG' | 'UNFLAG') => {
+    setError('');
+    setSuccessMsg('');
+    const reason = action === 'BAN' ? prompt('Enter reason for banning user:', 'Suspicious activities / policy violation') :
+                   action === 'FLAG' ? prompt('Enter reason for flagging user:', 'Multiple account IP overlap / suspicious activities') : undefined;
+
+    if ((action === 'BAN' || action === 'FLAG') && !reason) return;
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action, banReason: reason, flagReason: reason }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Action failed');
+      setSuccessMsg(data.message);
+      fetchUsers();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleCreateBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/banners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bannerForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save banner');
+      setSuccessMsg('Banner created successfully!');
+      setBannerForm({ title: '', imageUrl: '', linkUrl: '', sortOrder: '0' });
+      fetchBanners();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!confirm('Delete banner?')) return;
+    try {
+      await fetch(`/api/admin/banners?id=${id}`, { method: 'DELETE' });
+      fetchBanners();
+    } catch (e) {}
+  };
+
+  const handleSaveSocialLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/social-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(socialForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save social link');
+      setSuccessMsg('Social link updated successfully!');
+      fetchSocialLinks();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleDeleteSocialLink = async (id: string) => {
+    if (!confirm('Delete social link?')) return;
+    try {
+      await fetch(`/api/admin/social-links?id=${id}`, { method: 'DELETE' });
+      fetchSocialLinks();
+    } catch (e) {}
+  };
+
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
@@ -178,6 +283,8 @@ export default function AdminDashboardPage() {
       await fetchWithdrawals();
       await fetchUsers();
       await fetchExistingTasks();
+      await fetchBanners();
+      await fetchSocialLinks();
       setLoading(false);
     };
     loadAll();
@@ -204,6 +311,7 @@ export default function AdminDashboardPage() {
         categorySlug: 'data-annotation',
         reward: '150',
         instructions: '',
+        proofRequired: 'Submit text, link, or screenshot proof',
         durationSeconds: '120',
         totalSlots: '100',
         minPackageTier: 'BRONZE',
@@ -464,6 +572,17 @@ export default function AdminDashboardPage() {
           </button>
 
           <button
+            onClick={() => setActiveTab('banners-social')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+              activeTab === 'banners-social'
+                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
+                : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            }`}
+          >
+            <Sparkles className="w-4 h-4 text-emerald-400" /> Banners & Social Links
+          </button>
+
+          <button
             onClick={() => setActiveTab('admin-settings')}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
               activeTab === 'admin-settings'
@@ -667,6 +786,17 @@ export default function AdminDashboardPage() {
                     <option value="PLATINUM">PLATINUM (KES 3,000)</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Proof Required Instructions</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Upload screenshot of completed survey or enter transaction ID"
+                  value={taskForm.proofRequired}
+                  onChange={(e) => setTaskForm({ ...taskForm, proofRequired: e.target.value })}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
+                />
               </div>
 
               {taskType === 'ADVERTISEMENT' && (
@@ -1170,38 +1300,211 @@ export default function AdminDashboardPage() {
                   <tr>
                     <th className="px-4 py-3">User</th>
                     <th className="px-4 py-3">Phone / M-Pesa</th>
-                    <th className="px-4 py-3">Role</th>
-                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Status / Flags</th>
                     <th className="px-4 py-3">Package Tier</th>
                     <th className="px-4 py-3 text-right">Available Balance</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
                   {filteredUsers.map((u) => (
                     <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
                       <td className="px-4 py-3 font-medium text-white">
-                        <div>{u.fullName}</div>
+                        <div className="flex items-center gap-1.5">
+                          <span>{u.fullName}</span>
+                          {u.isFlagged && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40" title={u.flagReason}>
+                              ⚠️ Flagged
+                            </span>
+                          )}
+                          {u.isBanned && (
+                            <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold border border-rose-500/40" title={u.banReason}>
+                              🚫 Banned
+                            </span>
+                          )}
+                        </div>
                         <div className="text-[10px] text-slate-400">@{u.username} • {u.email}</div>
                       </td>
                       <td className="px-4 py-3 text-slate-300 font-mono">{u.phone}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded font-bold ${u.role === 'ADMIN' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' : 'bg-slate-800 text-slate-300'}`}>
-                          {u.role}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded font-bold ${u.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                          {u.status}
+                        <span className={`px-2 py-0.5 rounded font-bold ${u.isBanned ? 'bg-rose-500/20 text-rose-400' : u.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                          {u.isBanned ? 'BANNED' : u.status}
                         </span>
                       </td>
                       <td className="px-4 py-3 font-semibold text-brand-300">{u.package?.name || 'BRONZE'}</td>
                       <td className="px-4 py-3 text-right font-extrabold text-white">
                         KES {(u.wallet?.availableBalance || 0).toLocaleString('en-KE')}
                       </td>
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <button
+                          onClick={() => handleUserAction(u.id, u.isBanned ? 'UNBAN' : 'BAN')}
+                          className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                            u.isBanned
+                              ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                              : 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30'
+                          }`}
+                        >
+                          {u.isBanned ? 'Unban User' : 'Ban User'}
+                        </button>
+                        <button
+                          onClick={() => handleUserAction(u.id, u.isFlagged ? 'UNFLAG' : 'FLAG')}
+                          className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                            u.isFlagged
+                              ? 'bg-slate-800 text-slate-300'
+                              : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30'
+                          }`}
+                        >
+                          {u.isFlagged ? 'Unflag' : 'Flag Suspect'}
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 7: BANNERS & SOCIAL LINKS */}
+        {activeTab === 'banners-social' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Top Banners Management */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-emerald-400" /> Homepage Top Banners (~5s Slideshow)
+              </h2>
+
+              <form onSubmit={handleCreateBanner} className="space-y-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <h3 className="text-xs font-bold text-slate-300 uppercase">Add New Banner Slide</h3>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Banner Title / Text</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 🔥 Earn KES 500 Daily completing simple verified tasks!"
+                    value={bannerForm.title}
+                    onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Image URL (Optional)</label>
+                  <input
+                    type="url"
+                    placeholder="https://images.unsplash.com/..."
+                    value={bannerForm.imageUrl}
+                    onChange={(e) => setBannerForm({ ...bannerForm, imageUrl: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Target Link URL (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="/tasks or https://..."
+                    value={bannerForm.linkUrl}
+                    onChange={(e) => setBannerForm({ ...bannerForm, linkUrl: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold transition-all"
+                >
+                  Add Banner Slide
+                </button>
+              </form>
+
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-slate-400 uppercase">Configured Slides ({bannersList.length})</h3>
+                {bannersList.map((b) => (
+                  <div key={b.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
+                    <div>
+                      <p className="font-bold text-white">{b.title}</p>
+                      {b.linkUrl && <p className="text-[10px] text-brand-400">{b.linkUrl}</p>}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteBanner(b.id)}
+                      className="px-2 py-1 rounded bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 text-[10px] font-bold"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Social Links Management */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                <Share2 className="w-5 h-5 text-brand-400" /> Platform Social Media Links
+              </h2>
+
+              <form onSubmit={handleSaveSocialLink} className="space-y-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
+                <h3 className="text-xs font-bold text-slate-300 uppercase">Add / Update Social Link</h3>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Platform</label>
+                  <select
+                    value={socialForm.platform}
+                    onChange={(e) => setSocialForm({ ...socialForm, platform: e.target.value, label: `${e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1)} Channel` })}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="facebook">Facebook</option>
+                    <option value="telegram">Telegram</option>
+                    <option value="instagram">Instagram</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Label Text</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. WhatsApp Official Group"
+                    value={socialForm.label}
+                    onChange={(e) => setSocialForm({ ...socialForm, label: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Full URL</label>
+                  <input
+                    type="url"
+                    required
+                    placeholder="https://chat.whatsapp.com/..."
+                    value={socialForm.url}
+                    onChange={(e) => setSocialForm({ ...socialForm, url: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-extrabold transition-all"
+                >
+                  Save Social Link
+                </button>
+              </form>
+
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-slate-400 uppercase">Active Social Links ({socialLinksList.length})</h3>
+                {socialLinksList.map((s) => (
+                  <div key={s.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
+                    <div>
+                      <span className="px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 font-bold uppercase text-[10px] mr-2">
+                        {s.platform}
+                      </span>
+                      <span className="font-bold text-white">{s.label}</span>
+                      <p className="text-[10px] text-slate-400 truncate max-w-xs">{s.url}</p>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteSocialLink(s.id)}
+                      className="px-2 py-1 rounded bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 text-[10px] font-bold"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         )}

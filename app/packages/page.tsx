@@ -190,21 +190,11 @@ export default function PackagesPage() {
               </div>
 
               <button
-                disabled={isCurrent || isUpgrading !== false}
-                onClick={() => handleSelectPackage(pkg)}
-                className={`w-full py-3.5 rounded-xl font-extrabold text-xs transition-all text-center flex items-center justify-center gap-2 ${
-                  isCurrent
-                    ? 'bg-slate-800 text-gray-500 cursor-default border border-slate-700'
-                    : 'bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white shadow-lg shadow-brand-500/20 hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:scale-100'
-                }`}
+                disabled
+                className="w-full py-3.5 rounded-xl font-extrabold text-xs transition-all text-center flex items-center justify-center gap-2 bg-slate-800/80 text-amber-400/90 border border-amber-500/30 cursor-not-allowed opacity-90 shadow-inner"
               >
-                {isCurrent ? (
-                  'Active Membership Tier'
-                ) : isUpgrading ? (
-                  <><Loader2 className="w-4 h-4 animate-spin" /> Opening Payment...</>
-                ) : (
-                  <><CreditCard className="w-4 h-4" /> Pay KES {pkg.price}</>
-                )}
+                <Sparkles className="w-4 h-4 text-amber-400" />
+                Coming Soon
               </button>
             </div>
           );

@@ -29,21 +29,22 @@ export async function POST(req: NextRequest) {
   try {
     const admin = await requireAdmin(req);
     const body = await req.json();
-    const { type, title, categorySlug, reward, instructions, durationSeconds, totalSlots, minPackageTier, mediaUrl, advertiser, campaignName, caption } = body;
+    const { type, title, categorySlug, reward, instructions, proofRequired, durationSeconds, totalSlots, minPackageTier, mediaUrl, advertiser, campaignName, caption } = body;
 
-    if (type === 'DATA_ANNOTATION' || type === 'MICROTASK') {
+    if (type === 'DATA_ANNOTATION' || type === 'MICROTASK' || !type) {
       const category = await prisma.taskCategory.findFirst({
         where: { slug: categorySlug || 'data-annotation' },
-      });
+      }) || await prisma.taskCategory.findFirst();
 
       if (!category) {
-        return NextResponse.json({ error: 'Selected category does not exist' }, { status: 400 });
+        return NextResponse.json({ error: 'No task category found. Create a category first.' }, { status: 400 });
       }
 
       const task = await prisma.task.create({
         data: {
           title,
           instructions,
+          proofRequired: proofRequired || 'Submit screenshot or completion proof',
           categoryId: category.id,
           reward: parseFloat(reward),
           durationSeconds: parseInt(durationSeconds) || 60,
@@ -60,7 +61,7 @@ export async function POST(req: NextRequest) {
           action: 'CREATE_TASK',
           targetType: 'TASK',
           targetId: task.id,
-          detailsJson: JSON.stringify({ title, reward }),
+          detailsJson: JSON.stringify({ title, reward, proofRequired }),
         },
       });
 
@@ -107,15 +108,50 @@ export async function POST(req: NextRequest) {
   }
 }
 
+export async function PUT(req: NextRequest) {
+  try {
+    const admin = await requireAdmin(req);
+    const body = await req.json();
+    const { id, title, instructions, proofRequired, reward, status } = body;
+
+    if (!id) return NextResponse.json({ error: 'Task ID required' }, { status: 400 });
+
+    const task = await prisma.task.update({
+      where: { id },
+      data: {
+        title: title || undefined,
+        instructions: instructions || undefined,
+        proofRequired: proofRequired || undefined,
+        reward: reward ? parseFloat(reward) : undefined,
+        status: status || undefined,
+      },
+    });
+
+    await prisma.adminAuditLog.create({
+      data: {
+        adminId: admin.id,
+        action: 'UPDATE_TASK',
+        targetType: 'TASK',
+        targetId: task.id,
+        detailsJson: JSON.stringify({ status, title }),
+      },
+    });
+
+    return NextResponse.json({ success: true, task });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 400 });
+  }
+}
+
 export async function DELETE(req: NextRequest) {
   try {
     const admin = await requireAdmin(req);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
-    const itemType = searchParams.get('type'); // 'TASK' | 'AD' | 'WHATSAPP'
+    const itemType = searchParams.get('type') || 'TASK';
 
-    if (!id || !itemType) {
-      return NextResponse.json({ error: 'Missing id or itemType' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'Missing item ID' }, { status: 400 });
     }
 
     if (itemType === 'TASK') {

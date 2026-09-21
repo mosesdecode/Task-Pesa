@@ -34,6 +34,11 @@ model User {
   phoneVerified    Boolean       @default(false)
   country          String?       @default("KE")
 
+  isBanned         Boolean       @default(false)
+  banReason        String?
+  isFlagged        Boolean       @default(false)
+  flagReason       String?
+
   wallet               Wallet?
   userPackages         UserPackage[]
   taskSubmissions      TaskSubmission[]
@@ -115,6 +120,7 @@ model Task {
   remainingSlots  Int              @default(100)
   deadline        DateTime?
   status          String           @default("ACTIVE")
+  proofRequired   String?          // Description of required proof (e.g. Screenshot, Text, Transaction ID)
   dataPayloadJson String?          // JSON string for annotation data (images, text, options)
   submissions     TaskSubmission[]
   createdAt       DateTime         @default(now())
@@ -195,7 +201,7 @@ model Referral {
   referrer       User      @relation("Referrer", fields: [referrerId], references: [id])
   referredUserId String    @unique
   referredUser   User      @relation("ReferredUser", fields: [referredUserId], references: [id])
-  rewardAmount   Float     @default(50)
+  rewardAmount   Float     @default(10.0)
   status         String    @default("PENDING") // PENDING, QUALIFIED, REJECTED
   qualifiedAt    DateTime?
   createdAt      DateTime  @default(now())
@@ -249,7 +255,7 @@ model Withdrawal {
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   mpesaNumber  String
   amount       Float
-  fee          Float     @default(0.0)
+  fee          Float     @default(10.0)
   status       String    @default("PENDING") // PENDING, PROCESSING, PAID, FAILED, REJECTED, CANCELLED
   mpesaReceipt String?
   adminNotes   String?
@@ -358,3 +364,24 @@ model OtpCode {
   isUsed    Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+
+model Banner {
+  id        String   @id @default(uuid())
+  title     String
+  imageUrl  String
+  linkUrl   String?
+  isActive  Boolean  @default(true)
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model SocialLink {
+  id        String   @id @default(uuid())
+  platform  String   @unique // whatsapp, facebook, telegram, instagram
+  label     String
+  url       String
+  isActive  Boolean  @default(true)
+  updatedAt DateTime @updatedAt
+}
+

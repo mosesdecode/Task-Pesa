@@ -19,6 +19,9 @@ import {
   HelpCircle,
 } from 'lucide-react';
 
+import TopBannerCarousel from '@/components/TopBannerCarousel';
+import SocialLinks from '@/components/SocialLinks';
+
 export default function LandingPage() {
   const [packages, setPackages] = useState<any[]>([]);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -33,9 +36,12 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <div className="space-y-24 pb-12 overflow-x-hidden">
+    <div className="space-y-16 pb-12 overflow-x-hidden">
+      {/* 0. TOP BANNER CAROUSEL */}
+      <TopBannerCarousel />
+
       {/* 1. HERO SECTION */}
-      <section className="relative pt-12 md:pt-20 pb-16 overflow-hidden">
+      <section className="relative pt-6 md:pt-12 pb-16 overflow-hidden">
         {/* Glow backdrop blobs */}
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-brand-600/20 via-emerald-500/15 to-transparent blur-[120px] rounded-full pointer-events-none" />
         
@@ -69,23 +75,28 @@ export default function LandingPage() {
             </Link>
           </div>
 
+          {/* Social Links Bar */}
+          <div className="pt-2">
+            <SocialLinks />
+          </div>
+
           {/* Stats Bar */}
-          <div className="pt-12 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+          <div className="pt-8 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
             <div className="p-4 rounded-2xl glass-card text-center space-y-1">
               <p className="text-2xl font-black text-white">KES 200</p>
               <p className="text-xs text-gray-400 font-medium">Access Fee (Anti-Spam)</p>
             </div>
             <div className="p-4 rounded-2xl glass-card text-center space-y-1">
-              <p className="text-2xl font-black text-brand-400">KES 2,500</p>
+              <p className="text-2xl font-black text-brand-400">KES 500</p>
               <p className="text-xs text-gray-400 font-medium">Min Withdrawal Threshold</p>
             </div>
             <div className="p-4 rounded-2xl glass-card text-center space-y-1">
               <p className="text-2xl font-black text-white">100%</p>
-              <p className="text-xs text-gray-400 font-medium">M-Pesa Daraja Verified</p>
+              <p className="text-xs text-gray-400 font-medium">M-Pesa Payout Verified</p>
             </div>
             <div className="p-4 rounded-2xl glass-card text-center space-y-1">
-              <p className="text-2xl font-black text-emerald-400">Weekly</p>
-              <p className="text-xs text-gray-400 font-medium">Payout Processing Schedule</p>
+              <p className="text-2xl font-black text-emerald-400">48 Hours</p>
+              <p className="text-xs text-gray-400 font-medium">Payout Rate Cooldown</p>
             </div>
           </div>
         </div>
