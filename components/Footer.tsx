@@ -94,12 +94,7 @@ export default function Footer() {
           </div>
         </div>
 
-        {/* Disclaimer Banner */}
-        <div className="p-4 rounded-2xl bg-slate-800/30 border border-slate-700/40 text-xs text-gray-400 mb-8 leading-relaxed">
-          <strong className="text-gray-300 font-semibold block mb-1">Notice:</strong>
-          Task availability and earnings are not guaranteed. Rewards depend on successfully completing eligible tasks and meeting all campaign requirements. TaskMint is not an investment scheme. By using this platform you agree to our{' '}
-          <Link href="/terms" className="text-brand-400 hover:underline">Terms &amp; Conditions</Link>.
-        </div>
+
 
         <div className="border-t border-slate-800/80 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
           <p>© {new Date().getFullYear()} Task Mint Platform (Kenya). All rights reserved.</p>
