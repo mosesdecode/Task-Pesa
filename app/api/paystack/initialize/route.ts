@@ -12,7 +12,13 @@ export async function POST(req: NextRequest) {
     const paymentType = type || 'ACTIVATION';
     const reference = generatePaystackReference(paymentType === 'ACTIVATION' ? 'ACT' : 'PKG');
 
-    const appUrl = process.env.APP_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const proto = req.headers.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https');
+    const appUrl = process.env.APP_URL && !process.env.APP_URL.includes('localhost')
+      ? process.env.APP_URL
+      : host
+        ? `${proto}://${host}`
+        : 'http://localhost:3000';
     const callbackUrl = `${appUrl}/api/paystack/verify?reference=${reference}`;
 
     const result = await initializePaystackTransaction({

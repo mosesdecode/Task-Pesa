@@ -252,8 +252,58 @@ export async function processPaymentSuccess(checkoutRequestId: string, mpesaRece
           }
         }
       }
+    } else if (deposit.type === 'PACKAGE') {
+      // Find package matching price
+      const matchingPackage = await tx.membershipPackage.findFirst({
+        where: { price: deposit.amount },
+      });
+
+      if (matchingPackage) {
+        const expiresAt = new Date(Date.now() + matchingPackage.durationDays * 24 * 60 * 60 * 1000);
+
+        await tx.user.update({
+          where: { id: user.id },
+          data: { packageId: matchingPackage.id, packageExpiresAt: expiresAt },
+        });
+
+        await tx.userPackage.create({
+          data: {
+            userId: user.id,
+            packageId: matchingPackage.id,
+            expiresAt,
+            status: 'ACTIVE',
+            paymentReceipt: mpesaReceipt,
+          },
+        });
+
+        await tx.notification.create({
+          data: {
+            userId: user.id,
+            title: `Upgraded to ${matchingPackage.name}! 🌟`,
+            message: `Your ${matchingPackage.name} tier is now active for ${matchingPackage.durationDays} days. Enjoy higher task limits!`,
+            type: 'SUCCESS',
+          },
+        });
+
+        if (user.wallet) {
+          await tx.walletTransaction.create({
+            data: {
+              walletId: user.wallet.id,
+              userId: user.id,
+              amount: deposit.amount,
+              type: 'PACKAGE_PURCHASE',
+              status: 'COMPLETED',
+              description: `Package upgrade to ${matchingPackage.name} (Receipt: ${mpesaReceipt})`,
+              referenceId: mpesaReceipt,
+            },
+          });
+        }
+      }
     }
 
     return { success: true, depositId: deposit.id };
+  }, {
+    maxWait: 15000,
+    timeout: 30000,
   });
 }
