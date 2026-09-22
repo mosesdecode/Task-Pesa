@@ -39,7 +39,7 @@ export default function ReferralsPage() {
       <div className="space-y-2 text-center sm:text-left">
         <h1 className="text-3xl sm:text-4xl font-black text-white">Referral Program</h1>
         <p className="text-xs sm:text-sm text-gray-400">
-          Invite friends to activate their TaskPesa accounts and earn referral bonuses.
+          Invite friends to activate their TaskMint accounts and earn referral bonuses.
         </p>
       </div>
 

@@ -332,10 +332,10 @@ async function main() {
   // 8. Sample WhatsApp Campaigns
   const whatsappCampaigns = [
     {
-      campaignName: 'TaskPesa KES 100 Access & Earn Campaign',
+      campaignName: 'TaskMint KES 100 Access & Earn Campaign',
       mediaUrl: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
-      caption: '🚀 Turn your spare time into real digital earnings on TaskPesa! Register today and start completing data annotation & microtasks. Join here: https://taskpesa.co.ke/register?ref=KAMAU254',
-      instructions: 'Download the official TaskPesa poster image above, post it to your WhatsApp Status with the provided caption, keep it live for at least 12 hours, and upload a screenshot proof showing view count.',
+      caption: '🚀 Turn your spare time into real digital earnings on TaskMint! Register today and start completing data annotation & microtasks. Join here: https://taskmint.co.ke/register?ref=KAMAU254',
+      instructions: 'Download the official TaskMint poster image above, post it to your WhatsApp Status with the provided caption, keep it live for at least 12 hours, and upload a screenshot proof showing view count.',
       reward: 80.0,
       maxParticipants: 100,
       minPackageTier: 'BRONZE',
@@ -357,7 +357,7 @@ async function main() {
     await prisma.whatsappCampaign.create({ data: campaign });
   }
 
-  console.log('✅ TaskPesa Database Seeding Complete!');
+  console.log('✅ TaskMint Database Seeding Complete!');
 }
 
 main()

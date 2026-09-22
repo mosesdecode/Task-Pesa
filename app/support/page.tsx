@@ -175,7 +175,7 @@ export default function SupportPage() {
           <h3 className="text-2xl font-black text-white flex items-center gap-2">
             <HelpCircle className="w-6 h-6 text-brand-400" /> Frequently Asked Questions (FAQs)
           </h3>
-          <p className="text-xs text-gray-400">Quick answers to common questions about TaskPesa platform usage.</p>
+          <p className="text-xs text-gray-400">Quick answers to common questions about TaskMint platform usage.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -187,7 +187,7 @@ export default function SupportPage() {
           </div>
 
           <div className="p-5 rounded-2xl glass-card space-y-2">
-            <h4 className="font-bold text-white text-sm">2. How do I earn money on TaskPesa?</h4>
+            <h4 className="font-bold text-white text-sm">2. How do I earn money on TaskMint?</h4>
             <p className="text-xs text-gray-300 leading-relaxed">
               Earn through AI data annotation (image labeling, Swahili voice transcription), watching brand advertisements, posting WhatsApp status campaigns, and referral bonuses.
             </p>

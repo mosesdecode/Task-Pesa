@@ -39,7 +39,7 @@ export default function PrivacyPolicyPage() {
           </h1>
           
           <p className="text-slate-400 text-sm max-w-2xl leading-relaxed">
-            At TaskPesa, we respect your privacy and are committed to safeguarding your personal data, transaction history, and digital work submissions.
+            At TaskMint, we respect your privacy and are committed to safeguarding your personal data, transaction history, and digital work submissions.
           </p>
 
           <div className="text-xs text-slate-500 font-mono">
@@ -89,10 +89,10 @@ export default function PrivacyPolicyPage() {
               Introduction & Legal Scope
             </h2>
             <p>
-              This Privacy Policy explains how <strong>TaskPesa Digital Solutions</strong> (“TaskPesa”, “we”, “our”, or “us”) collects, uses, stores, and protects your personal data when you access or use our web application, micro-work marketplace, Safaricom M-Pesa payment portal, and related services.
+              This Privacy Policy explains how <strong>TaskMint Digital Solutions</strong> (“TaskMint”, “we”, “our”, or “us”) collects, uses, stores, and protects your personal data when you access or use our web application, micro-work marketplace, Safaricom M-Pesa payment portal, and related services.
             </p>
             <p>
-              By creating an account, paying the activation fee, or participating in tasks on TaskPesa, you explicitly consent to the data practices described in this policy, formulated in adherence to the <strong>Kenya Data Protection Act, 2019</strong> and international data safety guidelines.
+              By creating an account, paying the activation fee, or participating in tasks on TaskMint, you explicitly consent to the data practices described in this policy, formulated in adherence to the <strong>Kenya Data Protection Act, 2019</strong> and international data safety guidelines.
             </p>
           </section>
 
@@ -166,7 +166,7 @@ export default function PrivacyPolicyPage() {
               Data Sharing & Third-Party Services
             </h2>
             <p>
-              TaskPesa does <strong>NOT</strong> sell, rent, or trade your personal information to marketing brokers. We share data only with trusted partners necessary for core platform function:
+              TaskMint does <strong>NOT</strong> sell, rent, or trade your personal information to marketing brokers. We share data only with trusted partners necessary for core platform function:
             </p>
             <ul className="list-disc list-inside space-y-1.5 text-slate-300 text-xs pl-2">
               <li>
@@ -197,7 +197,7 @@ export default function PrivacyPolicyPage() {
               </div>
               <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
                 <strong className="text-white block mb-1">SSL/TLS Transport Encryption</strong>
-                All network communication between your web browser and TaskPesa servers is encrypted via TLS 1.3.
+                All network communication between your web browser and TaskMint servers is encrypted via TLS 1.3.
               </div>
               <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
                 <strong className="text-white block mb-1">JWT Session Tokens</strong>
@@ -216,7 +216,7 @@ export default function PrivacyPolicyPage() {
               <span className="w-7 h-7 rounded-lg bg-brand-500/20 text-brand-300 text-xs font-mono font-bold flex items-center justify-center">6</span>
               Your Rights under the Kenya Data Protection Act
             </h2>
-            <p>As a TaskPesa user, you possess the following rights regarding your personal data:</p>
+            <p>As a TaskMint user, you possess the following rights regarding your personal data:</p>
             <ul className="list-disc list-inside space-y-1.5 text-slate-300 text-xs pl-2">
               <li><strong>Right to Access:</strong> Request a copy of your personal data held in our database.</li>
               <li><strong>Right to Rectification:</strong> Request correction of inaccurate personal details.</li>
@@ -235,8 +235,8 @@ export default function PrivacyPolicyPage() {
               If you have questions, concerns, or requests regarding this Privacy Policy or your personal data rights, please contact our Data Protection Officer:
             </p>
             <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs space-y-1">
-              <p className="font-bold text-white">TaskPesa Data Protection Office</p>
-              <p className="text-slate-400">Email: <span className="text-brand-300">privacy@taskpesa.co.ke</span></p>
+              <p className="font-bold text-white">TaskMint Data Protection Office</p>
+              <p className="text-slate-400">Email: <span className="text-brand-300">privacy@taskmint.co.ke</span></p>
               <p className="text-slate-400">Support Desk: <span className="text-slate-300">Submit a ticket via /support</span></p>
               <p className="text-slate-400">Nairobi, Kenya</p>
             </div>

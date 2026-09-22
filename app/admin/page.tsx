@@ -82,6 +82,17 @@ export default function AdminDashboardPage() {
   const [withdrawalFromDate, setWithdrawalFromDate] = useState('');
   const [withdrawalToDate, setWithdrawalToDate] = useState('');
 
+  // Admin Auth Gate States
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [isAdminAuthed, setIsAdminAuthed] = useState(false);
+  const [adminUser, setAdminUser] = useState<any>(null);
+
+  // In-Page Admin Login States (shown if unauthenticated when opening /admin)
+  const [loginIdentifier, setLoginIdentifier] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
+
   // Forms
   const [bannerForm, setBannerForm] = useState({ title: '', imageUrl: '', linkUrl: '', sortOrder: '0' });
   const [socialForm, setSocialForm] = useState({ platform: 'whatsapp', label: 'WhatsApp Community', url: '' });
@@ -213,9 +224,63 @@ export default function AdminDashboardPage() {
     setLoading(false);
   };
 
+  const checkAdminAuth = async () => {
+    setCheckingAuth(true);
+    try {
+      const res = await fetch('/api/auth/me');
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.user?.role === 'ADMIN') {
+          setIsAdminAuthed(true);
+          setAdminUser(data.user);
+          await loadAll();
+          setCheckingAuth(false);
+          return;
+        }
+      }
+      setIsAdminAuthed(false);
+    } catch (e) {
+      setIsAdminAuthed(false);
+    } finally {
+      setCheckingAuth(false);
+    }
+  };
+
   useEffect(() => {
-    loadAll();
+    checkAdminAuth();
   }, []);
+
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+    setLoginLoading(true);
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ identifier: loginIdentifier, password: loginPassword }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Authentication failed. Please verify your credentials.');
+      }
+
+      if (data.user?.role !== 'ADMIN') {
+        throw new Error('Access denied. Administrator privileges required to access this portal.');
+      }
+
+      setIsAdminAuthed(true);
+      setAdminUser(data.user);
+      await loadAll();
+    } catch (err: any) {
+      setLoginError(err.message || 'Login failed');
+    } finally {
+      setLoginLoading(false);
+    }
+  };
 
   // Action Handlers
   const handleToggleTaskStatus = async (taskId: string, currentStatus: string) => {
@@ -603,6 +668,106 @@ export default function AdminDashboardPage() {
     });
   }, [withdrawalsList, withdrawalFilter, withdrawalSearch, withdrawalFromDate, withdrawalToDate]);
 
+  // 1. Loading state while verifying administrator session
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-[#050B12] text-[#E6F1FF] flex flex-col items-center justify-center font-sans">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 p-0.5 shadow-xl shadow-brand-500/20 mb-4 animate-pulse">
+          <div className="w-full h-full bg-[#0F172A] rounded-[14px] flex items-center justify-center">
+            <Shield className="w-6 h-6 text-brand-400" />
+          </div>
+        </div>
+        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
+          <RefreshCw className="w-4 h-4 animate-spin text-brand-400" />
+          <span>Verifying administrator access...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // 2. Unauthenticated Gate: Show ONLY the login form if not logged in as Admin!
+  if (!isAdminAuthed) {
+    return (
+      <div className="min-h-screen bg-[#050B12] text-[#E6F1FF] flex flex-col font-sans selection:bg-[#00C853]/30 selection:text-white">
+        <Navbar />
+
+        <main className="flex-1 flex items-center justify-center px-4 py-12">
+          <div className="w-full max-w-md bg-[#0F172A] border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
+            <div className="text-center space-y-2">
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-500 to-emerald-400 p-0.5 mx-auto shadow-lg shadow-brand-500/20">
+                <div className="w-full h-full bg-[#050B12] rounded-[14px] flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-brand-400" />
+                </div>
+              </div>
+              <h1 className="text-2xl font-black text-white tracking-tight">TaskMint Admin Portal</h1>
+              <p className="text-xs text-slate-400">
+                Please enter your administrator credentials to access the control panel.
+              </p>
+            </div>
+
+            {loginError && (
+              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{loginError}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleAdminLogin} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Email, Phone, or Username
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="admin@taskmint.co.ke"
+                  value={loginIdentifier}
+                  onChange={(e) => setLoginIdentifier(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Administrator Password
+                </label>
+                <input
+                  type="password"
+                  required
+                  placeholder="••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loginLoading}
+                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 font-black text-sm shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {loginLoading ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>Verifying Access...</span>
+                  </>
+                ) : (
+                  <>
+                    <Lock className="w-4 h-4" />
+                    <span>Log In to Admin Dashboard</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </div>
+        </main>
+
+        <Footer />
+      </div>
+    );
+  }
+
+  // 3. Authenticated Admin Dashboard
   return (
     <div className="min-h-screen bg-[#050B12] text-[#E6F1FF] flex flex-col font-sans selection:bg-[#00C853]/30 selection:text-white">
       <Navbar />
@@ -625,7 +790,7 @@ export default function AdminDashboardPage() {
               </div>
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className="text-base font-black tracking-tight text-white uppercase">TASKPESA</span>
+                  <span className="text-base font-black tracking-tight text-white uppercase">TASKMINT</span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-500/20 text-brand-400 border border-brand-500/30">
                     ADMIN
                   </span>
@@ -1662,7 +1827,7 @@ export default function AdminDashboardPage() {
                   required
                   placeholder={
                     taskType === 'WHATSAPP'
-                      ? 'e.g. TaskPesa Product Launch Promo'
+                      ? 'e.g. TaskMint Product Launch Promo'
                       : 'e.g. Sentiment Classification & Image Labeling'
                   }
                   value={taskType === 'WHATSAPP' ? taskForm.campaignName : taskForm.title}

@@ -85,10 +85,10 @@ function RegisterForm() {
         <div className="text-center space-y-2">
           <Link href="/" className="inline-flex items-center gap-2 mb-2">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-white text-base">
-              TP
+              TM
             </div>
           </Link>
-          <h2 className="text-2xl sm:text-3xl font-black text-white">Create Your TaskPesa Account</h2>
+          <h2 className="text-2xl sm:text-3xl font-black text-white">Create Your TaskMint Account</h2>
           <p className="text-xs text-gray-400">Join Kenya’s verified digital task marketplace</p>
         </div>
 

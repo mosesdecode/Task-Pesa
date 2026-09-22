@@ -14,8 +14,8 @@ export async function POST(req: NextRequest) {
     const result = await initiateStkPush({
       phoneNumber: targetPhone,
       amount: targetAmount,
-      accountReference: `TASKPESA_${user.username}`,
-      transactionDesc: type === 'ACTIVATION' ? 'TaskPesa Access Fee' : 'Membership Upgrade',
+      accountReference: `TASKMINT_${user.username}`,
+      transactionDesc: type === 'ACTIVATION' ? 'TaskMint Access Fee' : 'Membership Upgrade',
       userId: user.id,
       type: type || 'ACTIVATION',
     });

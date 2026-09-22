@@ -93,7 +93,7 @@ export async function POST(req: NextRequest) {
     await prisma.notification.create({
       data: {
         userId: user.id,
-        title: 'Welcome to TaskPesa! 👋',
+        title: 'Welcome to TaskMint! 👋',
         message: 'Your account has been created. Please complete the KES 200 platform access payment to activate your account and start completing tasks.',
         type: 'INFO',
       },
@@ -120,12 +120,16 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    response.cookies.set('taskpesa_token', token, {
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax' as const,
       maxAge: 7 * 24 * 60 * 60,
       path: '/',
-    });
+    };
+
+    response.cookies.set('taskmint_token', token, cookieOptions);
+    response.cookies.set('taskpesa_token', token, cookieOptions);
 
     return response;
   } catch (error: any) {

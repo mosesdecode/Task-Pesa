@@ -40,7 +40,7 @@ export async function middleware(request: NextRequest) {
       // If trying to access admin route, ensure they have ADMIN role
       const isAdminPath = request.nextUrl.pathname.startsWith('/admin');
       if (isAdminPath && payload.role !== 'ADMIN') {
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        return NextResponse.redirect(new URL('/login', request.url));
       }
     } catch (error) {
       // Token is invalid or expired

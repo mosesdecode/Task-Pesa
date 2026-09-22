@@ -25,7 +25,7 @@ export default function TopBannerCarousel() {
           setBanners([
             {
               id: 'def-1',
-              title: '🔥 Welcome to TaskPesa: Earn up to KES 500 Daily completing simple verified digital tasks!',
+              title: '🔥 Welcome to TaskMint: Earn up to KES 500 Daily completing simple verified digital tasks!',
               imageUrl: '',
               linkUrl: '/tasks',
             },

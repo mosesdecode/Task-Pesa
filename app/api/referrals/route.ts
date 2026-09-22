@@ -28,7 +28,7 @@ export async function GET(req: NextRequest) {
       .filter((r) => r.status === 'QUALIFIED')
       .reduce((sum, r) => sum + r.rewardAmount, 0);
 
-    const origin = req.nextUrl.origin || 'https://taskpesa.co.ke';
+    const origin = req.nextUrl.origin || 'https://taskmint.co.ke';
     const referralLink = `${origin}/register?ref=${user.referralCode}`;
 
     return NextResponse.json({
