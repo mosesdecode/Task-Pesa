@@ -211,7 +211,13 @@ export async function POST(req: NextRequest) {
       }
 
       if (action === 'REJECT') {
-        const reason = rejectionReason?.trim() || adminNotes?.trim() || 'Submission did not meet quality requirements or instructions were not followed.';
+        const reason = (rejectionReason || adminNotes || '').trim();
+        if (!reason) {
+          return NextResponse.json(
+            { error: 'A rejection reason is required so the user understands why their submission was declined.' },
+            { status: 400 }
+          );
+        }
 
         await prisma.$transaction(async (tx) => {
           // 1. Update status to REJECTED (Zero wallet credit)
@@ -336,7 +342,13 @@ export async function POST(req: NextRequest) {
       }
 
       if (action === 'REJECT') {
-        const reason = rejectionReason || adminNotes || 'Invalid screenshot proof';
+        const reason = (rejectionReason || adminNotes || '').trim();
+        if (!reason) {
+          return NextResponse.json(
+            { error: 'A rejection reason is required so the user understands why their submission was declined.' },
+            { status: 400 }
+          );
+        }
         await prisma.whatsappSubmission.update({
           where: { id: sub.id },
           data: { status: 'REJECTED', adminNotes: reason },

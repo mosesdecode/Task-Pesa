@@ -26,10 +26,21 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Find account by phone or mpesaNumber
+    // Prepare phone format variations for resilient matching
+    const rawDigits = normalizedPhone.replace(/^\+/, '');
+    const phoneVariants = [
+      normalizedPhone,
+      rawDigits,
+      rawDigits.startsWith('254') ? `0${rawDigits.slice(3)}` : rawDigits,
+    ];
+
+    // Find account by phone or mpesaNumber matching any variant
     const user = await prisma.user.findFirst({
       where: {
-        OR: [{ phone: normalizedPhone }, { mpesaNumber: normalizedPhone }],
+        OR: [
+          ...phoneVariants.map(p => ({ phone: p })),
+          ...phoneVariants.map(p => ({ mpesaNumber: p })),
+        ],
       },
     });
 

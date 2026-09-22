@@ -18,9 +18,19 @@ export async function POST(req: NextRequest) {
     const normalizedPhone = normalizeKenyanPhone(phone.trim());
     const cleanCode = code.trim();
 
+    const rawDigits = normalizedPhone.replace(/^\+/, '');
+    const phoneVariants = [
+      normalizedPhone,
+      rawDigits,
+      rawDigits.startsWith('254') ? `0${rawDigits.slice(3)}` : rawDigits,
+    ];
+
     const user = await prisma.user.findFirst({
       where: {
-        OR: [{ phone: normalizedPhone }, { mpesaNumber: normalizedPhone }],
+        OR: [
+          ...phoneVariants.map(p => ({ phone: p })),
+          ...phoneVariants.map(p => ({ mpesaNumber: p })),
+        ],
       },
     });
 
