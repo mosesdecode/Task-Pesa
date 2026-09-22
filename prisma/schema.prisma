@@ -47,6 +47,7 @@ model User {
   referralsGiven       Referral[]       @relation("Referrer")
   referralReceived     Referral?        @relation("ReferredUser")
   walletTransactions   WalletTransaction[]
+  financialLedgers     FinancialLedger[]
   deposits             Deposit[]
   withdrawals          Withdrawal[]
   mpesaTransactions    MpesaTransaction[]
@@ -217,10 +218,34 @@ model Referral {
   referrer       User      @relation("Referrer", fields: [referrerId], references: [id])
   referredUserId String    @unique
   referredUser   User      @relation("ReferredUser", fields: [referredUserId], references: [id])
-  rewardAmount   Float     @default(10.0)
-  status         String    @default("PENDING") // PENDING, QUALIFIED, REJECTED
+  rewardAmount   Float     @default(100.0)
+  status         String    @default("PENDING_ACTIVATION") // REGISTERED, PENDING_ACTIVATION, QUALIFIED, REWARDED
   qualifiedAt    DateTime?
+  rewardedAt     DateTime?
   createdAt      DateTime  @default(now())
+}
+
+model FinancialLedger {
+  id           String   @id @default(uuid())
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type         String   // ACTIVATION_PAYMENT, ACTIVATION_ADMIN_EARNING, PLATFORM_RETAINED_AMOUNT, REFERRAL_REWARD, TASK_REWARD, WITHDRAWAL, WITHDRAWAL_REVERSAL, REFUND
+  amount       Float
+  currency     String   @default("KES")
+  status       String   @default("COMPLETED") // PENDING, COMPLETED, FAILED, CANCELLED
+  reference    String   // Payment/transaction receipt or unique key
+  source       String   // ACTIVATION_PAYMENT, MPESA_STK, PAYSTACK, TASK_COMPLETION, etc.
+  paymentId    String?
+  referralId   String?
+  taskId       String?
+  submissionId String?
+  metadataJson String?
+  createdAt    DateTime @default(now())
+
+  @@index([type])
+  @@index([status])
+  @@index([reference])
+  @@index([createdAt])
 }
 
 model Wallet {

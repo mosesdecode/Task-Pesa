@@ -167,7 +167,7 @@ export default function WalletPage() {
         </p>
       </div>
 
-      {/* Balance Summary Cards */}
+      {/* Balance Summary Cards (Requirement 20) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-6 rounded-3xl glass-card space-y-2 border-brand-500/30 glow-emerald">
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Available Balance</span>
@@ -178,27 +178,27 @@ export default function WalletPage() {
         </div>
 
         <div className="p-6 rounded-3xl glass-card space-y-2">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pending Payouts</span>
-          <p className="text-3xl font-black text-amber-400">
-            KES {(wallet.pendingBalance || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
-          </p>
-          <p className="text-[11px] text-gray-400">Awaiting Admin manual review & payout</p>
-        </div>
-
-        <div className="p-6 rounded-3xl glass-card space-y-2">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Cumulative Earned</span>
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Task Earnings</span>
           <p className="text-3xl font-black text-white">
-            KES {(wallet.totalEarned || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+            KES {(walletData?.taskEarnings || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-gray-400">Tasks, ads, and referral bonuses</p>
+          <p className="text-[11px] text-gray-400">Approved task completions</p>
         </div>
 
         <div className="p-6 rounded-3xl glass-card space-y-2">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Disbursed</span>
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Referral Earnings</span>
           <p className="text-3xl font-black text-emerald-400">
-            KES {(wallet.totalWithdrawn || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+            KES {(walletData?.referralEarnings || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-gray-400">Paid out to M-Pesa</p>
+          <p className="text-[11px] text-gray-400">KES 100 per activated referral</p>
+        </div>
+
+        <div className="p-6 rounded-3xl glass-card space-y-2">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pending Earnings</span>
+          <p className="text-3xl font-black text-amber-400">
+            KES {(walletData?.pendingEarnings || wallet.pendingBalance || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+          </p>
+          <p className="text-[11px] text-gray-400">Pending admin payout review</p>
         </div>
       </div>
 

@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { processActivationSuccess } from './activation';
 
 export interface StkPushParams {
   phoneNumber: string;
@@ -143,15 +144,25 @@ export async function initiateStkPush(params: StkPushParams) {
 }
 
 export async function processPaymentSuccess(checkoutRequestId: string, mpesaReceipt: string) {
-  return await prisma.$transaction(async (tx) => {
-    const deposit = await tx.deposit.findUnique({
-      where: { checkoutRequestId },
+  const deposit = await prisma.deposit.findUnique({
+    where: { checkoutRequestId },
+  });
+
+  if (!deposit || deposit.status === 'COMPLETED') {
+    return { success: false, message: 'Deposit already processed or not found' };
+  }
+
+  if (deposit.type === 'ACTIVATION') {
+    return await processActivationSuccess({
+      checkoutRequestId,
+      depositId: deposit.id,
+      mpesaReceipt,
+      amount: deposit.amount,
+      channel: 'MPESA',
     });
+  }
 
-    if (!deposit || deposit.status === 'COMPLETED') {
-      return { success: false, message: 'Deposit already processed or not found' };
-    }
-
+  return await prisma.$transaction(async (tx) => {
     // Update deposit status
     await tx.deposit.update({
       where: { id: deposit.id },
@@ -167,92 +178,6 @@ export async function processPaymentSuccess(checkoutRequestId: string, mpesaRece
     });
 
     if (!user) return { success: false, message: 'User not found' };
-
-    if (deposit.type === 'ACTIVATION') {
-      // Activate user account
-      await tx.user.update({
-        where: { id: user.id },
-        data: { status: 'ACTIVE' },
-      });
-
-      // Create notification
-      await tx.notification.create({
-        data: {
-          userId: user.id,
-          title: 'Account Activated! 🎉',
-          message: 'Your KES 200 access payment was confirmed via M-Pesa. You now have full access to tasks!',
-          type: 'SUCCESS',
-        },
-      });
-
-      // Log wallet transaction for record
-      if (user.wallet) {
-        await tx.walletTransaction.create({
-          data: {
-            walletId: user.wallet.id,
-            userId: user.id,
-            amount: deposit.amount,
-            type: 'ACTIVATION_FEE',
-            status: 'COMPLETED',
-            description: `Account activation payment (Receipt: ${mpesaReceipt})`,
-            referenceId: mpesaReceipt,
-          },
-        });
-      }
-
-      // Check if user was referred by someone and qualify referral if conditions met
-      if (user.referredById) {
-        const referral = await tx.referral.findUnique({
-          where: { referredUserId: user.id },
-        });
-
-        if (referral && referral.status === 'PENDING') {
-          const referrerWallet = await tx.wallet.findUnique({
-            where: { userId: user.referredById },
-          });
-
-          if (referrerWallet) {
-            // Qualify referral & credit reward to referrer
-            await tx.referral.update({
-              where: { id: referral.id },
-              data: {
-                status: 'QUALIFIED',
-                qualifiedAt: new Date(),
-              },
-            });
-
-            await tx.wallet.update({
-              where: { id: referrerWallet.id },
-              data: {
-                availableBalance: { increment: referral.rewardAmount },
-                totalEarned: { increment: referral.rewardAmount },
-              },
-            });
-
-            await tx.walletTransaction.create({
-              data: {
-                walletId: referrerWallet.id,
-                userId: user.referredById,
-                amount: referral.rewardAmount,
-                type: 'REFERRAL_REWARD',
-                status: 'COMPLETED',
-                description: `Referral reward for user ${user.username}`,
-                referenceId: referral.id,
-              },
-            });
-
-            await tx.notification.create({
-              data: {
-                userId: user.referredById,
-                title: 'Referral Bonus Credited! 💰',
-                message: `You earned KES ${referral.rewardAmount} because ${user.fullName} activated their account.`,
-                type: 'SUCCESS',
-              },
-            });
-          }
-        }
-      }
-    } else if (deposit.type === 'PACKAGE') {
       // Find package matching price
       const matchingPackage = await tx.membershipPackage.findFirst({
         where: { price: deposit.amount },
@@ -299,7 +224,6 @@ export async function processPaymentSuccess(checkoutRequestId: string, mpesaRece
           });
         }
       }
-    }
 
     return { success: true, depositId: deposit.id };
   }, {

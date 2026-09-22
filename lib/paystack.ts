@@ -1,4 +1,5 @@
 import { prisma } from './prisma';
+import { processActivationSuccess } from './activation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -184,16 +185,25 @@ export async function processPaystackSuccess(
   reference: string,
   paystackId: string
 ) {
-  return await prisma.$transaction(async (tx) => {
-    // Find deposit by checkoutRequestId (which we set to the reference)
-    const deposit = await tx.deposit.findUnique({
-      where: { checkoutRequestId: reference },
+  const deposit = await prisma.deposit.findUnique({
+    where: { checkoutRequestId: reference },
+  });
+
+  if (!deposit || deposit.status === 'COMPLETED') {
+    return { success: false, message: 'Deposit already processed or not found' };
+  }
+
+  if (deposit.type === 'ACTIVATION') {
+    return await processActivationSuccess({
+      checkoutRequestId: reference,
+      depositId: deposit.id,
+      mpesaReceipt: paystackId,
+      amount: deposit.amount,
+      channel: 'PAYSTACK',
     });
+  }
 
-    if (!deposit || deposit.status === 'COMPLETED') {
-      return { success: false, message: 'Deposit already processed or not found' };
-    }
-
+  return await prisma.$transaction(async (tx) => {
     // Mark deposit as completed
     await tx.deposit.update({
       where: { id: deposit.id },
@@ -210,87 +220,7 @@ export async function processPaystackSuccess(
 
     if (!user) return { success: false, message: 'User not found' };
 
-    if (deposit.type === 'ACTIVATION') {
-      // Activate user account
-      await tx.user.update({
-        where: { id: user.id },
-        data: { status: 'ACTIVE' },
-      });
-
-      // Create notification
-      await tx.notification.create({
-        data: {
-          userId: user.id,
-          title: 'Account Activated! 🎉',
-          message: `Your KES ${deposit.amount} access payment was confirmed via Paystack. You now have full access to tasks!`,
-          type: 'SUCCESS',
-        },
-      });
-
-      // Log wallet transaction for record
-      if (user.wallet) {
-        await tx.walletTransaction.create({
-          data: {
-            walletId: user.wallet.id,
-            userId: user.id,
-            amount: deposit.amount,
-            type: 'ACTIVATION_FEE',
-            status: 'COMPLETED',
-            description: `Account activation payment (Ref: ${paystackId})`,
-            referenceId: paystackId,
-          },
-        });
-      }
-
-      // Credit referral reward if applicable
-      if (user.referredById) {
-        const referral = await tx.referral.findUnique({
-          where: { referredUserId: user.id },
-        });
-
-        if (referral && referral.status === 'PENDING') {
-          const referrerWallet = await tx.wallet.findUnique({
-            where: { userId: user.referredById },
-          });
-
-          if (referrerWallet) {
-            await tx.referral.update({
-              where: { id: referral.id },
-              data: { status: 'QUALIFIED', qualifiedAt: new Date() },
-            });
-
-            await tx.wallet.update({
-              where: { id: referrerWallet.id },
-              data: {
-                availableBalance: { increment: referral.rewardAmount },
-                totalEarned: { increment: referral.rewardAmount },
-              },
-            });
-
-            await tx.walletTransaction.create({
-              data: {
-                walletId: referrerWallet.id,
-                userId: user.referredById,
-                amount: referral.rewardAmount,
-                type: 'REFERRAL_REWARD',
-                status: 'COMPLETED',
-                description: `Referral reward for user ${user.username}`,
-                referenceId: referral.id,
-              },
-            });
-
-            await tx.notification.create({
-              data: {
-                userId: user.referredById,
-                title: 'Referral Bonus Credited! 💰',
-                message: `You earned KES ${referral.rewardAmount} because ${user.fullName} activated their account.`,
-                type: 'SUCCESS',
-              },
-            });
-          }
-        }
-      }
-    } else if (deposit.type === 'PACKAGE') {
+    if (deposit.type === 'PACKAGE') {
       // Package payments are handled separately in the purchase route
       // This just confirms the payment
       await tx.notification.create({

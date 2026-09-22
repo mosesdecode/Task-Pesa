@@ -76,24 +76,24 @@ export default function ReferralsPage() {
         </div>
       </div>
 
-      {/* Referral Stats Cards (Requirement 8) */}
+      {/* Referral Stats Cards (Requirement 14) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="p-6 rounded-3xl glass-card space-y-2">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Invites</span>
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Total Referrals</span>
           <p className="text-3xl font-black text-white">{stats.totalReferrals || 0}</p>
           <p className="text-[11px] text-gray-400">Total accounts registered</p>
         </div>
 
         <div className="p-6 rounded-3xl glass-card space-y-2">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Qualified Invites</span>
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Activated Referrals</span>
           <p className="text-3xl font-black text-brand-400">{stats.activeReferrals || 0}</p>
-          <p className="text-[11px] text-gray-400">Completed account activation</p>
+          <p className="text-[11px] text-gray-400">Completed KES 200 activation</p>
         </div>
 
         <div className="p-6 rounded-3xl glass-card space-y-2">
-          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pending Invites</span>
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Pending Referrals</span>
           <p className="text-3xl font-black text-amber-400">{stats.pendingReferrals || 0}</p>
-          <p className="text-[11px] text-gray-400">Awaiting KES 200 activation</p>
+          <p className="text-[11px] text-gray-400">Awaiting account activation</p>
         </div>
 
         <div className="p-6 rounded-3xl glass-card space-y-2">
@@ -101,7 +101,7 @@ export default function ReferralsPage() {
           <p className="text-3xl font-black text-emerald-400">
             KES {(stats.totalEarnings || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-gray-400">Credited to available balance</p>
+          <p className="text-[11px] text-gray-400">Credited directly to wallet</p>
         </div>
       </div>
 
@@ -126,27 +126,29 @@ export default function ReferralsPage() {
               {referrals.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-gray-500">
-                    No referrals yet. Share your link to start earning bonuses!
+                    No referrals yet. Share your referral link to earn KES 100 per activation!
                   </td>
                 </tr>
               ) : (
                 referrals.map((ref: any) => (
                   <tr key={ref.id} className="hover:bg-slate-800/40 transition-colors">
                     <td className="py-3 font-semibold text-white">
-                      {ref.referredUser?.fullName} (@{ref.referredUser?.username})
+                      {ref.referredUser?.fullName || ref.referredUser?.username} (@{ref.referredUser?.username})
                     </td>
                     <td className="py-3 font-mono font-bold text-brand-400">
-                      KES {ref.rewardAmount.toFixed(2)}
+                      KES {(ref.rewardAmount || 100).toFixed(2)}
                     </td>
                     <td className="py-3 font-medium">
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          ref.status === 'QUALIFIED'
+                          ref.status === 'REWARDED' || ref.status === 'QUALIFIED'
                             ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                             : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                         }`}
                       >
-                        {ref.status}
+                        {ref.status === 'REWARDED' || ref.status === 'QUALIFIED'
+                          ? 'ACTIVATED'
+                          : 'PENDING ACTIVATION'}
                       </span>
                     </td>
                     <td className="py-3 text-gray-500 font-mono text-[10px]">

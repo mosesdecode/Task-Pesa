@@ -22,11 +22,19 @@ export async function GET(req: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    const activeCount = referrals.filter((r) => r.status === 'QUALIFIED').length;
-    const pendingCount = referrals.filter((r) => r.status === 'PENDING').length;
-    const totalEarnings = referrals
-      .filter((r) => r.status === 'QUALIFIED')
-      .reduce((sum, r) => sum + r.rewardAmount, 0);
+    const activeCount = referrals.filter((r) => r.status === 'REWARDED' || r.status === 'QUALIFIED').length;
+    const pendingCount = referrals.filter((r) => r.status === 'PENDING_ACTIVATION' || r.status === 'PENDING').length;
+
+    // Source total earnings directly from confirmed ledger transactions (Requirement 18)
+    const referralTxSum = await prisma.walletTransaction.aggregate({
+      where: {
+        userId: user.id,
+        type: 'REFERRAL_REWARD',
+        status: 'COMPLETED',
+      },
+      _sum: { amount: true },
+    });
+    const totalEarnings = referralTxSum._sum.amount || 0;
 
     const origin = req.nextUrl.origin || 'https://taskmint.co.ke';
     const referralLink = `${origin}/register?ref=${user.referralCode}`;
@@ -40,7 +48,14 @@ export async function GET(req: NextRequest) {
         pendingReferrals: pendingCount,
         totalEarnings,
       },
-      referrals,
+      referrals: referrals.map((r) => ({
+        id: r.id,
+        status: r.status,
+        rewardAmount: r.rewardAmount,
+        createdAt: r.createdAt,
+        qualifiedAt: r.qualifiedAt,
+        referredUser: r.referredUser,
+      })),
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 401 });

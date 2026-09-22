@@ -65,16 +65,30 @@ export async function validateAdWatchDuration(
 
 export async function validateReferralEligibility(
   referrerId: string,
-  newPhone: string
+  newDetails: { phone: string; mpesaNumber?: string; email?: string; username?: string }
 ): Promise<AntiFraudCheckResult> {
   const referrer = await prisma.user.findUnique({ where: { id: referrerId } });
 
   if (!referrer) {
-    return { allowed: false, reason: 'Invalid referrer code' };
+    return { allowed: false, reason: 'Invalid or inactive referral code.' };
   }
 
-  // Prevent self referral by phone
-  if (referrer.phone === newPhone || referrer.mpesaNumber === newPhone) {
+  if (referrer.isBanned || referrer.status === 'SUSPENDED') {
+    return { allowed: false, reason: 'Referring account is suspended or ineligible for rewards.' };
+  }
+
+  // Prevent self referral by phone, mpesa number, email, or username
+  const cleanPhone = newDetails.phone?.trim();
+  const cleanMpesa = (newDetails.mpesaNumber || newDetails.phone)?.trim();
+  const cleanEmail = newDetails.email?.trim().toLowerCase();
+  const cleanUsername = newDetails.username?.trim().toLowerCase();
+
+  if (
+    (cleanPhone && (referrer.phone === cleanPhone || referrer.mpesaNumber === cleanPhone)) ||
+    (cleanMpesa && (referrer.phone === cleanMpesa || referrer.mpesaNumber === cleanMpesa)) ||
+    (cleanEmail && referrer.email?.toLowerCase() === cleanEmail) ||
+    (cleanUsername && referrer.username?.toLowerCase() === cleanUsername)
+  ) {
     return { allowed: false, reason: 'Self-referral is strictly prohibited.' };
   }
 

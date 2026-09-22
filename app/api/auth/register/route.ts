@@ -30,15 +30,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Handle Referral Code lookup
+    // Handle Referral Code lookup with anti-fraud check
     let referrerId: string | null = null;
     if (referralCode) {
       const referrer = await prisma.user.findUnique({
-        where: { referralCode },
+        where: { referralCode: referralCode.trim() },
       });
 
       if (referrer) {
-        const antiFraud = await validateReferralEligibility(referrer.id, phone);
+        const antiFraud = await validateReferralEligibility(referrer.id, {
+          phone,
+          mpesaNumber,
+          email,
+          username,
+        });
         if (antiFraud.allowed) {
           referrerId = referrer.id;
         }
@@ -46,14 +51,17 @@ export async function POST(req: NextRequest) {
     }
 
     const passwordHash = await hashPassword(password);
-    const userReferralCode = username.toUpperCase() + Math.floor(100 + Math.random() * 900);
+    // Generate clean TaskMint referral code
+    const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
+    const userReferralCode = `TM-${username.substring(0, 4).toUpperCase()}${randomSuffix}`;
 
-    // Get default BRONZE package
-    const bronzePackage = await prisma.membershipPackage.findUnique({
-      where: { name: 'BRONZE' },
+    // Get default package
+    const defaultPackage = await prisma.membershipPackage.findFirst({
+      where: { isActive: true },
+      orderBy: { price: 'asc' },
     });
 
-    // Create user and wallet
+    // Create user with PENDING_ACTIVATION status (Requirement 2)
     const user = await prisma.user.create({
       data: {
         fullName,
@@ -64,8 +72,9 @@ export async function POST(req: NextRequest) {
         passwordHash,
         referralCode: userReferralCode,
         referredById: referrerId,
-        packageId: bronzePackage?.id,
-        status: 'ACTIVE',
+        packageId: defaultPackage?.id,
+        status: 'PENDING_ACTIVATION',
+        isVerified: false,
         wallet: {
           create: {
             availableBalance: 0.0,
@@ -77,14 +86,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Create pending Referral record if referred
+    // Create pending Referral record if referred (Requirement 8 & 15)
     if (referrerId) {
       await prisma.referral.create({
         data: {
           referrerId,
           referredUserId: user.id,
-          rewardAmount: bronzePackage?.referralBonus || 50.0,
-          status: 'PENDING',
+          rewardAmount: 100.0, // KES 100 referral reward
+          status: 'PENDING_ACTIVATION',
         },
       });
     }

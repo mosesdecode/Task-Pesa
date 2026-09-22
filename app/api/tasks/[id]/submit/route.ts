@@ -9,6 +9,14 @@ export async function POST(
   try {
     const user = await requireAuth(req);
     const taskId = params.id;
+
+    const dbUser = await prisma.user.findUnique({ where: { id: user.id } });
+    if (!dbUser || dbUser.status !== 'ACTIVE') {
+      return NextResponse.json(
+        { error: 'Account activation required. Please complete your KES 200 activation fee to unlock and submit digital tasks.' },
+        { status: 403 }
+      );
+    }
     const body = await req.json();
     const { submissionDataJson, proofUrl, proofText } = body;
 

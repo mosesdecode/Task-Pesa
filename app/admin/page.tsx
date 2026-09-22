@@ -43,11 +43,13 @@ import {
   Upload,
   Tag,
   Radio,
+  Loader2,
 } from 'lucide-react';
 import { formatKenyanPhoneDisplay } from '@/lib/phone';
 
 type AdminTab =
   | 'overview'
+  | 'earnings'
   | 'tasks'
   | 'add-task'
   | 'categories'
@@ -78,6 +80,19 @@ export default function AdminDashboardPage() {
   const [socialLinksList, setSocialLinksList] = useState<any[]>([]);
   const [withdrawalsList, setWithdrawalsList] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
+
+  // Earnings & Financial Ledger States (Requirements 4, 5, 6, 21, 23)
+  const [earningsData, setEarningsData] = useState<any>(null);
+  const [earningsLoading, setEarningsLoading] = useState(false);
+  const [ledgerFilterType, setLedgerFilterType] = useState<string>('ALL');
+  const [ledgerSearch, setLedgerSearch] = useState<string>('');
+  const [feeSettingsInput, setFeeSettingsInput] = useState({
+    activationFeeKES: '200',
+    adminActivationEarningKES: '100',
+    referralRewardKES: '100',
+    platformRetainedAmountKES: '100',
+  });
+  const [settingsSaving, setSettingsSaving] = useState(false);
 
   // Submissions sub-filter
   const [submissionFilter, setSubmissionFilter] = useState<'ALL' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED'>('UNDER_REVIEW');
@@ -226,6 +241,62 @@ export default function AdminDashboardPage() {
     } catch (e) {}
   };
 
+  const fetchEarnings = async () => {
+    try {
+      setEarningsLoading(true);
+      const url = new URL('/api/admin/earnings', window.location.origin);
+      if (ledgerFilterType && ledgerFilterType !== 'ALL') {
+        url.searchParams.set('type', ledgerFilterType);
+      }
+      if (ledgerSearch.trim()) {
+        url.searchParams.set('search', ledgerSearch.trim());
+      }
+      const res = await fetch(url.toString());
+      if (res.ok) {
+        const data = await res.json();
+        setEarningsData(data);
+        if (data.config) {
+          setFeeSettingsInput({
+            activationFeeKES: data.config.activationFeeKES?.toString() || '200',
+            adminActivationEarningKES: data.config.adminActivationEarningKES?.toString() || '100',
+            referralRewardKES: data.config.referralRewardKES?.toString() || '100',
+            platformRetainedAmountKES: data.config.platformRetainedAmountKES?.toString() || '100',
+          });
+        }
+      }
+    } catch (e) {
+    } finally {
+      setEarningsLoading(false);
+    }
+  };
+
+  const handleSaveFinancialConfig = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSettingsSaving(true);
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/earnings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          activationFeeKES: parseFloat(feeSettingsInput.activationFeeKES),
+          adminActivationEarningKES: parseFloat(feeSettingsInput.adminActivationEarningKES),
+          referralRewardKES: parseFloat(feeSettingsInput.referralRewardKES),
+          platformRetainedAmountKES: parseFloat(feeSettingsInput.platformRetainedAmountKES),
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update financial settings');
+      setSuccessMsg('Financial configuration updated successfully.');
+      fetchEarnings();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
   const loadAll = async () => {
     setLoading(true);
     await Promise.all([
@@ -237,6 +308,7 @@ export default function AdminDashboardPage() {
       fetchUsers(),
       fetchAdverts(),
       fetchBannersAndSocial(),
+      fetchEarnings(),
     ]);
     setLoading(false);
   };
@@ -272,6 +344,12 @@ export default function AdminDashboardPage() {
       fetchSubmissions();
     }
   }, [submissionFilter, isAdminAuthed]);
+
+  useEffect(() => {
+    if (isAdminAuthed && activeTab === 'earnings') {
+      fetchEarnings();
+    }
+  }, [ledgerFilterType, activeTab, isAdminAuthed]);
 
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -684,6 +762,7 @@ export default function AdminDashboardPage() {
   // SIDEBAR NAVIGATION ITEMS (Requirement 11)
   const navItems: { id: AdminTab; label: string; icon: any; count?: number }[] = [
     { id: 'overview', label: 'Dashboard Overview', icon: BarChart3 },
+    { id: 'earnings', label: 'Earnings & Ledger', icon: TrendingUp },
     { id: 'tasks', label: 'Tasks Management', icon: CheckSquare, count: tasksList.length },
     { id: 'add-task', label: 'Add New Task', icon: PlusCircle },
     { id: 'categories', label: 'Task Categories', icon: Tag, count: categoriesList.length },
@@ -988,6 +1067,288 @@ export default function AdminDashboardPage() {
                   <span className="text-xs font-bold text-white block">Review M-Pesa Payouts</span>
                   <span className="text-[11px] text-slate-400">Process pending withdrawals</span>
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB: EARNINGS & FINANCIAL LEDGER (Requirements 4, 5, 6, 21, 23, 24) */}
+        {activeTab === 'earnings' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
+              <div>
+                <h1 className="text-2xl font-black text-white">Platform Revenue & Financial Ledger</h1>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Real-time ledger accounting for activation fees, admin revenue, referral payouts, and platform reserves.
+                </p>
+              </div>
+
+              <button
+                onClick={fetchEarnings}
+                disabled={earningsLoading}
+                className="px-4 py-2 rounded-xl bg-dark-900 border border-dark-800 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 self-start cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${earningsLoading ? 'animate-spin' : ''}`} />
+                <span>Refresh Ledger</span>
+              </button>
+            </div>
+
+            {/* Financial Overview Metrics (Requirements 5 & 24) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* 1. Total Activation Revenue */}
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Activation Revenue
+                  <Coins className="w-4 h-4 text-brand-400" />
+                </span>
+                <p className="text-2xl font-black text-white font-mono">
+                  KES {(earningsData?.stats?.totalActivationRevenue || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                </p>
+                <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-dark-800/80">
+                  <span>{earningsData?.stats?.totalActivationPayments || 0} Paid Activations</span>
+                  <span className="text-amber-400 font-bold">{earningsData?.stats?.pendingDepositsCount || 0} Pending</span>
+                </div>
+              </div>
+
+              {/* 2. Admin Activation Earnings (KES 100/activation) */}
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-emerald-500/20 glow-emerald space-y-2">
+                <span className="text-[11px] text-emerald-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Admin Activation Earnings
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                </span>
+                <p className="text-2xl font-black text-emerald-400 font-mono">
+                  KES {(earningsData?.stats?.totalAdminEarnings || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                </p>
+                <div className="text-[11px] text-slate-300 pt-1 border-t border-dark-800/80 flex items-center justify-between">
+                  <span>Today: KES {(earningsData?.stats?.todayAdminEarnings || 0).toLocaleString()}</span>
+                  <span>Month: KES {(earningsData?.stats?.thisMonthAdminEarnings || 0).toLocaleString()}</span>
+                </div>
+              </div>
+
+              {/* 3. Referral Rewards Disbursed (KES 100/referral) */}
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-cyan-500/20 space-y-2">
+                <span className="text-[11px] text-cyan-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Referral Rewards Paid
+                  <Users className="w-4 h-4 text-cyan-400" />
+                </span>
+                <p className="text-2xl font-black text-cyan-300 font-mono">
+                  KES {(earningsData?.stats?.totalReferralRewardsPaid || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-[11px] text-slate-400 pt-1 border-t border-dark-800/80">
+                  KES 100 credited to referring user wallets
+                </p>
+              </div>
+
+              {/* 4. Platform Retained Reserve */}
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-purple-500/20 space-y-2">
+                <span className="text-[11px] text-purple-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Platform Retained Reserve
+                  <Shield className="w-4 h-4 text-purple-400" />
+                </span>
+                <p className="text-2xl font-black text-purple-300 font-mono">
+                  KES {(earningsData?.stats?.totalPlatformRetained || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                </p>
+                <p className="text-[11px] text-slate-400 pt-1 border-t border-dark-800/80">
+                  Unreferred activations (100% balanced ledger)
+                </p>
+              </div>
+            </div>
+
+            {/* Financial Parameters Settings Card (Requirement 23) */}
+            <div className="p-6 rounded-3xl bg-dark-900 border border-dark-800 space-y-4">
+              <div className="flex items-center justify-between border-b border-dark-800 pb-3">
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <Settings className="w-4 h-4 text-brand-400" />
+                    Configurable Financial Rules
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Authoritative backend parameters controlling activation fees, admin earnings, and referral rewards.
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handleSaveFinancialConfig} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300">Activation Fee (KES)</label>
+                  <input
+                    type="number"
+                    value={feeSettingsInput.activationFeeKES}
+                    onChange={(e) => setFeeSettingsInput({ ...feeSettingsInput, activationFeeKES: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-800 rounded-xl text-white text-xs font-mono focus:outline-none focus:border-brand-500"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-500">Paid by new workers upon registration</p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300">Admin Earning (KES)</label>
+                  <input
+                    type="number"
+                    value={feeSettingsInput.adminActivationEarningKES}
+                    onChange={(e) => setFeeSettingsInput({ ...feeSettingsInput, adminActivationEarningKES: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-800 rounded-xl text-emerald-400 text-xs font-mono focus:outline-none focus:border-brand-500"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-500">Platform admin revenue per activation</p>
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-xs font-semibold text-slate-300">Referral Reward (KES)</label>
+                  <input
+                    type="number"
+                    value={feeSettingsInput.referralRewardKES}
+                    onChange={(e) => setFeeSettingsInput({ ...feeSettingsInput, referralRewardKES: e.target.value })}
+                    className="w-full px-3.5 py-2.5 bg-dark-950 border border-dark-800 rounded-xl text-cyan-400 text-xs font-mono focus:outline-none focus:border-brand-500"
+                    required
+                  />
+                  <p className="text-[10px] text-slate-500">Credited to referrer upon activation</p>
+                </div>
+
+                <div className="space-y-2">
+                  <button
+                    type="submit"
+                    disabled={settingsSaving}
+                    className="w-full py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-bold text-xs shadow-md shadow-brand-500/20 transition-all cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {settingsSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                    <span>Save Settings</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Central Financial Ledger Table (Requirements 17 & 21) */}
+            <div className="p-6 rounded-3xl bg-dark-900 border border-dark-800 space-y-5">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-bold text-white flex items-center gap-2">
+                    <FileText className="w-4 h-4 text-brand-400" />
+                    Central Transaction Ledger
+                  </h3>
+                  <p className="text-xs text-slate-400">
+                    Immutable financial audit log of every confirmed payment, earning, and reward.
+                  </p>
+                </div>
+
+                {/* Filter Pills */}
+                <div className="flex flex-wrap gap-1.5">
+                  {[
+                    { id: 'ALL', label: 'All Transactions' },
+                    { id: 'ACTIVATION_ADMIN_EARNING', label: 'Admin Earnings' },
+                    { id: 'ACTIVATION_PAYMENT', label: 'Activation Fees' },
+                    { id: 'REFERRAL_REWARD', label: 'Referral Rewards' },
+                    { id: 'PLATFORM_RETAINED_AMOUNT', label: 'Retained Reserve' },
+                    { id: 'TASK_REWARD', label: 'Task Rewards' },
+                    { id: 'WITHDRAWAL', label: 'Withdrawals' },
+                  ].map((filter) => (
+                    <button
+                      key={filter.id}
+                      onClick={() => setLedgerFilterType(filter.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        ledgerFilterType === filter.id
+                          ? 'bg-brand-500 text-dark-950 shadow-md shadow-brand-500/20'
+                          : 'bg-dark-950 text-slate-400 hover:text-white border border-dark-800'
+                      }`}
+                    >
+                      {filter.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Search Bar */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  placeholder="Search ledger by receipt reference, source, username, or phone..."
+                  value={ledgerSearch}
+                  onChange={(e) => setLedgerSearch(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 bg-dark-950 border border-dark-800 rounded-xl text-white text-xs focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              {/* Ledger Entries Table */}
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-dark-800 text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                      <th className="pb-3">Reference</th>
+                      <th className="pb-3">Transaction Type</th>
+                      <th className="pb-3">Amount</th>
+                      <th className="pb-3">User / Participant</th>
+                      <th className="pb-3">Source Channel</th>
+                      <th className="pb-3">Timestamp</th>
+                      <th className="pb-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-dark-800/60">
+                    {!earningsData?.ledgerEntries || earningsData.ledgerEntries.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="py-10 text-center text-slate-500">
+                          No ledger records found for this filter.
+                        </td>
+                      </tr>
+                    ) : (
+                      earningsData.ledgerEntries.map((entry: any) => {
+                        const isCredit = ['ACTIVATION_ADMIN_EARNING', 'REFERRAL_REWARD', 'TASK_REWARD', 'ACTIVATION_PAYMENT', 'PLATFORM_RETAINED_AMOUNT'].includes(entry.type);
+                        return (
+                          <tr key={entry.id} className="hover:bg-dark-800/30 transition-colors">
+                            <td className="py-3 font-mono font-bold text-white">
+                              {entry.reference}
+                            </td>
+                            <td className="py-3">
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                                  entry.type === 'ACTIVATION_ADMIN_EARNING'
+                                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30'
+                                    : entry.type === 'ACTIVATION_PAYMENT'
+                                    ? 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
+                                    : entry.type === 'REFERRAL_REWARD'
+                                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/30'
+                                    : entry.type === 'PLATFORM_RETAINED_AMOUNT'
+                                    ? 'bg-purple-500/10 text-purple-400 border border-purple-500/30'
+                                    : entry.type === 'TASK_REWARD'
+                                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30'
+                                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/30'
+                                }`}
+                              >
+                                {entry.type}
+                              </span>
+                            </td>
+                            <td className="py-3 font-mono font-bold text-sm">
+                              <span className={isCredit ? 'text-emerald-400' : 'text-rose-400'}>
+                                {isCredit ? '+' : '-'}KES {entry.amount.toFixed(2)}
+                              </span>
+                            </td>
+                            <td className="py-3 text-slate-300">
+                              {entry.user ? (
+                                <div>
+                                  <span className="font-semibold block">{entry.user.fullName || entry.user.username}</span>
+                                  <span className="text-[10px] text-slate-500">@{entry.user.username} · {entry.user.phone}</span>
+                                </div>
+                              ) : (
+                                <span className="text-slate-500 italic">Platform System Account</span>
+                              )}
+                            </td>
+                            <td className="py-3 font-mono text-[11px] text-slate-400">
+                              {entry.source}
+                            </td>
+                            <td className="py-3 text-slate-400 text-[11px] font-mono">
+                              {new Date(entry.createdAt).toLocaleString('en-KE')}
+                            </td>
+                            <td className="py-3">
+                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-bold">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> COMPLETED
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
