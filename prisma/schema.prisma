@@ -101,6 +101,7 @@ model TaskCategory {
   slug        String   @unique
   icon        String   @default("CheckCircle")
   description String
+  isActive    Boolean  @default(true)
   tasks       Task[]
   createdAt   DateTime @default(now())
 }
@@ -108,7 +109,9 @@ model TaskCategory {
 model Task {
   id              String           @id @default(uuid())
   title           String
+  description     String?
   instructions    String
+  rules           String?
   categoryId      String
   category        TaskCategory     @relation(fields: [categoryId], references: [id])
   reward          Float
@@ -119,8 +122,11 @@ model Task {
   totalSlots      Int              @default(100)
   remainingSlots  Int              @default(100)
   deadline        DateTime?
-  status          String           @default("ACTIVE")
+  startDate       DateTime?
+  endDate         DateTime?
+  status          String           @default("PUBLISHED") // DRAFT, PUBLISHED, PAUSED, CLOSED
   proofRequired   String?          // Description of required proof (e.g. Screenshot, Text, Transaction ID)
+  externalUrl     String?
   dataPayloadJson String?          // JSON string for annotation data (images, text, options)
   submissions     TaskSubmission[]
   createdAt       DateTime         @default(now())
@@ -133,10 +139,17 @@ model TaskSubmission {
   task               Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
   userId             String
   user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  status             String   @default("PENDING") // PENDING, UNDER_REVIEW, APPROVED, REJECTED
+  status             String   @default("IN_PROGRESS") // IN_PROGRESS, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED
+  proofText          String?
   proofUrl           String?
   submissionDataJson String?
   adminNotes         String?
+  rejectionReason    String?
+  reviewedBy         String?
+  rewardAmount       Float?
+  rewardPaid         Boolean  @default(false)
+  startedAt          DateTime @default(now())
+  submittedAt        DateTime?
   reviewedAt         DateTime?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
@@ -145,6 +158,7 @@ model TaskSubmission {
 model Advertisement {
   id              String   @id @default(uuid())
   title           String
+  description     String?
   advertiser      String
   mediaUrl        String
   targetUrl       String?
@@ -153,6 +167,8 @@ model Advertisement {
   dailyLimit      Int      @default(10)
   minPackageTier  String   @default("BRONZE")
   status          String   @default("ACTIVE")
+  startDate       DateTime?
+  endDate         DateTime?
   views           AdView[]
   createdAt       DateTime @default(now())
 }
@@ -355,14 +371,15 @@ model DeviceLog {
 }
 
 model OtpCode {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  code      String
-  type      String   // EMAIL, PHONE
-  expiresAt DateTime
-  isUsed    Boolean  @default(false)
-  createdAt DateTime @default(now())
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  code       String
+  type       String   // EMAIL, PHONE, PASSWORD_RESET
+  resetToken String?  @unique
+  expiresAt  DateTime
+  isUsed     Boolean  @default(false)
+  createdAt  DateTime @default(now())
 }
 
 model Banner {

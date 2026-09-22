@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
     if (!isSafaricomNumber(normalizedPhone)) {
       return NextResponse.json(
         {
-          error: 'Please enter a valid Kenyan Safaricom phone number (e.g. 07XXXXXXXX or 011XXXXXXX). Non-Safaricom lines cannot receive Daraja OTPs.',
+          error: 'Please enter a valid Kenyan Safaricom phone number (e.g. 07XXXXXXXX or 011XXXXXXX). Non-Safaricom phone numbers cannot receive Daraja OTPs.',
         },
         { status: 400 }
       );

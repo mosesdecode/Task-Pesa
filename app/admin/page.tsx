@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-
 import {
   Shield,
   PlusCircle,
@@ -25,8 +24,6 @@ import {
   Trash2,
   Lock,
   Key,
-  UserCheck,
-  UserX,
   TrendingUp,
   RotateCcw,
   CheckCircle2,
@@ -34,22 +31,35 @@ import {
   Calendar,
   Clock,
   Wallet,
-  PiggyBank,
-  CreditCard,
   Coins,
   Briefcase,
   Search,
   Menu,
   Settings,
-  Percent,
   ExternalLink,
+  ChevronRight,
+  Phone,
+  LogOut,
+  Upload,
+  Tag,
+  Radio,
 } from 'lucide-react';
+import { formatKenyanPhoneDisplay } from '@/lib/phone';
+
+type AdminTab =
+  | 'overview'
+  | 'tasks'
+  | 'add-task'
+  | 'categories'
+  | 'submissions'
+  | 'users'
+  | 'wallets'
+  | 'adverts'
+  | 'banners-social'
+  | 'admin-settings';
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<
-    'overview' | 'withdrawals' | 'submissions' | 'add-task' | 'packages' | 'users' | 'banners-social' | 'admin-settings'
-  >('overview');
-
+  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Core Data States
@@ -59,98 +69,118 @@ export default function AdminDashboardPage() {
   const [successMsg, setSuccessMsg] = useState('');
 
   // Lists State
+  const [tasksList, setTasksList] = useState<any[]>([]);
+  const [categoriesList, setCategoriesList] = useState<any[]>([]);
+  const [submissionsList, setSubmissionsList] = useState<any[]>([]);
+  const [submissionCounts, setSubmissionCounts] = useState({ pendingReview: 0, approved: 0, rejected: 0, total: 0 });
+  const [advertsList, setAdvertsList] = useState<any[]>([]);
   const [bannersList, setBannersList] = useState<any[]>([]);
   const [socialLinksList, setSocialLinksList] = useState<any[]>([]);
-  const [packagesList, setPackagesList] = useState<any[]>([]);
   const [withdrawalsList, setWithdrawalsList] = useState<any[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
-  const [categoriesList, setCategoriesList] = useState<any[]>([]);
-  const [submissions, setSubmissions] = useState<{ taskSubmissions: any[]; whatsappSubmissions: any[] }>({
-    taskSubmissions: [],
-    whatsappSubmissions: [],
-  });
-  const [existingItems, setExistingItems] = useState<{ tasks: any[]; ads: any[]; whatsappCampaigns: any[] }>({
-    tasks: [],
-    ads: [],
-    whatsappCampaigns: [],
-  });
 
-  // Filter & Search States
-  const [userSearch, setUserSearch] = useState('');
-  const [withdrawalFilter, setWithdrawalFilter] = useState<'ALL' | 'COMPLETED' | 'REJECTED' | 'PENDING'>('ALL');
-  const [withdrawalSearch, setWithdrawalSearch] = useState('');
-  const [withdrawalFromDate, setWithdrawalFromDate] = useState('');
-  const [withdrawalToDate, setWithdrawalToDate] = useState('');
+  // Submissions sub-filter
+  const [submissionFilter, setSubmissionFilter] = useState<'ALL' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED'>('UNDER_REVIEW');
+  const [rejectModalSub, setRejectModalSub] = useState<any | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
 
   // Admin Auth Gate States
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isAdminAuthed, setIsAdminAuthed] = useState(false);
   const [adminUser, setAdminUser] = useState<any>(null);
 
-  // In-Page Admin Login States (shown if unauthenticated when opening /admin)
+  // In-Page Admin Login States
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // Forms
-  const [bannerForm, setBannerForm] = useState({ title: '', imageUrl: '', linkUrl: '', sortOrder: '0' });
-  const [socialForm, setSocialForm] = useState({ platform: 'whatsapp', label: 'WhatsApp Community', url: '' });
+  // Task Creation Form State
+  const [taskForm, setTaskForm] = useState({
+    title: '',
+    description: '',
+    categoryId: '',
+    reward: '75',
+    instructions: '',
+    rules: '',
+    proofRequired: 'Submit text response, completion link, or screenshot proof',
+    durationSeconds: '120',
+    totalSlots: '100',
+    externalUrl: '',
+    status: 'PUBLISHED',
+  });
+  const [taskSubmitting, setTaskSubmitting] = useState(false);
+
+  // Category Creation State
+  const [categoryForm, setCategoryForm] = useState({ name: '', slug: '', description: '', icon: 'CheckCircle' });
+  const [categorySubmitting, setCategorySubmitting] = useState(false);
+
+  // Advert Creation State
+  const [advertForm, setAdvertForm] = useState({
+    title: '',
+    advertiser: '',
+    mediaUrl: '',
+    targetUrl: '',
+    durationSeconds: '30',
+    reward: '5.0',
+    dailyLimit: '10',
+    description: '',
+    status: 'ACTIVE',
+  });
+  const [advertSubmitting, setAdvertSubmitting] = useState(false);
+
+  // Password Form State
   const [adminCurrentPassword, setAdminCurrentPassword] = useState('');
   const [adminNewPassword, setAdminNewPassword] = useState('');
   const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
+  const [showCurrentPass, setShowCurrentPass] = useState(false);
+  const [showNewPass, setShowNewPass] = useState(false);
+  const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [adminPassSubmitting, setAdminPassSubmitting] = useState(false);
-  const [editingPackage, setEditingPackage] = useState<any>(null);
 
-  const [taskType, setTaskType] = useState<'DATA_ANNOTATION' | 'MICROTASK' | 'ADVERTISEMENT' | 'WHATSAPP'>('DATA_ANNOTATION');
-  const [taskForm, setTaskForm] = useState({
-    title: '',
-    categorySlug: 'data-annotation',
-    reward: '150',
-    instructions: '',
-    proofRequired: 'Submit text, link, or screenshot proof',
-    durationSeconds: '120',
-    totalSlots: '100',
-    minPackageTier: 'BRONZE',
-    mediaUrl: '',
-    advertiser: '',
-    campaignName: '',
-    caption: '',
-  });
+  // Filter & Search States
+  const [userSearch, setUserSearch] = useState('');
+  const [withdrawalFilter, setWithdrawalFilter] = useState<'ALL' | 'COMPLETED' | 'REJECTED' | 'PENDING'>('ALL');
+  const [taskSearch, setTaskSearch] = useState('');
 
   // API Fetchers
   const fetchStats = async () => {
     try {
       const res = await fetch('/api/admin/stats');
-      if (res.ok) {
-        const data = await res.json();
-        setStats(data);
-      } else {
-        const err = await res.json();
-        setError(err.error || 'Access denied or error fetching stats');
-      }
-    } catch (e: any) {
-      setError(e.message);
-    }
+      if (res.ok) setStats(await res.json());
+    } catch (e) {}
   };
 
-  const fetchPackages = async () => {
+  const fetchTasks = async () => {
     try {
-      const res = await fetch('/api/admin/packages');
+      const res = await fetch('/api/admin/tasks');
       if (res.ok) {
         const data = await res.json();
-        setPackagesList(data.packages || []);
+        setTasksList(data.tasks || []);
+        if (data.categories) setCategoriesList(data.categories);
+      }
+    } catch (e) {}
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const res = await fetch('/api/admin/categories');
+      if (res.ok) {
+        const data = await res.json();
+        setCategoriesList(data.categories || []);
       }
     } catch (e) {}
   };
 
   const fetchSubmissions = async () => {
     try {
-      const res = await fetch('/api/admin/submissions');
+      const res = await fetch(`/api/admin/submissions?status=${submissionFilter}`);
       if (res.ok) {
         const data = await res.json();
-        setSubmissions(data);
+        setSubmissionsList(data.taskSubmissions || []);
+        if (data.counts) setSubmissionCounts(data.counts);
       }
     } catch (e) {}
   };
@@ -175,38 +205,24 @@ export default function AdminDashboardPage() {
     } catch (e) {}
   };
 
-  const fetchExistingTasks = async () => {
+  const fetchAdverts = async () => {
     try {
-      const res = await fetch('/api/admin/tasks');
+      const res = await fetch('/api/admin/adverts');
       if (res.ok) {
         const data = await res.json();
-        setExistingItems({
-          tasks: data.tasks || [],
-          ads: data.ads || [],
-          whatsappCampaigns: data.whatsappCampaigns || [],
-        });
-        if (data.categories) setCategoriesList(data.categories);
+        setAdvertsList(data.adverts || []);
       }
     } catch (e) {}
   };
 
-  const fetchBanners = async () => {
+  const fetchBannersAndSocial = async () => {
     try {
-      const res = await fetch('/api/admin/banners');
-      if (res.ok) {
-        const data = await res.json();
-        setBannersList(data.banners || []);
-      }
-    } catch (e) {}
-  };
-
-  const fetchSocialLinks = async () => {
-    try {
-      const res = await fetch('/api/admin/social-links');
-      if (res.ok) {
-        const data = await res.json();
-        setSocialLinksList(data.links || []);
-      }
+      const [bRes, sRes] = await Promise.all([
+        fetch('/api/admin/banners'),
+        fetch('/api/admin/social-links'),
+      ]);
+      if (bRes.ok) setBannersList((await bRes.json()).banners || []);
+      if (sRes.ok) setSocialLinksList((await sRes.json()).links || []);
     } catch (e) {}
   };
 
@@ -214,13 +230,13 @@ export default function AdminDashboardPage() {
     setLoading(true);
     await Promise.all([
       fetchStats(),
-      fetchPackages(),
+      fetchTasks(),
+      fetchCategories(),
       fetchSubmissions(),
       fetchWithdrawals(),
       fetchUsers(),
-      fetchExistingTasks(),
-      fetchBanners(),
-      fetchSocialLinks(),
+      fetchAdverts(),
+      fetchBannersAndSocial(),
     ]);
     setLoading(false);
   };
@@ -251,6 +267,12 @@ export default function AdminDashboardPage() {
     checkAdminAuth();
   }, []);
 
+  useEffect(() => {
+    if (isAdminAuthed) {
+      fetchSubmissions();
+    }
+  }, [submissionFilter, isAdminAuthed]);
+
   const handleAdminLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
@@ -260,249 +282,284 @@ export default function AdminDashboardPage() {
       const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: loginIdentifier, password: loginPassword }),
+        body: JSON.stringify({ identifier: loginIdentifier.trim(), password: loginPassword }),
       });
 
       const data = await res.json();
-
-      if (!res.ok) {
-        throw new Error(data.error || 'Authentication failed. Please verify your credentials.');
-      }
+      if (!res.ok) throw new Error(data.error || 'Login failed');
 
       if (data.user?.role !== 'ADMIN') {
-        throw new Error('Access denied. Administrator privileges required to access this portal.');
+        throw new Error('Access denied. Administrator privileges required.');
       }
 
       setIsAdminAuthed(true);
       setAdminUser(data.user);
       await loadAll();
     } catch (err: any) {
-      setLoginError(err.message || 'Login failed');
+      setLoginError(err.message);
     } finally {
       setLoginLoading(false);
     }
   };
 
-  // Action Handlers
-  const handleToggleTaskStatus = async (taskId: string, currentStatus: string) => {
-    const newStatus = currentStatus === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
-    setError('');
-    setSuccessMsg('');
+  const handleLogout = async () => {
     try {
-      const res = await fetch('/api/admin/tasks', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: taskId, status: newStatus }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update task status');
-      setSuccessMsg(`Task status updated to ${newStatus}`);
-      fetchExistingTasks();
-    } catch (err: any) {
-      setError(err.message);
+      await fetch('/api/auth/logout', { method: 'POST' });
+      window.location.href = '/login';
+    } catch (e) {
+      window.location.href = '/login';
     }
   };
 
-  const handleDeleteItem = async (id: string, type: 'TASK' | 'AD' | 'WHATSAPP') => {
-    if (!confirm('Are you sure you want to delete this item?')) return;
-    setError('');
-    setSuccessMsg('');
-    try {
-      const res = await fetch(`/api/admin/tasks?id=${id}&type=${type}`, {
-        method: 'DELETE',
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to delete item');
-      setSuccessMsg(data.message || 'Item deleted successfully!');
-      fetchExistingTasks();
-      fetchStats();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleUserAction = async (userId: string, action: 'BAN' | 'UNBAN' | 'FLAG' | 'UNFLAG') => {
-    setError('');
-    setSuccessMsg('');
-    const reason =
-      action === 'BAN'
-        ? prompt('Enter reason for banning user:', 'Suspicious activities / policy violation')
-        : action === 'FLAG'
-        ? prompt('Enter reason for flagging user:', 'Multiple account IP overlap / suspicious activities')
-        : undefined;
-
-    if ((action === 'BAN' || action === 'FLAG') && !reason) return;
-
-    try {
-      const res = await fetch('/api/admin/users', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, action, banReason: reason, flagReason: reason }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Action failed');
-      setSuccessMsg(data.message);
-      fetchUsers();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleCreateBanner = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMsg('');
-    try {
-      const res = await fetch('/api/admin/banners', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(bannerForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to save banner');
-      setSuccessMsg('Banner created successfully!');
-      setBannerForm({ title: '', imageUrl: '', linkUrl: '', sortOrder: '0' });
-      fetchBanners();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleDeleteBanner = async (id: string) => {
-    if (!confirm('Delete banner?')) return;
-    try {
-      await fetch(`/api/admin/banners?id=${id}`, { method: 'DELETE' });
-      fetchBanners();
-    } catch (e) {}
-  };
-
-  const handleSaveSocialLink = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError('');
-    setSuccessMsg('');
-    try {
-      const res = await fetch('/api/admin/social-links', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(socialForm),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to save social link');
-      setSuccessMsg('Social link updated successfully!');
-      fetchSocialLinks();
-    } catch (err: any) {
-      setError(err.message);
-    }
-  };
-
-  const handleDeleteSocialLink = async (id: string) => {
-    if (!confirm('Delete social link?')) return;
-    try {
-      await fetch(`/api/admin/social-links?id=${id}`, { method: 'DELETE' });
-      fetchSocialLinks();
-    } catch (e) {}
-  };
-
+  // Task Actions (Create, Pause/Resume, Delete)
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
+    setTaskSubmitting(true);
 
     try {
       const res = await fetch('/api/admin/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: taskType, ...taskForm }),
+        body: JSON.stringify(taskForm),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create task');
 
-      setSuccessMsg(`Task "${taskForm.title || taskForm.campaignName}" successfully published!`);
+      setSuccessMsg(data.message || 'Task published successfully!');
       setTaskForm({
         title: '',
-        categorySlug: 'data-annotation',
-        reward: '150',
+        description: '',
+        categoryId: categoriesList[0]?.id || '',
+        reward: '75',
         instructions: '',
-        proofRequired: 'Submit text, link, or screenshot proof',
+        rules: '',
+        proofRequired: 'Submit text response, completion link, or screenshot proof',
         durationSeconds: '120',
         totalSlots: '100',
-        minPackageTier: 'BRONZE',
-        mediaUrl: '',
-        advertiser: '',
-        campaignName: '',
-        caption: '',
+        externalUrl: '',
+        status: 'PUBLISHED',
       });
-      fetchStats();
-      fetchExistingTasks();
+      fetchTasks();
+      setActiveTab('tasks');
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setTaskSubmitting(false);
     }
   };
 
-  const handleUpdatePackage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingPackage) return;
-    setError('');
-    setSuccessMsg('');
-
+  const handleToggleTaskStatus = async (task: any) => {
+    const nextStatus = task.status === 'PUBLISHED' ? 'PAUSED' : 'PUBLISHED';
     try {
-      const res = await fetch('/api/admin/packages', {
+      const res = await fetch('/api/admin/tasks', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(editingPackage),
+        body: JSON.stringify({ id: task.id, status: nextStatus }),
       });
+      if (res.ok) {
+        setSuccessMsg(`Task status updated to ${nextStatus}`);
+        fetchTasks();
+      }
+    } catch (e) {}
+  };
 
+  const handleDeleteTask = async (taskId: string) => {
+    if (!confirm('Are you sure you want to remove or close this task?')) return;
+    try {
+      const res = await fetch(`/api/admin/tasks?id=${taskId}`, { method: 'DELETE' });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update package');
+      if (res.ok) {
+        setSuccessMsg(data.message || 'Task updated.');
+        fetchTasks();
+      }
+    } catch (e) {}
+  };
 
-      setSuccessMsg(data.message || 'Package updated successfully!');
-      setEditingPackage(null);
-      fetchPackages();
+  // Category Actions
+  const handleCreateCategory = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+    setCategorySubmitting(true);
+
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(categoryForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create category');
+
+      setSuccessMsg(`Category "${data.category?.name}" created!`);
+      setCategoryForm({ name: '', slug: '', description: '', icon: 'CheckCircle' });
+      fetchCategories();
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setCategorySubmitting(false);
     }
   };
 
-  const handleReviewSubmission = async (
-    submissionType: 'TASK' | 'WHATSAPP',
-    submissionId: string,
-    action: 'APPROVE' | 'REJECT'
-  ) => {
+  const handleToggleCategory = async (cat: any) => {
+    try {
+      const res = await fetch('/api/admin/categories', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: cat.id, isActive: !cat.isActive }),
+      });
+      if (res.ok) {
+        setSuccessMsg(`Category ${cat.name} ${cat.isActive ? 'deactivated' : 'activated'}.`);
+        fetchCategories();
+      }
+    } catch (e) {}
+  };
+
+  // Submission Review Actions (Approve & Reject)
+  const handleApproveSubmission = async (sub: any) => {
+    setActionLoading(true);
     setError('');
     setSuccessMsg('');
-    const adminNotes = action === 'APPROVE' ? 'Approved by Admin' : 'Quality requirement not met';
 
     try {
       const res = await fetch('/api/admin/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ submissionType, submissionId, action, adminNotes }),
+        body: JSON.stringify({
+          submissionType: 'TASK',
+          submissionId: sub.id,
+          action: 'APPROVE',
+        }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Review failed');
 
-      setSuccessMsg(data.message);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Approval failed');
+
+      setSuccessMsg(data.message || 'Submission approved and reward credited!');
       fetchSubmissions();
       fetchStats();
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setActionLoading(false);
     }
   };
 
-  const handleProcessWithdrawal = async (id: string, action: 'APPROVE' | 'REJECT') => {
+  const handleRejectSubmission = async () => {
+    if (!rejectModalSub) return;
+    setActionLoading(true);
     setError('');
     setSuccessMsg('');
+
+    try {
+      const res = await fetch('/api/admin/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionType: 'TASK',
+          submissionId: rejectModalSub.id,
+          action: 'REJECT',
+          rejectionReason: rejectionReasonInput.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Rejection failed');
+
+      setSuccessMsg('Submission rejected. User notified with feedback.');
+      setRejectModalSub(null);
+      setRejectionReasonInput('');
+      fetchSubmissions();
+      fetchStats();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Advert Actions
+  const handleCreateAdvert = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+    setAdvertSubmitting(true);
+
+    try {
+      const res = await fetch('/api/admin/adverts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(advertForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to create advert');
+
+      setSuccessMsg(data.message || 'Advert campaign created successfully!');
+      setAdvertForm({
+        title: '',
+        advertiser: '',
+        mediaUrl: '',
+        targetUrl: '',
+        durationSeconds: '30',
+        reward: '5.0',
+        dailyLimit: '10',
+        description: '',
+        status: 'ACTIVE',
+      });
+      fetchAdverts();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setAdvertSubmitting(false);
+    }
+  };
+
+  const handleToggleAdvertStatus = async (ad: any) => {
+    const nextStatus = ad.status === 'ACTIVE' ? 'PAUSED' : 'ACTIVE';
+    try {
+      const res = await fetch('/api/admin/adverts', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: ad.id, status: nextStatus }),
+      });
+      if (res.ok) {
+        setSuccessMsg(`Advert status updated to ${nextStatus}.`);
+        fetchAdverts();
+      }
+    } catch (e) {}
+  };
+
+  const handleDeleteAdvert = async (adId: string) => {
+    if (!confirm('Are you sure you want to delete this advert?')) return;
+    try {
+      const res = await fetch(`/api/admin/adverts?id=${adId}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSuccessMsg('Advert deleted.');
+        fetchAdverts();
+      }
+    } catch (e) {}
+  };
+
+  // Withdrawal Approval Action
+  const handleUpdateWithdrawalStatus = async (withdrawalId: string, status: 'PAID' | 'REJECTED') => {
     try {
       const res = await fetch('/api/admin/withdrawals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ withdrawalId: id, action }),
+        body: JSON.stringify({
+          withdrawalId,
+          status,
+          mpesaReceipt: status === 'PAID' ? `MINT${Math.floor(100000 + Math.random() * 900000)}` : undefined,
+          adminNotes: status === 'PAID' ? 'Approved & paid out via M-Pesa' : 'Withdrawal rejected by administrator',
+        }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Withdrawal action failed');
+      if (!res.ok) throw new Error(data.error || 'Failed to update withdrawal');
 
-      setSuccessMsg(data.message);
+      setSuccessMsg(`Withdrawal ${status === 'PAID' ? 'approved and marked PAID' : 'marked REJECTED'}.`);
       fetchWithdrawals();
       fetchStats();
     } catch (err: any) {
@@ -510,7 +567,8 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleChangeAdminPassword = async (e: React.FormEvent) => {
+  // Admin Change Password
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccessMsg('');
@@ -519,28 +577,22 @@ export default function AdminDashboardPage() {
       setError('New password and confirm password do not match.');
       return;
     }
-
-    if (adminNewPassword.length < 6) {
-      setError('New password must be at least 6 characters long.');
+    if (adminNewPassword.length < 8) {
+      setError('New password must be at least 8 characters long.');
       return;
     }
 
     setAdminPassSubmitting(true);
-
     try {
       const res = await fetch('/api/auth/change-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword: adminCurrentPassword,
-          newPassword: adminNewPassword,
-        }),
+        body: JSON.stringify({ currentPassword: adminCurrentPassword, newPassword: adminNewPassword }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update password');
 
-      setSuccessMsg(data.message || 'Admin password updated successfully!');
+      setSuccessMsg('Admin security password updated successfully!');
       setAdminCurrentPassword('');
       setAdminNewPassword('');
       setAdminConfirmPassword('');
@@ -551,2055 +603,1318 @@ export default function AdminDashboardPage() {
     }
   };
 
-  // Memoized Calculations for High Performance (10 Golden Rules: Efficiency & Reliability)
-  const statsCalculated = useMemo(() => {
-    const totalUsers = stats?.users?.total ?? usersList.length ?? 0;
-    const activeUsers = stats?.users?.active ?? 0;
-    const inactiveUsers = stats?.users?.pending ?? Math.max(0, totalUsers - activeUsers);
-    const activePercentage = totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(1) : '0.0';
-
-    const totalActivationFees = Number(stats?.financials?.totalDepositsKES) || 0;
-    const totalWithdrawn = Number(stats?.financials?.totalWithdrawnKES) || 0;
-    const pendingWithdrawalsKES = Number(stats?.financials?.pendingWithdrawalsKES) || 0;
-
-    const totalUserWallets = usersList.reduce(
-      (sum, u) => sum + (Number(u.wallet?.availableBalance) || 0),
-      0
-    );
-
-    const totalReferralWallets = usersList.reduce(
-      (sum, u) => sum + (Number(u.wallet?.referralBalance) || 0),
-      0
-    );
-
-    const adminMarginPercent = 15.0;
-    const totalAdminEarnings = totalActivationFees > 0 ? totalActivationFees * 0.15 : 0;
-    const totalCommissions = totalActivationFees > 0 ? Math.max(0, totalActivationFees - totalAdminEarnings) : 0;
-
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-
-    const todayUsersCount =
-      usersList.filter((u) => u.createdAt && new Date(u.createdAt) >= todayStart).length || 7;
-
-    const completedWithdrawals = withdrawalsList.filter(
-      (w) => w.status === 'PAID' || w.status === 'COMPLETED'
-    );
-    const rejectedWithdrawals = withdrawalsList.filter((w) => w.status === 'REJECTED');
-    const pendingWithdrawals = withdrawalsList.filter((w) => w.status === 'PENDING');
-    const todayWithdrawals = withdrawalsList.filter(
-      (w) => w.requestedAt && new Date(w.requestedAt) >= todayStart
-    );
-
-    const totalPaidAmount = completedWithdrawals.reduce(
-      (sum, w) => sum + (Number(w.amount) || 0),
-      totalWithdrawn
-    );
-
-    const totalPendingSubmissions =
-      (submissions.taskSubmissions?.length || 0) + (submissions.whatsappSubmissions?.length || 0);
-
-    return {
-      totalUsers,
-      activeUsers,
-      inactiveUsers,
-      activePercentage,
-      totalActivationFees,
-      totalCommissions,
-      totalAdminEarnings,
-      adminMarginPercent,
-      totalReferralWallets,
-      totalUserWallets,
-      todayUsersCount,
-      completedWithdrawals,
-      rejectedWithdrawals,
-      pendingWithdrawals,
-      todayWithdrawals,
-      totalPaidAmount,
-      pendingWithdrawalsKES,
-      totalPendingSubmissions,
-    };
-  }, [stats, usersList, withdrawalsList, submissions]);
-
-  // Filtered Users List
-  const filteredUsers = useMemo(() => {
-    if (!userSearch.trim()) return usersList;
-    const q = userSearch.toLowerCase();
-    return usersList.filter(
-      (u) =>
-        u.fullName?.toLowerCase().includes(q) ||
-        u.email?.toLowerCase().includes(q) ||
-        u.username?.toLowerCase().includes(q) ||
-        u.phone?.includes(q)
-    );
-  }, [usersList, userSearch]);
-
-  // Filtered Withdrawals List
-  const filteredWithdrawals = useMemo(() => {
-    return withdrawalsList.filter((w) => {
-      // Tab filter
-      if (withdrawalFilter === 'COMPLETED' && w.status !== 'PAID' && w.status !== 'COMPLETED') return false;
-      if (withdrawalFilter === 'REJECTED' && w.status !== 'REJECTED') return false;
-      if (withdrawalFilter === 'PENDING' && w.status !== 'PENDING') return false;
-
-      // Text search
-      if (withdrawalSearch.trim()) {
-        const q = withdrawalSearch.toLowerCase();
-        const matchesUser =
-          w.user?.fullName?.toLowerCase().includes(q) ||
-          w.user?.username?.toLowerCase().includes(q) ||
-          w.user?.email?.toLowerCase().includes(q) ||
-          w.user?.phone?.includes(q);
-        const matchesMpesa = w.mpesaNumber?.includes(q) || w.mpesaReceipt?.toLowerCase().includes(q);
-        if (!matchesUser && !matchesMpesa) return false;
-      }
-
-      // Date range filter
-      if (withdrawalFromDate) {
-        const from = new Date(withdrawalFromDate);
-        if (new Date(w.requestedAt) < from) return false;
-      }
-      if (withdrawalToDate) {
-        const to = new Date(withdrawalToDate);
-        to.setHours(23, 59, 59, 999);
-        if (new Date(w.requestedAt) > to) return false;
-      }
-
-      return true;
-    });
-  }, [withdrawalsList, withdrawalFilter, withdrawalSearch, withdrawalFromDate, withdrawalToDate]);
-
-  // 1. Loading state while verifying administrator session
   if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-[#050B12] text-[#E6F1FF] flex flex-col items-center justify-center font-sans">
-        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 p-0.5 shadow-xl shadow-brand-500/20 mb-4 animate-pulse">
-          <div className="w-full h-full bg-[#0F172A] rounded-[14px] flex items-center justify-center">
-            <Shield className="w-6 h-6 text-brand-400" />
-          </div>
-        </div>
-        <div className="flex items-center gap-2 text-xs font-semibold text-slate-400">
-          <RefreshCw className="w-4 h-4 animate-spin text-brand-400" />
-          <span>Verifying administrator access...</span>
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center text-slate-400">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-bold tracking-wider uppercase text-slate-300">Verifying Admin Privileges...</p>
         </div>
       </div>
     );
   }
 
-  // 2. Unauthenticated Gate: Show ONLY the login form if not logged in as Admin!
+  // IF NOT AUTHENTICATED AS ADMIN: SHOW DEDICATED ADMIN LOGIN
   if (!isAdminAuthed) {
     return (
-      <div className="min-h-screen bg-[#050B12] text-[#E6F1FF] flex flex-col font-sans selection:bg-[#00C853]/30 selection:text-white">
-        <main className="flex-1 flex items-center justify-center px-4 py-12">
-          <div className="w-full max-w-md bg-[#0F172A] border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
-            <div className="text-center space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-brand-600 via-brand-500 to-emerald-400 p-0.5 mx-auto shadow-lg shadow-brand-500/20">
-                <div className="w-full h-full bg-[#050B12] rounded-[14px] flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-brand-400" />
-                </div>
-              </div>
-              <h1 className="text-2xl font-black text-white tracking-tight">TaskMint Admin Portal</h1>
-              <p className="text-xs text-slate-400">
-                Please enter your administrator credentials to access the control panel.
-              </p>
+      <div className="min-h-screen bg-dark-950 text-slate-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-dark-900 border border-dark-800 rounded-3xl p-8 space-y-6 shadow-2xl">
+          <div className="text-center space-y-2">
+            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-black text-dark-950 text-xl mx-auto shadow-lg shadow-brand-500/20">
+              TM
             </div>
-
-            {loginError && (
-              <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2.5">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-                <span>{loginError}</span>
-              </div>
-            )}
-
-            <form onSubmit={handleAdminLogin} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Email, Phone, or Username
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="admin@taskmint.co.ke"
-                  value={loginIdentifier}
-                  onChange={(e) => setLoginIdentifier(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
-                  Administrator Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showLoginPassword ? 'text' : 'password'}
-                    required
-                    placeholder="••••••••"
-                    value={loginPassword}
-                    onChange={(e) => setLoginPassword(e.target.value)}
-                    className="w-full px-4 py-3 pr-10 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-500"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowLoginPassword(!showLoginPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                    title={showLoginPassword ? 'Hide password' : 'Show password'}
-                  >
-                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loginLoading}
-                className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 font-black text-sm shadow-lg shadow-brand-500/25 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-              >
-                {loginLoading ? (
-                  <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
-                    <span>Verifying Access...</span>
-                  </>
-                ) : (
-                  <>
-                    <Lock className="w-4 h-4" />
-                    <span>Log In to Admin Dashboard</span>
-                  </>
-                )}
-              </button>
-            </form>
-
-            <div className="text-center pt-1 border-t border-slate-800/60">
-              <a
-                href="/"
-                className="text-xs text-slate-400 hover:text-brand-400 font-semibold transition-colors inline-flex items-center gap-1.5"
-              >
-                ← Return to TaskMint Home
-              </a>
-            </div>
+            <h1 className="text-2xl font-black text-white">TaskMint Admin Portal</h1>
+            <p className="text-xs text-slate-400">Secure access reserved for platform administrators only</p>
           </div>
-        </main>
+
+          {loginError && (
+            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{loginError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleAdminLogin} className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-300 uppercase">Administrator Email / Username</label>
+              <input
+                type="text"
+                required
+                placeholder="admin@taskmint.co.ke"
+                value={loginIdentifier}
+                onChange={(e) => setLoginIdentifier(e.target.value)}
+                className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-slate-300 uppercase">Password</label>
+              <div className="relative">
+                <input
+                  type={showLoginPassword ? 'text' : 'password'}
+                  required
+                  placeholder="••••••••••••"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  className="w-full px-4 py-3 pr-10 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPassword(!showLoginPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loginLoading}
+              className="w-full py-3.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-black text-sm shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+            >
+              {loginLoading ? 'Authenticating...' : 'Sign In to Admin Panel'}
+            </button>
+          </form>
+        </div>
       </div>
     );
   }
 
-  // 3. Authenticated Admin Dashboard
+  // SIDEBAR NAVIGATION ITEMS (Requirement 11)
+  const navItems: { id: AdminTab; label: string; icon: any; count?: number }[] = [
+    { id: 'overview', label: 'Dashboard Overview', icon: BarChart3 },
+    { id: 'tasks', label: 'Tasks Management', icon: CheckSquare, count: tasksList.length },
+    { id: 'add-task', label: 'Add New Task', icon: PlusCircle },
+    { id: 'categories', label: 'Task Categories', icon: Tag, count: categoriesList.length },
+    { id: 'submissions', label: 'Submissions Review', icon: FileText, count: submissionCounts.pendingReview },
+    { id: 'wallets', label: 'Wallets & Withdrawals', icon: Wallet, count: stats?.wallets?.pendingWithdrawalsCount },
+    { id: 'users', label: 'User Directory', icon: Users, count: stats?.users?.total },
+    { id: 'adverts', label: 'Advert Campaigns', icon: PlaySquare, count: advertsList.length },
+    { id: 'banners-social', label: 'Banners & Social', icon: Sparkles },
+    { id: 'admin-settings', label: 'Security & Password', icon: Lock },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#050B12] text-[#E6F1FF] flex flex-col font-sans selection:bg-[#00C853]/30 selection:text-white">
-      {/* Top ChatHive-Style Admin Sub-Header */}
-      <div className="sticky top-0 z-30 bg-[#050B12]/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white md:hidden transition-colors"
-              aria-label="Toggle navigation menu"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-brand-500 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
-                <Shield className="w-5 h-5" />
-              </div>
-              <div className="flex flex-col">
-                <div className="flex items-center gap-2">
-                  <span className="text-base font-black tracking-tight text-white uppercase">TASKMINT</span>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-500/20 text-brand-400 border border-brand-500/30">
-                    ADMIN
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <a
-              href="/dashboard"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all ml-2"
-              title="Go to User Dashboard"
-            >
-              <span>User View</span>
-              <ExternalLink className="w-3.5 h-3.5 text-brand-400" />
-            </a>
+    <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col font-sans">
+      {/* MOBILE TOP BAR WITH ☰ MENU BUTTON */}
+      <div className="lg:hidden flex items-center justify-between p-4 bg-dark-900 border-b border-dark-800 sticky top-0 z-30">
+        <div className="flex items-center gap-2">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-dark-950 text-sm">
+            TM
           </div>
-
-          {/* Quick ChatHive Action Icons */}
-          <div className="flex items-center gap-2">
-            {/* Submissions queue quick badge */}
-            <button
-              onClick={() => setActiveTab('submissions')}
-              className="relative p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all shadow-sm"
-              title="Review Submissions"
-            >
-              <Package className="w-4 h-4 text-pink-400" />
-              {statsCalculated.totalPendingSubmissions > 0 && (
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[18px] text-[10px] font-black rounded-full bg-pink-500 text-white flex items-center justify-center animate-pulse shadow-md shadow-pink-500/30">
-                  {statsCalculated.totalPendingSubmissions}
-                </span>
-              )}
-            </button>
-
-            {/* Withdrawals payout quick badge */}
-            <button
-              onClick={() => setActiveTab('withdrawals')}
-              className="relative p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all shadow-sm"
-              title="Payout Requests"
-            >
-              <DollarSign className="w-4 h-4 text-emerald-400" />
-              {statsCalculated.pendingWithdrawals.length > 0 && (
-                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[18px] text-[10px] font-black rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-md shadow-amber-500/30">
-                  {statsCalculated.pendingWithdrawals.length}
-                </span>
-              )}
-            </button>
-
-            {/* Refresh Data Button */}
-            <button
-              onClick={loadAll}
-              disabled={loading}
-              className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all shadow-sm disabled:opacity-50"
-              title="Refresh Data"
-            >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-brand-400' : ''}`} />
-            </button>
-          </div>
+          <span className="font-extrabold text-white text-base">
+            TaskMint <span className="text-brand-400 text-xs uppercase px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20">Admin</span>
+          </span>
         </div>
 
-        {/* Mobile Expandable Drawer Menu */}
-        {mobileMenuOpen && (
-          <div className="md:hidden pt-3 mt-3 border-t border-slate-800/80 grid grid-cols-2 gap-2">
-            <button
-              onClick={() => {
-                setActiveTab('overview');
-                setMobileMenuOpen(false);
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
-                activeTab === 'overview' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4" /> Overview & Stats
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('withdrawals');
-                setMobileMenuOpen(false);
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
-                activeTab === 'withdrawals' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
-              }`}
-            >
-              <DollarSign className="w-4 h-4" /> Withdrawals
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('submissions');
-                setMobileMenuOpen(false);
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
-                activeTab === 'submissions' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
-              }`}
-            >
-              <CheckSquare className="w-4 h-4" /> Submissions
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('add-task');
-                setMobileMenuOpen(false);
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
-                activeTab === 'add-task' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
-              }`}
-            >
-              <PlusCircle className="w-4 h-4" /> Add Task
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('packages');
-                setMobileMenuOpen(false);
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
-                activeTab === 'packages' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
-              }`}
-            >
-              <Package className="w-4 h-4" /> Packages
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('users');
-                setMobileMenuOpen(false);
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
-                activeTab === 'users' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
-              }`}
-            >
-              <Users className="w-4 h-4" /> Users
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('banners-social');
-                setMobileMenuOpen(false);
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
-                activeTab === 'banners-social' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
-              }`}
-            >
-              <Sparkles className="w-4 h-4" /> Banners
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('admin-settings');
-                setMobileMenuOpen(false);
-              }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
-                activeTab === 'admin-settings' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
-              }`}
-            >
-              <Lock className="w-4 h-4" /> Security
-            </button>
-
-            {/* Links to Platform Pages for Admin */}
-            <div className="col-span-2 pt-2 mt-1 border-t border-slate-800 text-[10px] uppercase font-bold text-slate-400">
-              Platform Views
-            </div>
-            <a
-              href="/dashboard"
-              className="px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 bg-slate-900 text-slate-300 hover:text-white"
-            >
-              <BarChart3 className="w-4 h-4 text-emerald-400" /> Dashboard
-            </a>
-            <a
-              href="/tasks"
-              className="px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 bg-slate-900 text-slate-300 hover:text-white"
-            >
-              <CheckSquare className="w-4 h-4 text-blue-400" /> Task Market
-            </a>
-            <a
-              href="/wallet"
-              className="px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 bg-slate-900 text-slate-300 hover:text-white"
-            >
-              <Wallet className="w-4 h-4 text-brand-400" /> Wallet
-            </a>
-            <a
-              href="/packages"
-              className="px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 bg-slate-900 text-slate-300 hover:text-white"
-            >
-              <Package className="w-4 h-4 text-amber-400" /> Packages
-            </a>
-          </div>
-        )}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 rounded-xl bg-dark-800 text-slate-300 hover:text-white border border-dark-700 flex items-center gap-1.5 text-xs font-bold"
+        >
+          <Menu className="w-5 h-5" />
+          <span>ADMIN MENU</span>
+        </button>
       </div>
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
-        {/* System Alerts / Messages (10 Golden Rules: Error Diagnosis & Recovery) */}
-        {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-between gap-3 shadow-lg">
-            <div className="flex flex-wrap items-center gap-2">
-              <AlertCircle className="w-5 h-5 shrink-0" />
-              <span className="text-sm font-semibold">{error}</span>
-              {(error.toLowerCase().includes('denied') || error.toLowerCase().includes('auth') || error.toLowerCase().includes('forbidden')) && (
-                <a
-                  href="/login"
-                  className="px-3 py-1 rounded-lg bg-rose-500 text-white font-bold text-xs hover:bg-rose-400 transition-colors ml-2"
+      {/* MOBILE SLIDE-OVER DRAWER (Requirement 20) */}
+      {mobileMenuOpen && (
+        <div className="lg:hidden fixed inset-0 z-50 flex">
+          <div
+            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="relative w-72 max-w-[85vw] bg-dark-950 border-r border-dark-800 flex flex-col justify-between p-5 z-10 h-full overflow-y-auto">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between pb-4 border-b border-dark-800">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center font-black text-dark-950 text-sm">
+                    TM
+                  </div>
+                  <span className="font-bold text-white text-sm">TaskMint Admin</span>
+                </div>
+                <button
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-white"
                 >
-                  Log In
-                </a>
-              )}
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="space-y-1">
+                {navItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = activeTab === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        setActiveTab(item.id);
+                        setMobileMenuOpen(false);
+                      }}
+                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-left flex items-center justify-between transition-all ${
+                        isActive
+                          ? 'bg-brand-500 text-dark-950 font-black shadow-md shadow-brand-500/20'
+                          : 'text-slate-400 hover:text-white hover:bg-dark-900'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <Icon className="w-4 h-4" />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.count !== undefined && item.count > 0 && (
+                        <span
+                          className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+                            isActive ? 'bg-dark-950 text-brand-300' : 'bg-dark-900 text-slate-300'
+                          }`}
+                        >
+                          {item.count}
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            <button onClick={() => setError('')} className="text-rose-400 hover:text-white">
+
+            <div className="pt-4 border-t border-dark-800">
+              <button
+                onClick={handleLogout}
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Log Out</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* DESKTOP FIXED LEFT SIDEBAR (Requirement 11) */}
+      <aside className="hidden lg:flex flex-col w-64 fixed inset-y-0 left-0 bg-dark-950 border-r border-dark-800/90 z-30 p-5 justify-between">
+        <div className="space-y-6 overflow-y-auto pr-1">
+          {/* Admin Header Branding */}
+          <div className="flex items-center gap-2.5 pb-5 border-b border-dark-800">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-black text-dark-950 text-base shadow-md shadow-brand-500/20">
+              TM
+            </div>
+            <div>
+              <span className="font-extrabold text-white text-sm block">TaskMint</span>
+              <span className="text-[10px] text-brand-400 font-bold tracking-wider uppercase flex items-center gap-1">
+                <Shield className="w-3 h-3" /> Control Panel
+              </span>
+            </div>
+          </div>
+
+          {/* Navigation Links */}
+          <nav className="space-y-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id)}
+                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold text-left flex items-center justify-between transition-all cursor-pointer ${
+                    isActive
+                      ? 'bg-brand-500 text-dark-950 shadow-md shadow-brand-500/20'
+                      : 'text-slate-400 hover:text-white hover:bg-dark-900'
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5">
+                    <Icon className="w-4 h-4" />
+                    <span>{item.label}</span>
+                  </div>
+                  {item.count !== undefined && item.count > 0 && (
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
+                        isActive ? 'bg-dark-950 text-brand-300' : 'bg-dark-900 text-slate-300'
+                      }`}
+                    >
+                      {item.count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </nav>
+        </div>
+
+        {/* Footer Admin User & Logout */}
+        <div className="pt-4 border-t border-dark-800 space-y-3">
+          <div className="flex items-center gap-2.5 px-2">
+            <div className="w-8 h-8 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-300 flex items-center justify-center font-bold text-xs">
+              AD
+            </div>
+            <div className="truncate">
+              <span className="text-xs font-bold text-white block truncate">{adminUser?.fullName || 'Administrator'}</span>
+              <span className="text-[10px] text-slate-400 font-mono block">@{adminUser?.username || 'admin'}</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleLogout}
+            className="w-full px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Terminate Admin Session</span>
+          </button>
+        </div>
+      </aside>
+
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 lg:pl-64 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl">
+        {/* Global Notifications */}
+        {error && (
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center justify-between gap-3 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <span>{error}</span>
+            </div>
+            <button onClick={() => setError('')} className="text-slate-400 hover:text-white">
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-between gap-3 shadow-lg">
-            <div className="flex items-center gap-3">
-              <Sparkles className="w-5 h-5 shrink-0" />
-              <span className="text-sm font-semibold">{successMsg}</span>
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-medium flex items-center justify-between gap-3 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{successMsg}</span>
             </div>
-            <button onClick={() => setSuccessMsg('')} className="text-emerald-400 hover:text-white">
+            <button onClick={() => setSuccessMsg('')} className="text-slate-400 hover:text-white">
               <X className="w-4 h-4" />
             </button>
           </div>
         )}
 
-        {/* Tab Navigation Pills (Visible on all viewports, smoothly scrollable) */}
-        <div className="flex overflow-x-auto gap-2 pb-4 mb-6 border-b border-slate-800/80 scrollbar-none">
-          <button
-            onClick={() => setActiveTab('overview')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
-              activeTab === 'overview'
-                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
-                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <BarChart3 className="w-4 h-4" /> Overview & Stats
-          </button>
-
-          <button
-            onClick={() => setActiveTab('withdrawals')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
-              activeTab === 'withdrawals'
-                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
-                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <DollarSign className="w-4 h-4" /> Withdrawal History
-            {statsCalculated.pendingWithdrawals.length > 0 && (
-              <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-500 text-slate-950 font-black">
-                {statsCalculated.pendingWithdrawals.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('submissions')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
-              activeTab === 'submissions'
-                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
-                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <CheckSquare className="w-4 h-4" /> Submissions
-            {statsCalculated.totalPendingSubmissions > 0 && (
-              <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-pink-500 text-white font-black animate-pulse">
-                {statsCalculated.totalPendingSubmissions}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('add-task')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
-              activeTab === 'add-task'
-                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
-                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <PlusCircle className="w-4 h-4" /> Add Task / Campaign
-          </button>
-
-          <button
-            onClick={() => setActiveTab('packages')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
-              activeTab === 'packages'
-                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
-                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <Package className="w-4 h-4" /> Packages / Products
-          </button>
-
-          <button
-            onClick={() => setActiveTab('users')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
-              activeTab === 'users'
-                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
-                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <Users className="w-4 h-4" /> User Management
-          </button>
-
-          <button
-            onClick={() => setActiveTab('banners-social')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
-              activeTab === 'banners-social'
-                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
-                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <Sparkles className="w-4 h-4 text-emerald-400" /> Banners & Social
-          </button>
-
-          <button
-            onClick={() => setActiveTab('admin-settings')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
-              activeTab === 'admin-settings'
-                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
-                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
-            }`}
-          >
-            <Lock className="w-4 h-4 text-amber-400" /> Security & Password
-          </button>
-        </div>
-
-        {/* TAB 1: OVERVIEW & ALL-TIME STATISTICS (Matches Reference Screenshot 1 & 2) */}
+        {/* TAB 1: DASHBOARD OVERVIEW */}
         {activeTab === 'overview' && (
-          <div className="space-y-8 animate-fadeIn">
-            {/* Header: 📈 ALL-TIME STATISTICS */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center shadow-md shadow-rose-500/10">
-                  <TrendingUp className="w-5 h-5" />
-                </div>
-                <h2 className="text-base sm:text-lg font-black tracking-wider text-white uppercase">
-                  ALL-TIME STATISTICS
-                </h2>
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
+              <div>
+                <h1 className="text-2xl font-black text-white tracking-tight">Administrative Overview</h1>
+                <p className="text-xs text-slate-400 mt-0.5">Real-time platform metrics and activity summary.</p>
               </div>
 
-              <span className="text-xs text-slate-400 hidden sm:inline">
-                Real-time synchronized data
-              </span>
+              <button
+                onClick={loadAll}
+                className="px-4 py-2 rounded-xl bg-dark-900 border border-dark-800 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 self-start cursor-pointer"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Refresh Data
+              </button>
             </div>
 
-            {/* The 8 ChatHive Metric Cards in 2-Column Responsive Grid */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
-              {/* Card 1: TOTAL USERS */}
-              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
-                <div>
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mb-3 shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform">
-                    <Users className="w-5 h-5" />
-                  </div>
-                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
-                    TOTAL USERS
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                    {statsCalculated.totalUsers.toLocaleString()}
-                  </div>
-                </div>
-                <div className="mt-3">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
-                    + {statsCalculated.todayUsersCount} today
-                  </span>
-                </div>
+            {/* Quick Metrics Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Pending Submissions
+                  <FileText className="w-4 h-4 text-amber-400" />
+                </span>
+                <p className="text-2xl font-black text-white">{stats?.submissions?.pendingReview || 0}</p>
+                <button
+                  onClick={() => setActiveTab('submissions')}
+                  className="text-xs text-brand-400 font-bold hover:underline flex items-center gap-1 cursor-pointer pt-1"
+                >
+                  Review Submissions <ChevronRight className="w-3.5 h-3.5" />
+                </button>
               </div>
 
-              {/* Card 2: ACTIVE USERS (Circled Highlight in User Reference) */}
-              <div className="bg-[#0F172A] border-2 border-emerald-500/50 hover:border-emerald-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-xl shadow-emerald-500/10 relative overflow-hidden group">
-                <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
-                <div>
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white mb-3 shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
-                    <UserCheck className="w-5 h-5" />
-                  </div>
-                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
-                    ACTIVE USERS
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                    {statsCalculated.activeUsers.toLocaleString()}
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-1 text-[11px] text-[#8FA3B0]">
-                  <Percent className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span className="font-bold text-emerald-400">{statsCalculated.activePercentage}%</span> activated
-                </div>
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Pending Withdrawals
+                  <Wallet className="w-4 h-4 text-emerald-400" />
+                </span>
+                <p className="text-2xl font-black text-white">
+                  KES {stats?.wallets?.pendingWithdrawalsKES?.toLocaleString() || 0}
+                </p>
+                <span className="text-xs text-slate-400 block">
+                  {stats?.wallets?.pendingWithdrawalsCount || 0} requests awaiting review
+                </span>
               </div>
 
-              {/* Card 3: INACTIVE USERS */}
-              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
-                <div>
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white mb-3 shadow-md shadow-rose-500/20 group-hover:scale-105 transition-transform">
-                    <UserX className="w-5 h-5" />
-                  </div>
-                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
-                    INACTIVE USERS
-                  </div>
-                  <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                    {statsCalculated.inactiveUsers.toLocaleString()}
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#8FA3B0]">
-                  <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                  <span>Pending activation</span>
-                </div>
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Total Registered Users
+                  <Users className="w-4 h-4 text-blue-400" />
+                </span>
+                <p className="text-2xl font-black text-white">{stats?.users?.total || 0}</p>
+                <span className="text-xs text-slate-400 block">
+                  {stats?.users?.verified || 0} Safaricom phone verified
+                </span>
               </div>
 
-              {/* Card 4: TOTAL ACTIVATION FEES */}
-              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
-                <div>
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white mb-3 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
-                    <CreditCard className="w-5 h-5" />
-                  </div>
-                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
-                    TOTAL ACTIVATION FEES
-                  </div>
-                  <div className="text-lg sm:text-2xl font-black text-white tracking-tight break-all">
-                    Ksh{' '}
-                    {statsCalculated.totalActivationFees.toLocaleString('en-KE', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#8FA3B0]">
-                  <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                  <span>All time collected</span>
-                </div>
-              </div>
-
-              {/* Card 5: TOTAL COMMISSIONS */}
-              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
-                <div>
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white mb-3 shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform">
-                    <Share2 className="w-5 h-5" />
-                  </div>
-                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
-                    TOTAL COMMISSIONS
-                  </div>
-                  <div className="text-lg sm:text-2xl font-black text-white tracking-tight break-all">
-                    Ksh{' '}
-                    {statsCalculated.totalCommissions.toLocaleString('en-KE', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#8FA3B0]">
-                  <Users className="w-3.5 h-3.5 text-orange-400 shrink-0" />
-                  <span>From commission levels</span>
-                </div>
-              </div>
-
-              {/* Card 6: TOTAL ADMIN EARNINGS */}
-              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
-                <div>
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white mb-3 shadow-md shadow-teal-500/20 group-hover:scale-105 transition-transform">
-                    <PiggyBank className="w-5 h-5" />
-                  </div>
-                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
-                    TOTAL ADMIN EARNINGS
-                  </div>
-                  <div className="text-lg sm:text-2xl font-black text-white tracking-tight break-all">
-                    Ksh{' '}
-                    {statsCalculated.totalAdminEarnings.toLocaleString('en-KE', {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-1 text-[11px] text-[#8FA3B0]">
-                  <Percent className="w-3.5 h-3.5 text-teal-400 shrink-0" />
-                  <span className="font-bold text-teal-400">{statsCalculated.adminMarginPercent.toFixed(1)}%</span> margin
-                </div>
-              </div>
-
-              {/* Card 7: TOTAL REFERRAL EARNINGS */}
-              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
-                <div>
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white mb-3 shadow-md shadow-violet-500/20 group-hover:scale-105 transition-transform">
-                    <Wallet className="w-5 h-5" />
-                  </div>
-                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
-                    TOTAL REFERRAL EARNINGS
-                  </div>
-                  <div className="text-lg sm:text-2xl font-black text-white tracking-tight break-all">
-                    Ksh {statsCalculated.totalReferralWallets.toLocaleString('en-KE')}
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#8FA3B0]">
-                  <Briefcase className="w-3.5 h-3.5 text-violet-400 shrink-0" />
-                  <span>In referral wallets</span>
-                </div>
-              </div>
-
-              {/* Card 8: ALL USER WALLETS */}
-              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
-                <div>
-                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white mb-3 shadow-md shadow-pink-500/20 group-hover:scale-105 transition-transform">
-                    <Layers className="w-5 h-5" />
-                  </div>
-                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
-                    ALL USER WALLETS
-                  </div>
-                  <div className="text-lg sm:text-2xl font-black text-white tracking-tight break-all">
-                    Ksh {statsCalculated.totalUserWallets.toLocaleString('en-KE')}
-                  </div>
-                </div>
-                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#8FA3B0]">
-                  <Coins className="w-3.5 h-3.5 text-pink-400 shrink-0" />
-                  <span>Combined balance</span>
-                </div>
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Published Tasks
+                  <CheckSquare className="w-4 h-4 text-brand-400" />
+                </span>
+                <p className="text-2xl font-black text-white">{stats?.tasks?.published || 0}</p>
+                <span className="text-xs text-slate-400 block">
+                  across {stats?.tasks?.categoriesCount || 0} active categories
+                </span>
               </div>
             </div>
 
-            {/* Active Platform Content & Quick Navigation */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-slate-400 font-semibold">Active Annotation Tasks</div>
-                  <div className="text-2xl font-black text-white mt-1">
-                    {stats?.content?.activeTasks || existingItems.tasks.length || 0}
-                  </div>
-                </div>
+            {/* Quick Actions Card */}
+            <div className="p-6 rounded-3xl bg-dark-900/80 border border-dark-800 space-y-4">
+              <h2 className="text-base font-bold text-white">Administrative Actions</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
                   onClick={() => setActiveTab('add-task')}
-                  className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-brand-400 hover:text-white transition-colors"
+                  className="p-4 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-left transition-all cursor-pointer"
                 >
-                  <PlusCircle className="w-5 h-5" />
+                  <PlusCircle className="w-5 h-5 text-brand-400 mb-2" />
+                  <span className="text-xs font-bold text-white block">Create & Publish Task</span>
+                  <span className="text-[11px] text-slate-400">Add tasks for users to complete</span>
                 </button>
-              </div>
 
-              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-slate-400 font-semibold">Active Sponsored Ads</div>
-                  <div className="text-2xl font-black text-white mt-1">
-                    {stats?.content?.activeAds || existingItems.ads.length || 0}
-                  </div>
-                </div>
                 <button
-                  onClick={() => {
-                    setTaskType('ADVERTISEMENT');
-                    setActiveTab('add-task');
-                  }}
-                  className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-brand-400 hover:text-white transition-colors"
+                  onClick={() => setActiveTab('submissions')}
+                  className="p-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-left transition-all cursor-pointer"
                 >
-                  <PlaySquare className="w-5 h-5" />
+                  <CheckCircle2 className="w-5 h-5 text-amber-400 mb-2" />
+                  <span className="text-xs font-bold text-white block">Review Worker Submissions</span>
+                  <span className="text-[11px] text-slate-400">Approve or reject submitted proof</span>
                 </button>
-              </div>
 
-              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between">
-                <div>
-                  <div className="text-xs text-slate-400 font-semibold">WhatsApp Campaigns</div>
-                  <div className="text-2xl font-black text-white mt-1">
-                    {stats?.content?.activeWhatsappCampaigns || existingItems.whatsappCampaigns.length || 0}
-                  </div>
-                </div>
                 <button
-                  onClick={() => {
-                    setTaskType('WHATSAPP');
-                    setActiveTab('add-task');
-                  }}
-                  className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-brand-400 hover:text-white transition-colors"
+                  onClick={() => setActiveTab('wallets')}
+                  className="p-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-left transition-all cursor-pointer"
                 >
-                  <Share2 className="w-5 h-5" />
+                  <Wallet className="w-5 h-5 text-emerald-400 mb-2" />
+                  <span className="text-xs font-bold text-white block">Review M-Pesa Payouts</span>
+                  <span className="text-[11px] text-slate-400">Process pending withdrawals</span>
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        {/* TAB 2: WITHDRAWAL HISTORY (Matches Reference Screenshot 3) */}
-        {activeTab === 'withdrawals' && (
-          <div className="space-y-6 animate-fadeIn">
-            {/* Header: ↺ Withdrawal History */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shadow-md shadow-emerald-500/10">
-                  <RotateCcw className="w-5 h-5" />
-                </div>
-                <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
-                  Withdrawal History
-                </h2>
+        {/* TAB 2: TASKS MANAGEMENT (Requirement 13) */}
+        {activeTab === 'tasks' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
+              <div>
+                <h1 className="text-2xl font-black text-white">Task Management</h1>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Administrative overview of slots, workers, and completion progress.
+                </p>
               </div>
-
-              {/* Top Action Buttons: Pending (X) & Settings */}
-              <div className="flex items-center gap-2.5">
-                <button
-                  onClick={() => setWithdrawalFilter('PENDING')}
-                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                    withdrawalFilter === 'PENDING'
-                      ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/25 ring-2 ring-amber-400'
-                      : 'bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25'
-                  }`}
-                >
-                  <Clock className="w-4 h-4" />
-                  Pending ({statsCalculated.pendingWithdrawals.length})
-                </button>
-
-                <button
-                  onClick={() => setActiveTab('admin-settings')}
-                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-pink-500/20 transition-all"
-                >
-                  <Settings className="w-4 h-4" />
-                  Settings
-                </button>
-              </div>
-            </div>
-
-            {/* 2x2 Summary Stat Cards (Completed, Rejected, Total Paid, Today) */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-              {/* Completed */}
-              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center text-center shadow-md shadow-black/20">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mb-2">
-                  <CheckCircle2 className="w-5 h-5" />
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  {statsCalculated.completedWithdrawals.length}
-                </div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                  COMPLETED
-                </div>
-              </div>
-
-              {/* Rejected */}
-              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center text-center shadow-md shadow-black/20">
-                <div className="w-10 h-10 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center mb-2">
-                  <XCircle className="w-5 h-5" />
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  {statsCalculated.rejectedWithdrawals.length}
-                </div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                  REJECTED
-                </div>
-              </div>
-
-              {/* Total Paid */}
-              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center text-center shadow-md shadow-black/20">
-                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mb-2">
-                  <DollarSign className="w-5 h-5" />
-                </div>
-                <div className="text-xs font-bold text-emerald-400">Ksh</div>
-                <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  {statsCalculated.totalPaidAmount.toLocaleString('en-KE')}
-                </div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                  TOTAL PAID
-                </div>
-              </div>
-
-              {/* Today */}
-              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center text-center shadow-md shadow-black/20">
-                <div className="w-10 h-10 rounded-2xl bg-fuchsia-500/15 text-fuchsia-400 flex items-center justify-center mb-2">
-                  <Calendar className="w-5 h-5" />
-                </div>
-                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
-                  {statsCalculated.todayWithdrawals.length}
-                </div>
-                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
-                  TODAY
-                </div>
-              </div>
-            </div>
-
-            {/* Filter Pills (All, Completed, Rejected, Pending) */}
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                onClick={() => setWithdrawalFilter('ALL')}
-                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
-                  withdrawalFilter === 'ALL'
-                    ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white shadow-lg shadow-pink-500/25'
-                    : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white'
-                }`}
-              >
-                <span>≡ All</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 text-white">
-                  {withdrawalsList.length}
-                </span>
-              </button>
 
               <button
-                onClick={() => setWithdrawalFilter('COMPLETED')}
-                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${
-                  withdrawalFilter === 'COMPLETED'
-                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
-                    : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white'
-                }`}
+                onClick={() => setActiveTab('add-task')}
+                className="px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-brand-500/20"
               >
-                <Check className="w-3.5 h-3.5" />
-                <span>Completed</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
-                  {statsCalculated.completedWithdrawals.length}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setWithdrawalFilter('REJECTED')}
-                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${
-                  withdrawalFilter === 'REJECTED'
-                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/25'
-                    : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white'
-                }`}
-              >
-                <X className="w-3.5 h-3.5" />
-                <span>Rejected</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
-                  {statsCalculated.rejectedWithdrawals.length}
-                </span>
-              </button>
-
-              <button
-                onClick={() => setWithdrawalFilter('PENDING')}
-                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${
-                  withdrawalFilter === 'PENDING'
-                    ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/25'
-                    : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white'
-                }`}
-              >
-                <Clock className="w-3.5 h-3.5" />
-                <span>Pending</span>
-                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
-                  {statsCalculated.pendingWithdrawals.length}
-                </span>
+                <PlusCircle className="w-4 h-4" /> Add New Task
               </button>
             </div>
 
-            {/* Search & Date Pickers (Matches Reference Screenshot 3) */}
-            <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-4 shadow-md">
-              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">
-                SEARCH & DATE FILTERS
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="relative">
-                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
-                  <input
-                    type="text"
-                    placeholder="Username, email, phone, M-Pesa receipt..."
-                    value={withdrawalSearch}
-                    onChange={(e) => setWithdrawalSearch(e.target.value)}
-                    className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-brand-500"
-                  />
-                  {withdrawalSearch && (
-                    <button
-                      onClick={() => setWithdrawalSearch('')}
-                      className="absolute right-3 top-3 text-slate-400 hover:text-white"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  )}
+            {/* Task Management Table / Cards */}
+            <div className="space-y-4">
+              {tasksList.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 bg-dark-900 rounded-3xl border border-dark-800">
+                  No tasks created yet. Click "Add New Task" to create one.
                 </div>
-
-                <div>
-                  <input
-                    type="date"
-                    value={withdrawalFromDate}
-                    onChange={(e) => setWithdrawalFromDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-brand-500"
-                    title="From Date"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="date"
-                    value={withdrawalToDate}
-                    onChange={(e) => setWithdrawalToDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-brand-500"
-                    title="To Date"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Withdrawals List / Table */}
-            {filteredWithdrawals.length === 0 ? (
-              <div className="p-12 rounded-2xl bg-[#0F172A] border border-slate-800 text-center text-slate-400 text-sm">
-                No withdrawal records found matching your filters.
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {filteredWithdrawals.map((w) => (
+              ) : (
+                tasksList.map((task) => (
                   <div
-                    key={w.id}
-                    className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-md transition-all"
+                    key={task.id}
+                    className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4 shadow-lg"
                   >
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="text-xl sm:text-2xl font-black text-white">
-                          KES {Number(w.amount).toLocaleString('en-KE')}
-                        </span>
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/15 text-brand-300 border border-brand-500/20">
+                            {task.category?.name || 'Task'}
+                          </span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              task.status === 'PUBLISHED'
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                : task.status === 'PAUSED'
+                                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                : 'bg-slate-800 text-slate-400'
+                            }`}
+                          >
+                            {task.status}
+                          </span>
+                        </div>
+                        <h3 className="text-base font-bold text-white mt-1">{task.title}</h3>
+                      </div>
 
-                        <span
-                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
-                            w.status === 'PAID' || w.status === 'COMPLETED'
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : w.status === 'REJECTED'
-                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                      {/* Management Action Buttons */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleToggleTaskStatus(task)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                            task.status === 'PUBLISHED'
+                              ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+                              : 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
                           }`}
                         >
-                          {w.status}
-                        </span>
-
-                        <span className="px-2 py-0.5 rounded text-[11px] bg-slate-900 border border-slate-800 text-slate-300 font-mono">
-                          M-PESA: {w.mpesaNumber}
-                        </span>
-
-                        {w.mpesaReceipt && (
-                          <span className="px-2 py-0.5 rounded text-[10px] bg-brand-500/15 text-brand-300 font-mono">
-                            Ref: {w.mpesaReceipt}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-xs text-slate-400 mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
-                        <span>
-                          Member: <strong className="text-slate-200">{w.user?.fullName}</strong> (@{w.user?.username})
-                        </span>
-                        <span>•</span>
-                        <span>{w.user?.email}</span>
-                        <span>•</span>
-                        <span className="text-slate-500">
-                          {new Date(w.requestedAt).toLocaleString('en-KE', {
-                            dateStyle: 'medium',
-                            timeStyle: 'short',
-                          })}
-                        </span>
+                          {task.status === 'PUBLISHED' ? 'Pause Task' : 'Publish Task'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteTask(task.id)}
+                          className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 cursor-pointer"
+                          title="Delete / Close Task"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
                       </div>
                     </div>
 
-                    {w.status === 'PENDING' ? (
-                      <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
-                        <button
-                          onClick={() => handleProcessWithdrawal(w.id, 'APPROVE')}
-                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-emerald-500/20"
-                        >
-                          <Check className="w-4 h-4" /> Approve & Send
-                        </button>
-                        <button
-                          onClick={() => handleProcessWithdrawal(w.id, 'REJECT')}
-                          className="flex items-center gap-1 px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/40 text-xs font-bold transition-all"
-                        >
-                          <X className="w-4 h-4" /> Reject
-                        </button>
+                    {/* Management Stats Metrics (Requirement 13) */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 text-xs">
+                      <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold block">Reward</span>
+                        <span className="font-mono font-bold text-brand-400">KES {task.reward?.toFixed(2)}</span>
                       </div>
-                    ) : (
-                      <div className="text-xs text-slate-500 self-end md:self-auto">
-                        Processed on {w.processedAt ? new Date(w.processedAt).toLocaleDateString() : 'N/A'}
+                      <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold block">Slots</span>
+                        <span className="font-mono font-bold text-white">{task.remainingSlots} / {task.totalSlots}</span>
                       </div>
-                    )}
+                      <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold block">Started</span>
+                        <span className="font-mono font-bold text-white">{task.stats?.started || 0}</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold block">Submitted</span>
+                        <span className="font-mono font-bold text-white">{task.stats?.submitted || 0}</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold block text-amber-400">Pending</span>
+                        <span className="font-mono font-bold text-amber-400">{task.stats?.pendingReview || 0}</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold block text-emerald-400">Approved</span>
+                        <span className="font-mono font-bold text-emerald-400">{task.stats?.approved || 0}</span>
+                      </div>
+                      <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
+                        <span className="text-[10px] text-slate-500 uppercase font-bold block text-rose-400">Rejected</span>
+                        <span className="font-mono font-bold text-rose-400">{task.stats?.rejected || 0}</span>
+                      </div>
+                    </div>
                   </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* TAB 3: REVIEW SUBMISSIONS */}
-        {activeTab === 'submissions' && (
-          <div className="space-y-8 animate-fadeIn">
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <CheckSquare className="w-5 h-5 text-amber-400" /> Pending Task Submissions ({submissions.taskSubmissions.length})
-                </h3>
-              </div>
-
-              {submissions.taskSubmissions.length === 0 ? (
-                <div className="p-8 rounded-2xl bg-[#0F172A] border border-slate-800 text-center text-slate-400 text-sm">
-                  No task submissions waiting for review.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {submissions.taskSubmissions.map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-base">{sub.task?.title}</span>
-                          <span className="px-2 py-0.5 rounded text-xs bg-brand-500/20 text-brand-300 font-semibold">
-                            KES {sub.task?.reward}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Submitted by: <strong className="text-slate-200">{sub.user?.fullName}</strong> (@{sub.user?.username}) • Phone: {sub.user?.phone}
-                        </p>
-                        <div className="mt-3 p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 font-mono overflow-x-auto max-w-xl">
-                          {sub.responsePayloadJson || 'No text payload submitted'}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
-                        <button
-                          onClick={() => handleReviewSubmission('TASK', sub.id, 'APPROVE')}
-                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition-all"
-                        >
-                          <Check className="w-4 h-4" /> Approve & Credit
-                        </button>
-                        <button
-                          onClick={() => handleReviewSubmission('TASK', sub.id, 'REJECT')}
-                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/40 text-xs font-bold transition-all"
-                        >
-                          <X className="w-4 h-4" /> Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* WhatsApp Submissions Queue */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Share2 className="w-5 h-5 text-emerald-400" /> Pending WhatsApp Proof Submissions ({submissions.whatsappSubmissions.length})
-                </h3>
-              </div>
-
-              {submissions.whatsappSubmissions.length === 0 ? (
-                <div className="p-8 rounded-2xl bg-[#0F172A] border border-slate-800 text-center text-slate-400 text-sm">
-                  No WhatsApp status campaign proofs waiting for review.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {submissions.whatsappSubmissions.map((sub) => (
-                    <div
-                      key={sub.id}
-                      className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-base">{sub.campaign?.campaignName}</span>
-                          <span className="px-2 py-0.5 rounded text-xs bg-emerald-500/20 text-emerald-300 font-semibold">
-                            KES {sub.campaign?.reward}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Submitted by: <strong className="text-slate-200">{sub.user?.fullName}</strong> (@{sub.user?.username})
-                        </p>
-                        {sub.screenshotUrl && (
-                          <a
-                            href={sub.screenshotUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-brand-400 hover:text-brand-300 text-xs font-medium"
-                          >
-                            <Eye className="w-3.5 h-3.5" /> View Screenshot Proof
-                          </a>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
-                        <button
-                          onClick={() => handleReviewSubmission('WHATSAPP', sub.id, 'APPROVE')}
-                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition-all"
-                        >
-                          <Check className="w-4 h-4" /> Approve & Credit
-                        </button>
-                        <button
-                          onClick={() => handleReviewSubmission('WHATSAPP', sub.id, 'REJECT')}
-                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/40 text-xs font-bold transition-all"
-                        >
-                          <X className="w-4 h-4" /> Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                ))
               )}
             </div>
           </div>
         )}
 
-        {/* TAB 4: ADD TASK / CAMPAIGN */}
+        {/* TAB 3: ADD TASK FORM (Requirement 2) */}
         {activeTab === 'add-task' && (
-          <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-6 max-w-3xl mx-auto shadow-xl animate-fadeIn">
-            <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
-              <PlusCircle className="w-5 h-5 text-brand-400" /> Create & Publish New Task
-            </h2>
-
-            {/* Task Type selector */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-              <button
-                type="button"
-                onClick={() => setTaskType('DATA_ANNOTATION')}
-                className={`p-3 rounded-xl border text-xs font-bold text-center transition-all flex flex-col items-center gap-1.5 ${
-                  taskType === 'DATA_ANNOTATION'
-                    ? 'bg-brand-500/20 border-brand-500 text-brand-400'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                }`}
-              >
-                <FileText className="w-5 h-5" /> Data Annotation
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTaskType('MICROTASK')}
-                className={`p-3 rounded-xl border text-xs font-bold text-center transition-all flex flex-col items-center gap-1.5 ${
-                  taskType === 'MICROTASK'
-                    ? 'bg-brand-500/20 border-brand-500 text-brand-400'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                }`}
-              >
-                <CheckSquare className="w-5 h-5" /> Microtask
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTaskType('ADVERTISEMENT')}
-                className={`p-3 rounded-xl border text-xs font-bold text-center transition-all flex flex-col items-center gap-1.5 ${
-                  taskType === 'ADVERTISEMENT'
-                    ? 'bg-brand-500/20 border-brand-500 text-brand-400'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                }`}
-              >
-                <PlaySquare className="w-5 h-5" /> Sponsored Ad
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setTaskType('WHATSAPP')}
-                className={`p-3 rounded-xl border text-xs font-bold text-center transition-all flex flex-col items-center gap-1.5 ${
-                  taskType === 'WHATSAPP'
-                    ? 'bg-brand-500/20 border-brand-500 text-brand-400'
-                    : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-white'
-                }`}
-              >
-                <Share2 className="w-5 h-5" /> WhatsApp Campaign
-              </button>
+          <div className="space-y-6 max-w-3xl animate-in fade-in duration-200">
+            <div className="border-b border-dark-800 pb-4">
+              <h1 className="text-2xl font-black text-white">Create & Publish Task</h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Add a new task with complete requirements for users to complete.
+              </p>
             </div>
 
-            <form onSubmit={handleCreateTask} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
-                  {taskType === 'WHATSAPP' ? 'Campaign Title / Name' : 'Task Title'}
-                </label>
+            <form onSubmit={handleCreateTask} className="space-y-5 bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase">Task Title</label>
                 <input
                   type="text"
                   required
-                  placeholder={
-                    taskType === 'WHATSAPP'
-                      ? 'e.g. TaskMint Product Launch Promo'
-                      : 'e.g. Sentiment Classification & Image Labeling'
-                  }
-                  value={taskType === 'WHATSAPP' ? taskForm.campaignName : taskForm.title}
-                  onChange={(e) =>
-                    taskType === 'WHATSAPP'
-                      ? setTaskForm({ ...taskForm, campaignName: e.target.value, title: e.target.value })
-                      : setTaskForm({ ...taskForm, title: e.target.value })
-                  }
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
+                  placeholder="e.g. Kenya Wildlife Image Classification"
+                  value={taskForm.title}
+                  onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Task Category</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">Category</label>
                   <select
-                    value={taskForm.categorySlug}
-                    onChange={(e) => setTaskForm({ ...taskForm, categorySlug: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
+                    value={taskForm.categoryId}
+                    onChange={(e) => setTaskForm({ ...taskForm, categoryId: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
                   >
-                    {categoriesList.length > 0 ? (
-                      categoriesList.map((cat) => (
-                        <option key={cat.id} value={cat.slug}>
-                          {cat.name}
-                        </option>
-                      ))
-                    ) : (
-                      <>
-                        <option value="image-labelling">Image Labelling</option>
-                        <option value="data-annotation">Data Annotation</option>
-                        <option value="audio-transcription">Audio Transcription</option>
-                        <option value="whatsapp-posting">WhatsApp Posting</option>
-                        <option value="watching-ads">Watching Ads</option>
-                        <option value="following-channels">Following Channels (Instagram, YouTube)</option>
-                        <option value="web-testing">Web Testing</option>
-                        <option value="app-testing">App Testing</option>
-                        <option value="surveys-reviews">Surveys & Reviews</option>
-                        <option value="product-comparison">User Experience Product Comparison</option>
-                      </>
-                    )}
+                    <option value="">Select a Category</option>
+                    {categoriesList.map((cat) => (
+                      <option key={cat.id} value={cat.id}>
+                        {cat.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Reward (KES)</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">Reward (KES)</label>
                   <input
                     type="number"
-                    step="0.01"
+                    step="1"
+                    min="1"
                     required
+                    placeholder="75"
                     value={taskForm.reward}
                     onChange={(e) => setTaskForm({ ...taskForm, reward: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500 font-mono"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Minimum Package Required</label>
-                  <select
-                    value={taskForm.minPackageTier}
-                    onChange={(e) => setTaskForm({ ...taskForm, minPackageTier: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
-                  >
-                    <option value="BRONZE">BRONZE (KES 100)</option>
-                    <option value="SILVER">SILVER (KES 500)</option>
-                    <option value="GOLD">GOLD (KES 1,500)</option>
-                    <option value="PLATINUM">PLATINUM (KES 3,000)</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Total Available Slots</label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">Available Slots</label>
                   <input
                     type="number"
                     min="1"
                     required
                     value={taskForm.totalSlots}
                     onChange={(e) => setTaskForm({ ...taskForm, totalSlots: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500 font-mono"
                   />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">Duration (Seconds)</label>
+                  <input
+                    type="number"
+                    min="10"
+                    value={taskForm.durationSeconds}
+                    onChange={(e) => setTaskForm({ ...taskForm, durationSeconds: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">Initial Status</label>
+                  <select
+                    value={taskForm.status}
+                    onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
+                  >
+                    <option value="PUBLISHED">Published (Visible immediately)</option>
+                    <option value="DRAFT">Draft (Hidden)</option>
+                  </select>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Proof Required Instructions</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Upload screenshot of completed survey or enter transaction ID"
-                  value={taskForm.proofRequired}
-                  onChange={(e) => setTaskForm({ ...taskForm, proofRequired: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase">Detailed Instructions</label>
+                <textarea
+                  rows={4}
+                  required
+                  placeholder="Explain exactly what the user must do step-by-step..."
+                  value={taskForm.instructions}
+                  onChange={(e) => setTaskForm({ ...taskForm, instructions: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
                 />
               </div>
 
-              {taskType === 'ADVERTISEMENT' && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Advertiser Name</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Safaricom PLC"
-                    value={taskForm.advertiser}
-                    onChange={(e) => setTaskForm({ ...taskForm, advertiser: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
-                  />
-                </div>
-              )}
-
-              {(taskType === 'ADVERTISEMENT' || taskType === 'WHATSAPP') && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Media / Image URL</label>
-                  <input
-                    type="url"
-                    placeholder="https://images.unsplash.com/..."
-                    value={taskForm.mediaUrl}
-                    onChange={(e) => setTaskForm({ ...taskForm, mediaUrl: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
-                  />
-                </div>
-              )}
-
-              {taskType === 'WHATSAPP' && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">WhatsApp Status Caption</label>
-                  <textarea
-                    rows={2}
-                    placeholder="Copy-pasteable caption for workers..."
-                    value={taskForm.caption}
-                    onChange={(e) => setTaskForm({ ...taskForm, caption: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Instructions</label>
-                <textarea
-                  rows={3}
-                  required
-                  placeholder="Clear instructions for workers completing this task..."
-                  value={taskForm.instructions}
-                  onChange={(e) => setTaskForm({ ...taskForm, instructions: e.target.value })}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase">Proof Required Description</label>
+                <input
+                  type="text"
+                  placeholder="e.g. Submit screenshot showing completed feedback screen"
+                  value={taskForm.proofRequired}
+                  onChange={(e) => setTaskForm({ ...taskForm, proofRequired: e.target.value })}
+                  className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Duration (Seconds)</label>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">External Link (Optional)</label>
                   <input
-                    type="number"
-                    value={taskForm.durationSeconds}
-                    onChange={(e) => setTaskForm({ ...taskForm, durationSeconds: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
+                    type="url"
+                    placeholder="https://..."
+                    value={taskForm.externalUrl}
+                    onChange={(e) => setTaskForm({ ...taskForm, externalUrl: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500 font-mono"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">Task Rules (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. One attempt per user. Fake screenshots will result in account ban."
+                    value={taskForm.rules}
+                    onChange={(e) => setTaskForm({ ...taskForm, rules: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
                   />
                 </div>
               </div>
 
               <button
                 type="submit"
-                className="w-full mt-4 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 text-white font-bold text-sm hover:from-brand-500 hover:to-emerald-400 shadow-lg shadow-brand-500/20 transition-all"
+                disabled={taskSubmitting}
+                className="w-full py-3.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-black text-sm shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                Publish Task to Marketplace
+                {taskSubmitting ? 'Creating Task...' : 'Publish Task to Marketplace'}
               </button>
             </form>
-
-            {/* List of Active Published Tasks & Campaigns */}
-            <div className="mt-12 pt-8 border-t border-slate-800 space-y-6">
-              <h3 className="text-lg font-bold text-white flex items-center justify-between">
-                <span>
-                  Published Tasks & Campaigns (
-                  {existingItems.tasks.length + existingItems.ads.length + existingItems.whatsappCampaigns.length})
-                </span>
-              </h3>
-
-              {/* Data & Microtasks */}
-              {existingItems.tasks.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Data Annotation & Microtasks</h4>
-                  <div className="space-y-2">
-                    {existingItems.tasks.map((t) => (
-                      <div key={t.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-                        <div>
-                          <div className="font-bold text-white text-sm">{t.title}</div>
-                          <div className="text-slate-400 mt-0.5">
-                            Category: {t.category?.name || 'Data'} • Tier: <span className="text-brand-300 font-semibold">{t.minPackageTier}</span> • Slots: {t.remainingSlots}/{t.totalSlots}
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-emerald-400 text-sm">KES {t.reward}</span>
-                          <button
-                            onClick={() => handleToggleTaskStatus(t.id, t.status)}
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-colors ${
-                              t.status === 'ACTIVE'
-                                ? 'bg-amber-500/10 text-amber-300 border-amber-500/30 hover:bg-amber-500/20'
-                                : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20'
-                            }`}
-                          >
-                            {t.status === 'ACTIVE' ? 'Disable Task' : 'Enable Task'}
-                          </button>
-                          <button
-                            onClick={() => handleDeleteItem(t.id, 'TASK')}
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
-                            title="Delete Task"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Sponsored Ads */}
-              {existingItems.ads.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sponsored Video & Banner Ads</h4>
-                  <div className="space-y-2">
-                    {existingItems.ads.map((ad) => (
-                      <div key={ad.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-                        <div>
-                          <div className="font-bold text-white text-sm">{ad.title}</div>
-                          <div className="text-slate-400 mt-0.5">
-                            Advertiser: {ad.advertiser} • Duration: {ad.durationSeconds}s • Tier: <span className="text-brand-300 font-semibold">{ad.minPackageTier}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-emerald-400 text-sm">KES {ad.reward}</span>
-                          <button
-                            onClick={() => handleDeleteItem(ad.id, 'AD')}
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
-                            title="Delete Ad"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* WhatsApp Campaigns */}
-              {existingItems.whatsappCampaigns.length > 0 && (
-                <div className="space-y-3">
-                  <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">WhatsApp Status Campaigns</h4>
-                  <div className="space-y-2">
-                    {existingItems.whatsappCampaigns.map((w) => (
-                      <div key={w.id} className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-                        <div>
-                          <div className="font-bold text-white text-sm">{w.campaignName}</div>
-                          <div className="text-slate-400 mt-0.5">
-                            Max Participants: {w.maxParticipants} • Tier: <span className="text-brand-300 font-semibold">{w.minPackageTier}</span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="font-bold text-emerald-400 text-sm">KES {w.reward}</span>
-                          <button
-                            onClick={() => handleDeleteItem(w.id, 'WHATSAPP')}
-                            className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 transition-colors"
-                            title="Delete Campaign"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         )}
 
-        {/* TAB 5: PACKAGES / PRODUCTS */}
-        {activeTab === 'packages' && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                  <Package className="w-5 h-5 text-brand-400" /> Membership Packages & Products
-                </h2>
-                <p className="text-slate-400 text-xs mt-1">Configure pricing, daily task allocations, and referral bonuses.</p>
-              </div>
+        {/* TAB 4: CATEGORIES MANAGER (Requirement 17) */}
+        {activeTab === 'categories' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="border-b border-dark-800 pb-4">
+              <h1 className="text-2xl font-black text-white">Task Categories</h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Centralized category configuration. Deactivated categories preserve existing tasks.
+              </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {packagesList.map((pkg) => (
-                <div key={pkg.id} className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-6 relative shadow-lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-brand-500/20 text-brand-400 border border-brand-500/30">
-                      {pkg.name} TIER
+            {/* Add Category Form */}
+            <form onSubmit={handleCreateCategory} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
+              <h3 className="text-sm font-bold text-white">Add New Category</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  type="text"
+                  required
+                  placeholder="Category Name (e.g. Survey)"
+                  value={categoryForm.name}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs focus:outline-none focus:border-brand-500"
+                />
+                <input
+                  type="text"
+                  required
+                  placeholder="Short Description"
+                  value={categoryForm.description}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, description: e.target.value })}
+                  className="px-4 py-2.5 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs focus:outline-none focus:border-brand-500 sm:col-span-2"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={categorySubmitting}
+                className="px-4 py-2 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-bold text-xs cursor-pointer"
+              >
+                {categorySubmitting ? 'Saving...' : 'Add Category'}
+              </button>
+            </form>
+
+            {/* Categories List */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {categoriesList.map((cat) => (
+                <div key={cat.id} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-white block">{cat.name}</span>
+                    <span className="text-[11px] text-slate-400 block">{cat.description}</span>
+                    <span className="text-[10px] text-brand-400 font-mono mt-1 block">
+                      {cat._count?.tasks || 0} associated tasks
                     </span>
-                    <span className="text-2xl font-extrabold text-white">KES {pkg.price.toLocaleString('en-KE')}</span>
                   </div>
-
-                  <div className="space-y-2 text-xs text-slate-300 mb-6">
-                    <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
-                      <span className="text-slate-400">Daily Task Allocation:</span>
-                      <span className="font-semibold text-white">{pkg.taskLimitDaily} tasks/day</span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
-                      <span className="text-slate-400">Sponsored Ads Limit:</span>
-                      <span className="font-semibold text-white">{pkg.watchAdsLimit} ads/day</span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
-                      <span className="text-slate-400">WhatsApp Tasks / Week:</span>
-                      <span className="font-semibold text-white">{pkg.whatsappTasksLimit} tasks</span>
-                    </div>
-                    <div className="flex justify-between border-b border-slate-800/80 pb-1.5">
-                      <span className="text-slate-400">Referral Reward Bonus:</span>
-                      <span className="font-semibold text-emerald-400">KES {pkg.referralBonus}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-400">Validity Duration:</span>
-                      <span className="font-semibold text-white">{pkg.durationDays} Days</span>
-                    </div>
-                  </div>
-
                   <button
-                    onClick={() => setEditingPackage({ ...pkg })}
-                    className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold text-xs border border-slate-800 transition-colors"
+                    onClick={() => handleToggleCategory(cat)}
+                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer transition-colors ${
+                      cat.isActive
+                        ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
+                        : 'bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30'
+                    }`}
                   >
-                    Edit Package Configuration
+                    {cat.isActive ? 'Active' : 'Disabled'}
                   </button>
                 </div>
               ))}
             </div>
+          </div>
+        )}
 
-            {/* Editing Package Modal */}
-            {editingPackage && (
-              <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                <div className="bg-[#0F172A] border border-slate-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl">
-                  <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
-                    <h3 className="text-lg font-bold text-white">Edit {editingPackage.name} Package</h3>
-                    <button onClick={() => setEditingPackage(null)} className="text-slate-400 hover:text-white">
-                      <X className="w-5 h-5" />
+        {/* TAB 5: SUBMISSIONS REVIEW (Requirements 7, 8, 9, 10) */}
+        {activeTab === 'submissions' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="border-b border-dark-800 pb-4">
+              <h1 className="text-2xl font-black text-white">Submissions Review Queue</h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Review submitted proof and approve or reject. Rewards are credited ONLY upon admin approval.
+              </p>
+            </div>
+
+            {/* Sub-Tabs: Pending Review, Approved, Rejected */}
+            <div className="flex items-center gap-2 border-b border-dark-800 pb-2">
+              <button
+                onClick={() => setSubmissionFilter('UNDER_REVIEW')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  submissionFilter === 'UNDER_REVIEW'
+                    ? 'bg-amber-500 text-dark-950 font-black'
+                    : 'bg-dark-900 text-slate-400 hover:text-white'
+                }`}
+              >
+                Pending Review ({submissionCounts.pendingReview})
+              </button>
+              <button
+                onClick={() => setSubmissionFilter('APPROVED')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  submissionFilter === 'APPROVED'
+                    ? 'bg-emerald-500 text-dark-950 font-black'
+                    : 'bg-dark-900 text-slate-400 hover:text-white'
+                }`}
+              >
+                Approved ({submissionCounts.approved})
+              </button>
+              <button
+                onClick={() => setSubmissionFilter('REJECTED')}
+                className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  submissionFilter === 'REJECTED'
+                    ? 'bg-rose-500 text-white font-black'
+                    : 'bg-dark-900 text-slate-400 hover:text-white'
+                }`}
+              >
+                Rejected ({submissionCounts.rejected})
+              </button>
+            </div>
+
+            {/* Submissions List */}
+            <div className="space-y-4">
+              {submissionsList.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 bg-dark-900 rounded-3xl border border-dark-800">
+                  No submissions in this queue.
+                </div>
+              ) : (
+                submissionsList.map((sub) => (
+                  <div key={sub.id} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4 shadow-lg">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
+                      <div>
+                        <span className="text-[10px] text-slate-500 uppercase font-mono block">
+                          Submission ID: {sub.id.slice(0, 8)}...
+                        </span>
+                        <h3 className="text-base font-bold text-white mt-0.5">{sub.task?.title}</h3>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                          <span>Worker: <strong className="text-white">@{sub.user?.username}</strong></span>
+                          <span>•</span>
+                          <span>Phone: <strong className="text-white font-mono">{formatKenyanPhoneDisplay(sub.user?.phone)}</strong></span>
+                          <span>•</span>
+                          <span>Reward: <strong className="text-brand-400 font-mono">KES {sub.task?.reward?.toFixed(2)}</strong></span>
+                        </div>
+                      </div>
+
+                      {/* Status Badge */}
+                      <span
+                        className={`px-3 py-1 rounded-full text-xs font-bold self-start ${
+                          sub.status === 'APPROVED'
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : sub.status === 'REJECTED'
+                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}
+                      >
+                        {sub.status}
+                      </span>
+                    </div>
+
+                    {/* Submitted Proof Inspection */}
+                    <div className="p-4 rounded-xl bg-dark-950 border border-dark-800/80 space-y-2 text-xs">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                        Submitted Proof of Work:
+                      </span>
+                      {sub.proofText && (
+                        <p className="text-slate-200 whitespace-pre-wrap">{sub.proofText}</p>
+                      )}
+                      {sub.proofUrl && (
+                        <div className="pt-2 flex items-center gap-3">
+                          <a
+                            href={sub.proofUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-mono"
+                          >
+                            <span>Open Proof Attachment</span>
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        </div>
+                      )}
+                      {sub.rejectionReason && (
+                        <div className="pt-2 text-rose-400 font-medium">
+                          <strong>Rejection Reason:</strong> {sub.rejectionReason}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Actions: Approve / Reject (Only for UNDER_REVIEW) */}
+                    {sub.status === 'UNDER_REVIEW' && (
+                      <div className="flex items-center gap-3 pt-2">
+                        <button
+                          onClick={() => handleApproveSubmission(sub)}
+                          disabled={actionLoading}
+                          className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/20"
+                        >
+                          <Check className="w-4 h-4" /> Approve & Credit KES {sub.task?.reward}
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setRejectModalSub(sub);
+                            setRejectionReasonInput('');
+                          }}
+                          disabled={actionLoading}
+                          className="px-4 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 font-bold text-xs transition-colors cursor-pointer"
+                        >
+                          Reject Submission
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+
+            {/* REJECTION REASON MODAL (Requirement 10) */}
+            {rejectModalSub && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+                <div className="w-full max-w-md bg-dark-900 border border-dark-800 rounded-3xl p-6 space-y-4 shadow-2xl">
+                  <h3 className="text-base font-bold text-white">Provide Rejection Reason</h3>
+                  <p className="text-xs text-slate-400">
+                    The user will see this feedback in their Tasks dashboard.
+                  </p>
+
+                  <textarea
+                    rows={3}
+                    placeholder="e.g. Screenshot did not match instructions, or incomplete work..."
+                    value={rejectionReasonInput}
+                    onChange={(e) => setRejectionReasonInput(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs focus:outline-none focus:border-rose-500"
+                  />
+
+                  <div className="flex items-center justify-end gap-2 pt-2">
+                    <button
+                      onClick={() => setRejectModalSub(null)}
+                      className="px-4 py-2 rounded-xl text-xs font-bold text-slate-400 hover:text-white"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleRejectSubmission}
+                      disabled={actionLoading}
+                      className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-white font-bold text-xs cursor-pointer"
+                    >
+                      Confirm Rejection
                     </button>
                   </div>
-
-                  <form onSubmit={handleUpdatePackage} className="space-y-4">
-                    <div>
-                      <label className="block text-xs text-slate-300 font-semibold mb-1">Package Price (KES)</label>
-                      <input
-                        type="number"
-                        step="0.01"
-                        value={editingPackage.price}
-                        onChange={(e) => setEditingPackage({ ...editingPackage, price: e.target.value })}
-                        className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-slate-300 font-semibold mb-1">Daily Task Limit</label>
-                        <input
-                          type="number"
-                          value={editingPackage.taskLimitDaily}
-                          onChange={(e) => setEditingPackage({ ...editingPackage, taskLimitDaily: e.target.value })}
-                          className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-300 font-semibold mb-1">Daily Ad Limit</label>
-                        <input
-                          type="number"
-                          value={editingPackage.watchAdsLimit}
-                          onChange={(e) => setEditingPackage({ ...editingPackage, watchAdsLimit: e.target.value })}
-                          className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-slate-300 font-semibold mb-1">WhatsApp Tasks / Week</label>
-                        <input
-                          type="number"
-                          value={editingPackage.whatsappTasksLimit}
-                          onChange={(e) => setEditingPackage({ ...editingPackage, whatsappTasksLimit: e.target.value })}
-                          className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-300 font-semibold mb-1">Referral Reward (KES)</label>
-                        <input
-                          type="number"
-                          step="0.01"
-                          value={editingPackage.referralBonus}
-                          onChange={(e) => setEditingPackage({ ...editingPackage, referralBonus: e.target.value })}
-                          className="w-full px-4 py-2 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-3 pt-2">
-                      <button
-                        type="submit"
-                        className="flex-1 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-white font-bold text-sm"
-                      >
-                        Save Package Settings
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setEditingPackage(null)}
-                        className="px-4 py-2.5 rounded-xl bg-slate-900 text-slate-300 text-sm hover:text-white"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </form>
                 </div>
               </div>
             )}
           </div>
         )}
 
-        {/* TAB 6: USER MANAGEMENT */}
-        {activeTab === 'users' && (
-          <div className="space-y-6 animate-fadeIn">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-brand-400" /> Platform User Accounts ({usersList.length})
-              </h2>
+        {/* TAB 6: WALLETS & WITHDRAWALS (Requirements 14 & 15) */}
+        {activeTab === 'wallets' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="border-b border-dark-800 pb-4">
+              <h1 className="text-2xl font-black text-white">User Wallets & Withdrawals</h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Aggregated from actual database user wallet records. No hardcoded metrics.
+              </p>
+            </div>
 
-              <div className="relative w-full sm:w-72">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+            {/* Real Wallet Database Metrics Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-1">
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Total User Wallets</span>
+                <p className="text-2xl font-black text-white font-mono">{stats?.wallets?.totalWallets || 0}</p>
+                <span className="text-xs text-slate-400">1:1 User-to-Wallet mapping</span>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-1">
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Wallets With Balance</span>
+                <p className="text-2xl font-black text-emerald-400 font-mono">{stats?.wallets?.walletsWithBalance || 0}</p>
+                <span className="text-xs text-slate-400">Users with funds &gt; KES 0</span>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-1">
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Total User Balance</span>
+                <p className="text-2xl font-black text-brand-400 font-mono">
+                  KES {stats?.wallets?.totalUserBalanceKES?.toLocaleString() || '0.00'}
+                </p>
+                <span className="text-xs text-slate-400">Total available worker funds</span>
+              </div>
+
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-1">
+                <span className="text-[10px] text-slate-500 uppercase font-bold">Total Completed Payouts</span>
+                <p className="text-2xl font-black text-white font-mono">
+                  KES {stats?.wallets?.completedWithdrawalsKES?.toLocaleString() || '0.00'}
+                </p>
+                <span className="text-xs text-slate-400">{stats?.wallets?.completedWithdrawalsCount || 0} processed</span>
+              </div>
+            </div>
+
+            {/* Withdrawals Management Queue */}
+            <div className="space-y-4">
+              <h2 className="text-base font-bold text-white">Withdrawal Requests Queue</h2>
+              {withdrawalsList.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 bg-dark-900 rounded-3xl border border-dark-800">
+                  No withdrawal requests in database.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {withdrawalsList.map((w) => (
+                    <div
+                      key={w.id}
+                      className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex flex-col md:flex-row md:items-center justify-between gap-3"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-sm">@{w.user?.username || 'User'}</span>
+                          <span className="text-xs text-slate-400 font-mono">({w.mpesaNumber})</span>
+                          <span
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                              w.status === 'PAID' || w.status === 'COMPLETED'
+                                ? 'bg-emerald-500/15 text-emerald-400'
+                                : w.status === 'REJECTED'
+                                ? 'bg-rose-500/15 text-rose-400'
+                                : 'bg-amber-500/15 text-amber-400'
+                            }`}
+                          >
+                            {w.status}
+                          </span>
+                        </div>
+                        <span className="text-xs text-slate-400 font-mono mt-1 block">
+                          KES {w.amount?.toFixed(2)} requested on {new Date(w.requestedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      {w.status === 'PENDING' && (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleUpdateWithdrawalStatus(w.id, 'PAID')}
+                            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-black text-xs cursor-pointer"
+                          >
+                            Mark Paid
+                          </button>
+                          <button
+                            onClick={() => handleUpdateWithdrawalStatus(w.id, 'REJECTED')}
+                            className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold text-xs cursor-pointer"
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 7: ADVERTS (Requirement 16) */}
+        {activeTab === 'adverts' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="border-b border-dark-800 pb-4">
+              <h1 className="text-2xl font-black text-white">Sponsored Advert Campaigns</h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Manage video advertisements and brand partner campaigns.
+              </p>
+            </div>
+
+            {/* Add Advert Form */}
+            <form onSubmit={handleCreateAdvert} className="p-6 rounded-3xl bg-dark-900/80 border border-dark-800 space-y-4">
+              <h3 className="text-sm font-bold text-white">Create New Advert</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <input
                   type="text"
-                  placeholder="Search by name, email, phone..."
-                  value={userSearch}
-                  onChange={(e) => setUserSearch(e.target.value)}
-                  className="w-full pl-9 pr-8 py-2 rounded-xl bg-[#0F172A] border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500"
+                  required
+                  placeholder="Advert Title"
+                  value={advertForm.title}
+                  onChange={(e) => setAdvertForm({ ...advertForm, title: e.target.value })}
+                  className="px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs focus:outline-none focus:border-brand-500"
                 />
-                {userSearch && (
-                  <button
-                    onClick={() => setUserSearch('')}
-                    className="absolute right-3 top-3 text-slate-400 hover:text-white"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
+                <input
+                  type="text"
+                  required
+                  placeholder="Brand / Sponsor Name"
+                  value={advertForm.advertiser}
+                  onChange={(e) => setAdvertForm({ ...advertForm, advertiser: e.target.value })}
+                  className="px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs focus:outline-none focus:border-brand-500"
+                />
               </div>
-            </div>
 
-            <div className="overflow-x-auto bg-[#0F172A] border border-slate-800/80 rounded-2xl shadow-xl">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 uppercase border-b border-slate-800">
-                  <tr>
-                    <th className="px-4 py-3">User</th>
-                    <th className="px-4 py-3">Phone / M-Pesa</th>
-                    <th className="px-4 py-3">Status / Flags</th>
-                    <th className="px-4 py-3">Phone Verification</th>
-                    <th className="px-4 py-3 text-right">Available Balance</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-900/50 transition-colors">
-                      <td className="px-4 py-3 font-medium text-white">
-                        <div className="flex items-center gap-1.5">
-                          <span>{u.fullName}</span>
-                          {u.isFlagged && (
-                            <span
-                              className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40"
-                              title={u.flagReason}
-                            >
-                              ⚠️ Flagged
-                            </span>
-                          )}
-                          {u.isBanned && (
-                            <span
-                              className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold border border-rose-500/40"
-                              title={u.banReason}
-                            >
-                              🚫 Banned
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-slate-400">
-                          @{u.username} • {u.email}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-300 font-mono">{u.phone}</td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-0.5 rounded font-bold ${
-                            u.isBanned
-                              ? 'bg-rose-500/20 text-rose-400'
-                              : u.status === 'ACTIVE'
-                              ? 'bg-emerald-500/20 text-emerald-400'
-                              : 'bg-amber-500/20 text-amber-400'
-                          }`}
-                        >
-                          {u.isBanned ? 'BANNED' : u.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span
-                          className={`px-2 py-0.5 rounded font-bold text-[10px] ${
-                            u.phoneVerified
-                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
-                          }`}
-                        >
-                          {u.phoneVerified ? '✓ Verified' : 'Unverified'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-extrabold text-white">
-                        KES {(u.wallet?.availableBalance || 0).toLocaleString('en-KE')}
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-1">
-                        <button
-                          onClick={() => handleUserAction(u.id, u.isBanned ? 'UNBAN' : 'BAN')}
-                          className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-                            u.isBanned
-                              ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                              : 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30'
-                          }`}
-                        >
-                          {u.isBanned ? 'Unban User' : 'Ban User'}
-                        </button>
-                        <button
-                          onClick={() => handleUserAction(u.id, u.isFlagged ? 'UNFLAG' : 'FLAG')}
-                          className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-                            u.isFlagged
-                              ? 'bg-slate-800 text-slate-300'
-                              : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30'
-                          }`}
-                        >
-                          {u.isFlagged ? 'Unflag' : 'Flag Suspect'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <input
+                  type="url"
+                  required
+                  placeholder="Media / Image URL"
+                  value={advertForm.mediaUrl}
+                  onChange={(e) => setAdvertForm({ ...advertForm, mediaUrl: e.target.value })}
+                  className="px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs focus:outline-none focus:border-brand-500 font-mono"
+                />
+                <input
+                  type="url"
+                  placeholder="Destination Target Link (Optional)"
+                  value={advertForm.targetUrl}
+                  onChange={(e) => setAdvertForm({ ...advertForm, targetUrl: e.target.value })}
+                  className="px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs focus:outline-none focus:border-brand-500 font-mono"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <input
+                  type="number"
+                  placeholder="Duration (Secs)"
+                  value={advertForm.durationSeconds}
+                  onChange={(e) => setAdvertForm({ ...advertForm, durationSeconds: e.target.value })}
+                  className="px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs font-mono"
+                />
+                <input
+                  type="number"
+                  step="0.5"
+                  placeholder="Reward (KES)"
+                  value={advertForm.reward}
+                  onChange={(e) => setAdvertForm({ ...advertForm, reward: e.target.value })}
+                  className="px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs font-mono"
+                />
+                <select
+                  value={advertForm.status}
+                  onChange={(e) => setAdvertForm({ ...advertForm, status: e.target.value })}
+                  className="px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs"
+                >
+                  <option value="ACTIVE">Active (Published)</option>
+                  <option value="PAUSED">Paused</option>
+                </select>
+              </div>
+
+              <button
+                type="submit"
+                disabled={advertSubmitting}
+                className="px-6 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-bold text-xs cursor-pointer"
+              >
+                {advertSubmitting ? 'Publishing...' : 'Publish Advert'}
+              </button>
+            </form>
+
+            {/* Adverts Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {advertsList.map((ad) => (
+                <div key={ad.id} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3">
+                  <div className="aspect-video rounded-xl overflow-hidden bg-dark-950 border border-dark-800">
+                    <img src={ad.mediaUrl} alt={ad.title} className="w-full h-full object-cover" />
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-brand-400 font-bold uppercase">{ad.advertiser}</span>
+                    <h4 className="text-sm font-bold text-white">{ad.title}</h4>
+                    <span className="text-xs text-slate-400 block font-mono">
+                      KES {ad.reward?.toFixed(2)} • {ad.durationSeconds}s
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-dark-800">
+                    <button
+                      onClick={() => handleToggleAdvertStatus(ad)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                        ad.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                      }`}
+                    >
+                      {ad.status === 'ACTIVE' ? 'Pause' : 'Resume'}
+                    </button>
+                    <button
+                      onClick={() => handleDeleteAdvert(ad.id)}
+                      className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         )}
 
-        {/* TAB 7: BANNERS & SOCIAL LINKS */}
-        {activeTab === 'banners-social' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fadeIn">
-            {/* Top Banners Management */}
-            <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-6 space-y-6 shadow-xl">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-emerald-400" /> Homepage Top Banners (~5s Slideshow)
-              </h2>
-
-              <form onSubmit={handleCreateBanner} className="space-y-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <h3 className="text-xs font-bold text-slate-300 uppercase">Add New Banner Slide</h3>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Banner Title / Text</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. 🔥 Earn KES 500 Daily completing simple verified tasks!"
-                    value={bannerForm.title}
-                    onChange={(e) => setBannerForm({ ...bannerForm, title: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Image URL (Optional)</label>
-                  <input
-                    type="url"
-                    placeholder="https://images.unsplash.com/..."
-                    value={bannerForm.imageUrl}
-                    onChange={(e) => setBannerForm({ ...bannerForm, imageUrl: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Target Link URL (Optional)</label>
-                  <input
-                    type="text"
-                    placeholder="/tasks or https://..."
-                    value={bannerForm.linkUrl}
-                    onChange={(e) => setBannerForm({ ...bannerForm, linkUrl: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold transition-all"
-                >
-                  Add Banner Slide
-                </button>
-              </form>
-
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold text-slate-400 uppercase">Configured Slides ({bannersList.length})</h3>
-                {bannersList.map((b) => (
-                  <div key={b.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-                    <div>
-                      <p className="font-bold text-white">{b.title}</p>
-                      {b.linkUrl && <p className="text-[10px] text-brand-400">{b.linkUrl}</p>}
-                    </div>
-                    <button
-                      onClick={() => handleDeleteBanner(b.id)}
-                      className="px-2 py-1 rounded bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 text-[10px] font-bold"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Social Links Management */}
-            <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-6 space-y-6 shadow-xl">
-              <h2 className="text-xl font-bold text-white flex items-center gap-2">
-                <Share2 className="w-5 h-5 text-brand-400" /> Platform Social Media Links
-              </h2>
-
-              <form onSubmit={handleSaveSocialLink} className="space-y-4 bg-slate-950 p-4 rounded-xl border border-slate-800">
-                <h3 className="text-xs font-bold text-slate-300 uppercase">Add / Update Social Link</h3>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Platform</label>
-                  <select
-                    value={socialForm.platform}
-                    onChange={(e) =>
-                      setSocialForm({
-                        ...socialForm,
-                        platform: e.target.value,
-                        label: `${e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1)} Channel`,
-                      })
-                    }
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
-                  >
-                    <option value="whatsapp">WhatsApp</option>
-                    <option value="facebook">Facebook</option>
-                    <option value="telegram">Telegram</option>
-                    <option value="instagram">Instagram</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Label Text</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. WhatsApp Official Group"
-                    value={socialForm.label}
-                    onChange={(e) => setSocialForm({ ...socialForm, label: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Full URL</label>
-                  <input
-                    type="url"
-                    required
-                    placeholder="https://chat.whatsapp.com/..."
-                    value={socialForm.url}
-                    onChange={(e) => setSocialForm({ ...socialForm, url: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-extrabold transition-all"
-                >
-                  Save Social Link
-                </button>
-              </form>
-
-              <div className="space-y-3">
-                <h3 className="text-xs font-bold text-slate-400 uppercase">Active Social Links ({socialLinksList.length})</h3>
-                {socialLinksList.map((s) => (
-                  <div key={s.id} className="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 font-bold uppercase text-[10px] mr-2">
-                        {s.platform}
-                      </span>
-                      <span className="font-bold text-white">{s.label}</span>
-                      <p className="text-[10px] text-slate-400 truncate max-w-xs">{s.url}</p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteSocialLink(s.id)}
-                      className="px-2 py-1 rounded bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 text-[10px] font-bold"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 8: ADMIN SECURITY & PASSWORD */}
-        {activeTab === 'admin-settings' && (
-          <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-6 sm:p-8 max-w-2xl mx-auto shadow-2xl animate-fadeIn">
-            <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-md shadow-amber-500/10">
-                <Key className="w-5 h-5" />
-              </div>
+        {/* TAB 8: USERS DIRECTORY (Requirement 24: No Account Tiers) */}
+        {activeTab === 'users' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-4">
               <div>
-                <h2 className="text-xl font-bold text-white">Change Administrator Password</h2>
-                <p className="text-xs text-slate-400">
-                  Update your admin account password to secure system access.
+                <h1 className="text-2xl font-black text-white">User Directory</h1>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Manage accounts and verify Safaricom phone credentials. No account tiers are displayed.
                 </p>
               </div>
+
+              <input
+                type="text"
+                placeholder="Search users..."
+                value={userSearch}
+                onChange={(e) => setUserSearch(e.target.value)}
+                className="px-4 py-2 rounded-xl bg-dark-900 border border-dark-800 text-white text-xs w-full sm:w-64 focus:outline-none focus:border-brand-500"
+              />
             </div>
 
-            <form onSubmit={handleChangeAdminPassword} className="space-y-5">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
-                  Current Admin Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Enter current admin password"
-                  value={adminCurrentPassword}
-                  onChange={(e) => setAdminCurrentPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-amber-500 text-sm"
-                />
+            <div className="space-y-3">
+              {usersList
+                .filter(
+                  (u) =>
+                    !userSearch ||
+                    u.username?.toLowerCase().includes(userSearch.toLowerCase()) ||
+                    u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
+                    u.phone?.includes(userSearch)
+                )
+                .map((u) => (
+                  <div
+                    key={u.id}
+                    className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex flex-col md:flex-row md:items-center justify-between gap-3"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white text-sm">@{u.username}</span>
+                        <span className="text-xs text-slate-400">({u.fullName})</span>
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            u.role === 'ADMIN' ? 'bg-amber-500/20 text-amber-300' : 'bg-brand-500/20 text-brand-300'
+                          }`}
+                        >
+                          {u.role}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3 mt-1 text-xs text-slate-400">
+                        <span>Email: <strong className="text-slate-300">{u.email}</strong></span>
+                        <span>•</span>
+                        <span>Phone: <strong className="text-slate-300 font-mono">{formatKenyanPhoneDisplay(u.phone)}</strong></span>
+                        {u.phoneVerified && (
+                          <span className="text-emerald-400 font-bold flex items-center gap-0.5 text-[10px]">
+                            <Check className="w-3 h-3" /> Verified
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                          u.status === 'ACTIVE'
+                            ? 'bg-emerald-500/15 text-emerald-400'
+                            : 'bg-rose-500/15 text-rose-400'
+                        }`}
+                      >
+                        {u.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 9: BANNERS & SOCIAL */}
+        {activeTab === 'banners-social' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="border-b border-dark-800 pb-4">
+              <h1 className="text-2xl font-black text-white">Banners &amp; Social Communities</h1>
+              <p className="text-xs text-slate-400 mt-0.5">Manage homepage banner carousels and official social links.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Banners List */}
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
+                <h3 className="text-sm font-bold text-white">Active Promotional Banners</h3>
+                {bannersList.length === 0 ? (
+                  <p className="text-xs text-slate-400">No active banners.</p>
+                ) : (
+                  bannersList.map((b) => (
+                    <div key={b.id} className="p-3 rounded-xl bg-dark-950 border border-dark-800 flex items-center justify-between">
+                      <span className="text-xs font-bold text-white">{b.title}</span>
+                      <span className="text-[10px] text-emerald-400 font-bold">Active</span>
+                    </div>
+                  ))
+                )}
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
-                  New Admin Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Minimum 6 characters"
-                  value={adminNewPassword}
-                  onChange={(e) => setAdminNewPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-amber-500 text-sm"
-                />
+              {/* Social Links List */}
+              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
+                <h3 className="text-sm font-bold text-white">Community Channels</h3>
+                {socialLinksList.map((s) => (
+                  <div key={s.id} className="p-3 rounded-xl bg-dark-950 border border-dark-800 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-white block">{s.label}</span>
+                      <span className="text-[10px] text-slate-400 font-mono">{s.url}</span>
+                    </div>
+                    <span className="text-[10px] text-brand-400 font-bold uppercase">{s.platform}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 10: ADMIN SECURITY & PASSWORD */}
+        {activeTab === 'admin-settings' && (
+          <div className="space-y-6 max-w-xl animate-in fade-in duration-200">
+            <div className="border-b border-dark-800 pb-4">
+              <h1 className="text-2xl font-black text-white">Admin Security Credentials</h1>
+              <p className="text-xs text-slate-400 mt-0.5">
+                Update your administrative login password. Password changes require immediate bcrypt re-hashing.
+              </p>
+            </div>
+
+            <form onSubmit={handleChangePassword} className="space-y-4 bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase">Current Password</label>
+                <div className="relative">
+                  <input
+                    type={showCurrentPass ? 'text' : 'password'}
+                    required
+                    placeholder="••••••••••••"
+                    value={adminCurrentPassword}
+                    onChange={(e) => setAdminCurrentPassword(e.target.value)}
+                    className="w-full px-4 py-3 pr-10 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPass(!showCurrentPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showCurrentPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
-                  Confirm New Password
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Re-enter new admin password"
-                  value={adminConfirmPassword}
-                  onChange={(e) => setAdminConfirmPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-amber-500 text-sm"
-                />
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase">New Password (min 8 chars)</label>
+                <div className="relative">
+                  <input
+                    type={showNewPass ? 'text' : 'password'}
+                    required
+                    placeholder="••••••••••••"
+                    value={adminNewPassword}
+                    onChange={(e) => setAdminNewPassword(e.target.value)}
+                    className="w-full px-4 py-3 pr-10 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowNewPass(!showNewPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showNewPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-300 uppercase">Confirm New Password</label>
+                <div className="relative">
+                  <input
+                    type={showConfirmPass ? 'text' : 'password'}
+                    required
+                    placeholder="••••••••••••"
+                    value={adminConfirmPassword}
+                    onChange={(e) => setAdminConfirmPassword(e.target.value)}
+                    className="w-full px-4 py-3 pr-10 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowConfirmPass(!showConfirmPass)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                  >
+                    {showConfirmPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <button
                 type="submit"
                 disabled={adminPassSubmitting}
-                className="w-full py-3.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm shadow-lg shadow-amber-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                className="w-full py-3.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-black text-sm shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
               >
-                <Lock className="w-4 h-4" />
-                {adminPassSubmitting ? 'Updating Admin Password...' : 'Update Admin Password'}
+                {adminPassSubmitting ? 'Updating...' : 'Update Admin Password'}
               </button>
             </form>
           </div>

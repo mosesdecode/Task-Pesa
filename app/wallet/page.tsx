@@ -163,7 +163,7 @@ export default function WalletPage() {
       <div className="space-y-2 text-center sm:text-left">
         <h1 className="text-3xl sm:text-4xl font-black text-white">Wallet & M-Pesa Withdrawals</h1>
         <p className="text-xs sm:text-sm text-gray-400">
-          Track earnings, verify your Safaricom line, and submit payout requests (Min KES 500).
+          Track earnings, verify your Safaricom phone number, and submit payout requests (Min KES 500).
         </p>
       </div>
 
@@ -272,7 +272,7 @@ export default function WalletPage() {
             </div>
             {checks.phoneVerified?.met ? (
               <p className="text-emerald-400 text-[11px] font-bold flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Safaricom Line Verified
+                <CheckCircle2 className="w-3.5 h-3.5" /> Safaricom Phone Verified
               </p>
             ) : (
               <button

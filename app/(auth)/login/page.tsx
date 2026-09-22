@@ -80,7 +80,7 @@ function LoginForm() {
         <div className="space-y-1">
           <div className="flex items-center justify-between">
             <label className="text-xs font-semibold text-gray-300">Password</label>
-            <Link href="/support" className="text-[11px] text-brand-400 hover:underline">
+            <Link href="/forgot-password" className="text-[11px] text-brand-400 hover:underline">
               Forgot password?
             </Link>
           </div>

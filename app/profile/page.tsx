@@ -452,7 +452,7 @@ export default function ProfilePage() {
 
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400 flex items-center gap-1.5">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" /> Safaricom Line
+                        <Phone className="w-3.5 h-3.5 text-slate-400" /> Safaricom Phone Number
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-white">
@@ -613,7 +613,7 @@ export default function ProfilePage() {
                         <ShieldCheck className="w-5 h-5 text-emerald-400" /> Safaricom Phone Verification
                       </h3>
                       <p className="text-xs text-slate-400 mt-1">
-                        Verify your Kenyan Safaricom line (07XX / 011X) to enable instant M-Pesa withdrawals and task payouts.
+                        Verify your Kenyan Safaricom phone number (07XX / 011X) to enable instant M-Pesa withdrawals and task payouts.
                       </p>
                     </div>
 

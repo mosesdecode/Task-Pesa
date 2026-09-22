@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
   const token = request.cookies.get('taskmint_token')?.value || request.cookies.get('taskpesa_token')?.value;
 
   const pathname = request.nextUrl.pathname;
-  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
   
   // Admin area protection - only ADMIN role permitted
   if (pathname.startsWith('/admin')) {

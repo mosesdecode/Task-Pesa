@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { creditTaskReward } from '@/lib/wallet';
 
 export async function POST(
   req: NextRequest,
@@ -11,40 +10,19 @@ export async function POST(
     const user = await requireAuth(req);
     const taskId = params.id;
     const body = await req.json();
-    const { submissionDataJson, proofUrl } = body;
-
-    if (user.status !== 'ACTIVE') {
-      return NextResponse.json(
-        { error: 'Account activation required. Please pay the KES 200 access fee to unlock task submissions.' },
-        { status: 403 }
-      );
-    }
+    const { submissionDataJson, proofUrl, proofText } = body;
 
     const task = await prisma.task.findUnique({ where: { id: taskId } });
     if (!task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
-    if (task.remainingSlots <= 0) {
-      return NextResponse.json({ error: 'Task slot capacity reached.' }, { status: 400 });
+    if (task.status !== 'PUBLISHED' && task.status !== 'ACTIVE') {
+      return NextResponse.json({ error: 'This task is not currently open for submissions.' }, { status: 400 });
     }
 
-    // Tier rank check
-    const TIER_RANKS: Record<string, number> = {
-      BRONZE: 1,
-      SILVER: 2,
-      GOLD: 3,
-      PLATINUM: 4,
-    };
-
-    const userTierRank = TIER_RANKS[user.package?.name || 'BRONZE'] || 1;
-    const requiredTierRank = TIER_RANKS[task.minPackageTier || 'BRONZE'] || 1;
-
-    if (userTierRank < requiredTierRank) {
-      return NextResponse.json(
-        { error: `This task requires a ${task.minPackageTier} package tier or higher. Please upgrade your membership tier in the Packages section.` },
-        { status: 403 }
-      );
+    if (task.remainingSlots <= 0) {
+      return NextResponse.json({ error: 'Task slot capacity reached. No slots remaining.' }, { status: 400 });
     }
 
     // Daily package submission limit check
@@ -55,59 +33,96 @@ export async function POST(
       where: {
         userId: user.id,
         createdAt: { gte: todayStart },
+        status: { in: ['SUBMITTED', 'UNDER_REVIEW', 'APPROVED'] },
       },
     });
 
-    const dailyLimit = user.package?.taskLimitDaily || 5;
+    const dailyLimit = user.package?.taskLimitDaily || 10;
     if (todaySubmissionsCount >= dailyLimit) {
       return NextResponse.json(
-        { error: `Daily task limit reached (${dailyLimit} tasks) for your ${user.package?.name || 'BRONZE'} package. Upgrade your package to submit more tasks today!` },
+        { error: `Daily task limit reached (${dailyLimit} tasks) for your account package. Upgrade your package to submit more tasks today!` },
         { status: 400 }
       );
     }
 
-    // Check if user already submitted this task
+    // Check if user already has an existing task submission record
     const existing = await prisma.taskSubmission.findFirst({
       where: { taskId, userId: user.id },
+      orderBy: { createdAt: 'desc' },
     });
+
+    let submission;
 
     if (existing) {
-      return NextResponse.json({ error: 'You have already submitted a response for this task.' }, { status: 400 });
+      if (existing.status === 'UNDER_REVIEW') {
+        return NextResponse.json(
+          { error: 'You have already submitted this task and it is currently awaiting admin quality review.' },
+          { status: 400 }
+        );
+      }
+
+      if (existing.status === 'APPROVED') {
+        return NextResponse.json(
+          { error: 'You have already completed and received approval for this task.' },
+          { status: 400 }
+        );
+      }
+
+      // If IN_PROGRESS or REJECTED: update to UNDER_REVIEW
+      submission = await prisma.taskSubmission.update({
+        where: { id: existing.id },
+        data: {
+          status: 'UNDER_REVIEW',
+          proofUrl: proofUrl || existing.proofUrl,
+          proofText: proofText || existing.proofText,
+          submissionDataJson: typeof submissionDataJson === 'object' ? JSON.stringify(submissionDataJson) : submissionDataJson || existing.submissionDataJson,
+          submittedAt: new Date(),
+        },
+      });
+    } else {
+      // Create new submission record in UNDER_REVIEW state
+      submission = await prisma.taskSubmission.create({
+        data: {
+          taskId,
+          userId: user.id,
+          status: 'UNDER_REVIEW',
+          proofUrl: proofUrl || null,
+          proofText: proofText || null,
+          submissionDataJson: typeof submissionDataJson === 'object' ? JSON.stringify(submissionDataJson) : submissionDataJson || null,
+          startedAt: new Date(),
+          submittedAt: new Date(),
+        },
+      });
     }
 
-    // Create submission record (Pending Admin Review)
-    const submission = await prisma.taskSubmission.create({
-      data: {
-        taskId,
-        userId: user.id,
-        status: 'UNDER_REVIEW',
-        proofUrl,
-        submissionDataJson: typeof submissionDataJson === 'object' ? JSON.stringify(submissionDataJson) : submissionDataJson,
-      },
-    });
+    // Decrement remaining slots safely
+    if (task.remainingSlots > 0) {
+      await prisma.task.update({
+        where: { id: taskId },
+        data: { remainingSlots: { decrement: 1 } },
+      });
+    }
 
-    // Decrement remaining slots
-    await prisma.task.update({
-      where: { id: taskId },
-      data: { remainingSlots: { decrement: 1 } },
-    });
-
-    // Create notification
+    // Create user notification (NEVER auto-credit wallet)
     await prisma.notification.create({
       data: {
         userId: user.id,
         title: 'Task Submission Received 📤',
-        message: `Your work for "${task.title}" has been submitted for quality review. Reward of KES ${task.reward.toFixed(2)} will be credited upon approval.`,
+        message: `Your work for "${task.title}" has been submitted and is now under quality review. A reward of KES ${task.reward.toFixed(2)} will be credited once approved by an administrator.`,
         type: 'INFO',
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Task submitted successfully and is now under review.',
+      message: 'Task submitted successfully and has entered the admin review queue.',
       submission,
     });
   } catch (error: any) {
+    console.error('Task submission error:', error);
+    if (error.message?.includes('Unauthorized')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
     return NextResponse.json({ error: error.message || 'Task submission error' }, { status: 400 });
   }
 }

@@ -216,7 +216,7 @@ export default function Navbar() {
                         className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-800/70 rounded-xl transition-colors"
                       >
                         <Target className="w-4 h-4 text-blue-400" />
-                        Task Marketplace
+                        Tasks
                       </Link>
 
                       {user.role === 'ADMIN' && (

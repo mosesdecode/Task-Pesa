@@ -6,15 +6,14 @@ export async function GET(req: NextRequest) {
   try {
     await requireAdmin(req);
 
-    const [tasks, ads, whatsappCampaigns, categories] = await Promise.all([
+    const [rawTasks, categories] = await Promise.all([
       prisma.task.findMany({
-        include: { category: true },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.advertisement.findMany({
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.whatsappCampaign.findMany({
+        include: {
+          category: true,
+          submissions: {
+            select: { id: true, status: true },
+          },
+        },
         orderBy: { createdAt: 'desc' },
       }),
       prisma.taskCategory.findMany({
@@ -22,9 +21,37 @@ export async function GET(req: NextRequest) {
       }),
     ]);
 
-    return NextResponse.json({ tasks, ads, whatsappCampaigns, categories });
+    // Calculate management statistics for each task
+    const tasksWithStats = rawTasks.map((t) => {
+      const allSubs = t.submissions || [];
+      const started = allSubs.length;
+      const submitted = allSubs.filter((s) => s.status !== 'IN_PROGRESS').length;
+      const pendingReview = allSubs.filter((s) => s.status === 'UNDER_REVIEW' || s.status === 'SUBMITTED').length;
+      const approved = allSubs.filter((s) => s.status === 'APPROVED').length;
+      const rejected = allSubs.filter((s) => s.status === 'REJECTED').length;
+
+      const { submissions, ...taskData } = t;
+      return {
+        ...taskData,
+        stats: {
+          totalSlots: t.totalSlots,
+          remainingSlots: t.remainingSlots,
+          started,
+          submitted,
+          pendingReview,
+          approved,
+          rejected,
+        },
+      };
+    });
+
+    return NextResponse.json({
+      tasks: tasksWithStats,
+      categories,
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 403 });
+    console.error('Admin tasks fetch error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to fetch admin tasks' }, { status: 403 });
   }
 }
 
@@ -32,82 +59,95 @@ export async function POST(req: NextRequest) {
   try {
     const admin = await requireAdmin(req);
     const body = await req.json();
-    const { type, title, categorySlug, reward, instructions, proofRequired, durationSeconds, totalSlots, minPackageTier, mediaUrl, advertiser, campaignName, caption } = body;
+    const {
+      title,
+      description,
+      categoryId,
+      categorySlug,
+      reward,
+      instructions,
+      rules,
+      proofRequired,
+      durationSeconds,
+      totalSlots,
+      status,
+      externalUrl,
+      startDate,
+      endDate,
+    } = body;
 
-    if (type === 'DATA_ANNOTATION' || type === 'MICROTASK' || !type) {
-      const category = await prisma.taskCategory.findFirst({
-        where: { slug: categorySlug || 'data-annotation' },
-      }) || await prisma.taskCategory.findFirst();
-
-      if (!category) {
-        return NextResponse.json({ error: 'No task category found. Create a category first.' }, { status: 400 });
-      }
-
-      const task = await prisma.task.create({
-        data: {
-          title,
-          instructions,
-          proofRequired: proofRequired || 'Submit screenshot or completion proof',
-          categoryId: category.id,
-          reward: parseFloat(reward),
-          durationSeconds: parseInt(durationSeconds) || 60,
-          totalSlots: parseInt(totalSlots) || 100,
-          remainingSlots: parseInt(totalSlots) || 100,
-          minPackageTier: minPackageTier || 'BRONZE',
-          status: 'ACTIVE',
-        },
-      });
-
-      await prisma.adminAuditLog.create({
-        data: {
-          adminId: admin.id,
-          action: 'CREATE_TASK',
-          targetType: 'TASK',
-          targetId: task.id,
-          detailsJson: JSON.stringify({ title, reward, proofRequired }),
-        },
-      });
-
-      return NextResponse.json({ success: true, task });
+    if (!title || !instructions) {
+      return NextResponse.json(
+        { error: 'Please provide task title and detailed instructions.' },
+        { status: 400 }
+      );
     }
 
-    if (type === 'ADVERTISEMENT') {
-      const ad = await prisma.advertisement.create({
-        data: {
-          title,
-          advertiser: advertiser || 'Sponsor',
-          mediaUrl: mediaUrl || 'https://images.unsplash.com/photo-1512428559087-560fa5ceab42?w=800',
-          durationSeconds: parseInt(durationSeconds) || 20,
-          reward: parseFloat(reward),
-          dailyLimit: 10,
-          minPackageTier: minPackageTier || 'BRONZE',
-          status: 'ACTIVE',
-        },
-      });
-
-      return NextResponse.json({ success: true, ad });
+    let targetCategory = null;
+    if (categoryId) {
+      targetCategory = await prisma.taskCategory.findUnique({ where: { id: categoryId } });
+    } else if (categorySlug) {
+      targetCategory = await prisma.taskCategory.findFirst({ where: { slug: categorySlug } });
     }
 
-    if (type === 'WHATSAPP') {
-      const campaign = await prisma.whatsappCampaign.create({
-        data: {
-          campaignName: campaignName || title,
-          mediaUrl: mediaUrl || 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800',
-          caption: caption || '',
-          instructions: instructions || 'Post on WhatsApp Status and submit screenshot proof.',
-          reward: parseFloat(reward),
-          maxParticipants: parseInt(totalSlots) || 50,
-          minPackageTier: minPackageTier || 'BRONZE',
-          status: 'ACTIVE',
-        },
-      });
-
-      return NextResponse.json({ success: true, campaign });
+    if (!targetCategory) {
+      targetCategory = await prisma.taskCategory.findFirst();
     }
 
-    return NextResponse.json({ error: 'Invalid task creation type' }, { status: 400 });
+    if (!targetCategory) {
+      return NextResponse.json(
+        { error: 'No task category found. Please create a category first.' },
+        { status: 400 }
+      );
+    }
+
+    const slotsNum = parseInt(totalSlots) || 100;
+    const rewardNum = parseFloat(reward) || 50;
+
+    const task = await prisma.task.create({
+      data: {
+        title: title.trim(),
+        description: description?.trim() || null,
+        instructions: instructions.trim(),
+        rules: rules?.trim() || null,
+        categoryId: targetCategory.id,
+        reward: rewardNum,
+        totalSlots: slotsNum,
+        remainingSlots: slotsNum,
+        durationSeconds: parseInt(durationSeconds) || 120,
+        status: status || 'PUBLISHED', // DRAFT, PUBLISHED, PAUSED, CLOSED
+        proofRequired: proofRequired?.trim() || 'Submit text, link, or screenshot proof',
+        externalUrl: externalUrl?.trim() || null,
+        startDate: startDate ? new Date(startDate) : null,
+        endDate: endDate ? new Date(endDate) : null,
+      },
+      include: { category: true },
+    });
+
+    // Record Audit Log
+    await prisma.adminAuditLog.create({
+      data: {
+        adminId: admin.id,
+        action: 'CREATE_TASK',
+        targetType: 'TASK',
+        targetId: task.id,
+        detailsJson: JSON.stringify({
+          title: task.title,
+          reward: task.reward,
+          slots: task.totalSlots,
+          status: task.status,
+        }),
+      },
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: `Task "${task.title}" created successfully!`,
+      task,
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error('Admin create task error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to create task' }, { status: 400 });
   }
 }
 
@@ -115,34 +155,68 @@ export async function PUT(req: NextRequest) {
   try {
     const admin = await requireAdmin(req);
     const body = await req.json();
-    const { id, title, instructions, proofRequired, reward, status } = body;
+    const {
+      id,
+      title,
+      description,
+      categoryId,
+      reward,
+      instructions,
+      rules,
+      proofRequired,
+      durationSeconds,
+      totalSlots,
+      remainingSlots,
+      status,
+      externalUrl,
+    } = body;
 
-    if (!id) return NextResponse.json({ error: 'Task ID required' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
+    }
+
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title.trim();
+    if (description !== undefined) updateData.description = description.trim() || null;
+    if (categoryId !== undefined) updateData.categoryId = categoryId;
+    if (reward !== undefined) updateData.reward = parseFloat(reward);
+    if (instructions !== undefined) updateData.instructions = instructions.trim();
+    if (rules !== undefined) updateData.rules = rules.trim() || null;
+    if (proofRequired !== undefined) updateData.proofRequired = proofRequired.trim();
+    if (durationSeconds !== undefined) updateData.durationSeconds = parseInt(durationSeconds);
+    if (totalSlots !== undefined) updateData.totalSlots = parseInt(totalSlots);
+    if (remainingSlots !== undefined) updateData.remainingSlots = parseInt(remainingSlots);
+    if (status !== undefined) updateData.status = status; // DRAFT, PUBLISHED, PAUSED, CLOSED
+    if (externalUrl !== undefined) updateData.externalUrl = externalUrl.trim() || null;
 
     const task = await prisma.task.update({
       where: { id },
-      data: {
-        title: title || undefined,
-        instructions: instructions || undefined,
-        proofRequired: proofRequired || undefined,
-        reward: reward ? parseFloat(reward) : undefined,
-        status: status || undefined,
-      },
+      data: updateData,
+      include: { category: true },
     });
 
+    // Record Audit Log
     await prisma.adminAuditLog.create({
       data: {
         adminId: admin.id,
         action: 'UPDATE_TASK',
         targetType: 'TASK',
         targetId: task.id,
-        detailsJson: JSON.stringify({ status, title }),
+        detailsJson: JSON.stringify({
+          updatedFields: Object.keys(updateData),
+          status: task.status,
+        }),
       },
     });
 
-    return NextResponse.json({ success: true, task });
+    return NextResponse.json({
+      success: true,
+      message: `Task updated successfully! Status is now ${task.status}.`,
+      task,
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error('Admin update task error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to update task' }, { status: 400 });
   }
 }
 
@@ -151,31 +225,57 @@ export async function DELETE(req: NextRequest) {
     const admin = await requireAdmin(req);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
-    const itemType = searchParams.get('type') || 'TASK';
 
     if (!id) {
-      return NextResponse.json({ error: 'Missing item ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
     }
 
-    if (itemType === 'TASK') {
-      await prisma.task.delete({ where: { id } });
-    } else if (itemType === 'AD') {
-      await prisma.advertisement.delete({ where: { id } });
-    } else if (itemType === 'WHATSAPP') {
-      await prisma.whatsappCampaign.delete({ where: { id } });
+    // Check if task has approved submissions (if so, close it instead of deleting to preserve user transaction history)
+    const approvedCount = await prisma.taskSubmission.count({
+      where: { taskId: id, status: 'APPROVED' },
+    });
+
+    if (approvedCount > 0) {
+      const closedTask = await prisma.task.update({
+        where: { id },
+        data: { status: 'CLOSED' },
+      });
+
+      await prisma.adminAuditLog.create({
+        data: {
+          adminId: admin.id,
+          action: 'CLOSE_TASK',
+          targetType: 'TASK',
+          targetId: id,
+          detailsJson: JSON.stringify({ reason: 'Closed because approved submissions exist' }),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Task has approved submissions in user wallets. Task was safely set to CLOSED instead of deleted.',
+        task: closedTask,
+      });
     }
+
+    // If no approved submissions, delete safely
+    await prisma.task.delete({ where: { id } });
 
     await prisma.adminAuditLog.create({
       data: {
         adminId: admin.id,
-        action: 'DELETE_ITEM',
-        targetType: itemType,
+        action: 'DELETE_TASK',
+        targetType: 'TASK',
         targetId: id,
       },
     });
 
-    return NextResponse.json({ success: true, message: 'Item deleted successfully' });
+    return NextResponse.json({
+      success: true,
+      message: 'Task deleted successfully.',
+    });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 400 });
+    console.error('Admin delete task error:', error);
+    return NextResponse.json({ error: error.message || 'Failed to delete task' }, { status: 400 });
   }
 }

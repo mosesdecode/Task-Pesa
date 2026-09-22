@@ -20,7 +20,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-gray-400 leading-relaxed">
-              Kenya's premier digital task marketplace &amp; micro-work platform. Complete legitimate annotation, sponsored campaigns, and microtasks securely.
+              Kenya's premier digital task and micro-work platform. Complete legitimate data annotation, surveys, and content verification securely.
             </p>
           </div>
 
@@ -30,12 +30,12 @@ export default function Footer() {
             <ul className="space-y-2.5 text-sm">
               <li>
                 <Link href="/tasks" className="hover:text-brand-400 transition-colors">
-                  Task Marketplace
+                  Tasks
                 </Link>
               </li>
               <li>
                 <Link href="/packages" className="hover:text-brand-400 transition-colors">
-                  Membership Packages
+                  Task Packages
                 </Link>
               </li>
               <li>
@@ -82,17 +82,15 @@ export default function Footer() {
                 Anti-Fraud Protected
               </div>
               <p className="text-xs text-gray-400">
-                All payouts run through automated M-Pesa server-side verification and audit trails.
+                All payouts run through verified M-Pesa server-side audit trails.
               </p>
             </div>
           </div>
         </div>
 
-
-
         <div className="border-t border-slate-800/80 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-          <p>© {new Date().getFullYear()} TaskMint Platform (Kenya). All rights reserved.</p>
-          <p className="text-gray-500">Built with Next.js, Prisma &amp; Safaricom Daraja API</p>
+          <p>© {new Date().getFullYear()} TaskMint Platform. All rights reserved.</p>
+          <p className="text-gray-500">Secure Task &amp; Payout Platform</p>
         </div>
       </div>
     </footer>
