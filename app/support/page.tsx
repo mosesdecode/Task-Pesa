@@ -203,7 +203,7 @@ export default function SupportPage() {
           <div className="p-5 rounded-2xl glass-card space-y-2">
             <h4 className="font-bold text-white text-sm">4. How do membership packages work?</h4>
             <p className="text-xs text-gray-300 leading-relaxed">
-              Membership tiers (Bronze, Silver, Gold, Platinum) set your daily task submission capacity, ad limits, and referral rates. They are task capacity tiers, not financial investments.
+              Task packages set your daily task submission capacity, ad limits, and referral rates. They define task capacity, not financial investments.
             </p>
           </div>
 

@@ -66,8 +66,8 @@ export async function POST(req: NextRequest) {
       path: '/',
     };
 
-    response.cookies.set('taskpesa_token', token, cookieOptions);
     response.cookies.set('taskmint_token', token, cookieOptions);
+    response.cookies.delete('taskpesa_token');
 
     return response;
   } catch (error: any) {

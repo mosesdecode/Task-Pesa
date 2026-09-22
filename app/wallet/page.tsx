@@ -32,12 +32,31 @@ export default function WalletPage() {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [otpMessage, setOtpMessage] = useState<string | null>(null);
 
+  const [user, setUser] = useState<any>(null);
+
   const fetchWallet = async () => {
     try {
+      const meRes = await fetch('/api/auth/me');
+      if (!meRes.ok) {
+        window.location.href = '/login?redirect=/wallet';
+        return;
+      }
+      const meData = await meRes.json();
+      if (!meData.user) {
+        window.location.href = '/login?redirect=/wallet';
+        return;
+      }
+      setUser(meData.user);
+
       const [wRes, reqRes] = await Promise.all([
         fetch('/api/wallet'),
         fetch('/api/withdrawals'),
       ]);
+
+      if (wRes.status === 401) {
+        window.location.href = '/login?redirect=/wallet';
+        return;
+      }
 
       if (wRes.ok) {
         const wData = await wRes.json();
@@ -49,6 +68,7 @@ export default function WalletPage() {
       }
     } catch (e) {
       console.error(e);
+      window.location.href = '/login?redirect=/wallet';
     } finally {
       setLoading(false);
     }

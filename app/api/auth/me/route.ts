@@ -5,10 +5,12 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     if (!user) {
-      return NextResponse.json({ user: null }, { status: 401 });
+      const response = NextResponse.json({ user: null }, { status: 401 });
+      response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+      return response;
     }
 
-    return NextResponse.json({
+    const response = NextResponse.json({
       user: {
         id: user.id,
         fullName: user.fullName,
@@ -19,11 +21,22 @@ export async function GET(req: NextRequest) {
         role: user.role,
         status: user.status,
         referralCode: user.referralCode,
-        package: user.package,
+        firstName: user.firstName,
+        surname: user.surname,
+        profilePhoto: user.profilePhoto,
+        phoneVerified: user.phoneVerified,
+        emailVerified: user.emailVerified,
+        country: user.country || 'KE',
+        createdAt: user.createdAt,
         wallet: user.wallet,
       },
     });
+
+    response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+    return response;
   } catch (error) {
-    return NextResponse.json({ user: null }, { status: 500 });
+    const response = NextResponse.json({ user: null }, { status: 500 });
+    response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+    return response;
   }
 }

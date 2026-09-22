@@ -22,12 +22,6 @@ export default function Footer() {
             <p className="text-sm text-gray-400 leading-relaxed">
               Kenya's premier digital task marketplace &amp; micro-work platform. Complete legitimate annotation, sponsored campaigns, and microtasks securely.
             </p>
-            <div className="flex items-center gap-3 pt-2">
-              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs text-brand-400 font-medium">
-                <Smartphone className="w-3.5 h-3.5" />
-                M-Pesa Daraja Verified
-              </div>
-            </div>
           </div>
 
           {/* Quick Links */}

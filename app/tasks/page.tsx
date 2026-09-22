@@ -26,9 +26,23 @@ export default function TaskMarketplace() {
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [modalType, setModalType] = useState<'TASK' | 'AD' | 'WHATSAPP'>('TASK');
 
+  const [user, setUser] = useState<any>(null);
+
   const fetchData = async () => {
     setLoading(true);
     try {
+      const meRes = await fetch('/api/auth/me');
+      if (!meRes.ok) {
+        window.location.href = '/login?redirect=/tasks';
+        return;
+      }
+      const meData = await meRes.json();
+      if (!meData.user) {
+        window.location.href = '/login?redirect=/tasks';
+        return;
+      }
+      setUser(meData.user);
+
       const [taskRes, adRes, waRes] = await Promise.all([
         fetch('/api/tasks'),
         fetch('/api/ads'),
@@ -46,6 +60,7 @@ export default function TaskMarketplace() {
       if (waData.campaigns) setWhatsappCampaigns(waData.campaigns);
     } catch (e) {
       console.error(e);
+      window.location.href = '/login?redirect=/tasks';
     } finally {
       setLoading(false);
     }

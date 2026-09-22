@@ -1,64 +1,52 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { jwtVerify } from 'jose';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
 
-const prisma = new PrismaClient();
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'default_taskmint_secret_key_change_in_production_2026'
-);
-
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const cookieHeader = request.headers.get('cookie') || '';
-    const cookies = cookieHeader.split(';').map(c => c.trim());
-    const token =
-      cookies.find(c => c.startsWith('taskmint_token='))?.split('=')[1] ||
-      cookies.find(c => c.startsWith('taskpesa_token='))?.split('=')[1];
+    const user = await requireAuth(req);
+    const { type, code } = await req.json(); // EMAIL or PHONE
 
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!code || typeof code !== 'string' || code.trim().length !== 6) {
+      return NextResponse.json({ error: 'Please enter a valid 6-digit verification code' }, { status: 400 });
     }
 
-    const verified = await jwtVerify(token, SECRET_KEY);
-    const userId = (verified.payload as any).userId;
-
-    const { type, code } = await request.json(); // EMAIL or PHONE
-
-    if (!code || code.length !== 6) {
-      return NextResponse.json({ error: 'Invalid OTP code' }, { status: 400 });
-    }
+    const cleanCode = code.trim();
 
     const otpRecord = await prisma.otpCode.findFirst({
       where: {
-        userId,
+        userId: user.id,
         type,
-        code,
+        code: cleanCode,
         isUsed: false,
-        expiresAt: { gt: new Date() }
+        expiresAt: { gt: new Date() },
       },
-      orderBy: { createdAt: 'desc' }
+      orderBy: { createdAt: 'desc' },
     });
 
     if (!otpRecord) {
-      return NextResponse.json({ error: 'Invalid or expired OTP' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid or expired verification code' }, { status: 400 });
     }
 
-    // Mark as used
-    await prisma.otpCode.update({
-      where: { id: otpRecord.id },
-      data: { isUsed: true }
-    });
+    await prisma.$transaction([
+      prisma.otpCode.update({
+        where: { id: otpRecord.id },
+        data: { isUsed: true },
+      }),
+      prisma.user.update({
+        where: { id: user.id },
+        data: type === 'EMAIL' ? { emailVerified: true } : { phoneVerified: true },
+      }),
+    ]);
 
-    // Update user verification status
-    const updateData = type === 'EMAIL' ? { emailVerified: true } : { phoneVerified: true };
-    await prisma.user.update({
-      where: { id: userId },
-      data: updateData
+    return NextResponse.json({
+      success: true,
+      message: `${type === 'EMAIL' ? 'Email address' : 'Phone number'} verified successfully!`,
     });
-
-    return NextResponse.json({ success: true, message: `${type} verified successfully` });
-  } catch (error) {
-    console.error('Verify OTP error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  } catch (error: any) {
+    if (error.message?.includes('Unauthorized')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }

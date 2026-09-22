@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
         referralCode: userReferralCode,
         referredById: referrerId,
         packageId: bronzePackage?.id,
-        status: 'PENDING_ACTIVATION', // Access fee KES 200 required
+        status: 'ACTIVE',
         wallet: {
           create: {
             availableBalance: 0.0,
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       data: {
         userId: user.id,
         title: 'Welcome to TaskMint! 👋',
-        message: 'Your account has been created. Please complete the KES 200 platform access payment to activate your account and start completing tasks.',
+        message: 'Your account has been created successfully. Explore available digital tasks, micro-jobs, and earn rewards.',
         type: 'INFO',
       },
     });
@@ -129,7 +129,7 @@ export async function POST(req: NextRequest) {
     };
 
     response.cookies.set('taskmint_token', token, cookieOptions);
-    response.cookies.set('taskpesa_token', token, cookieOptions);
+    response.cookies.delete('taskpesa_token');
 
     return response;
   } catch (error: any) {

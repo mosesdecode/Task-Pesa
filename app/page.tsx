@@ -238,7 +238,7 @@ export default function LandingPage() {
             },
             {
               q: '4. How do membership packages work?',
-              a: 'Membership packages (Bronze, Silver, Gold, Platinum) set your daily task limits, sponsored ad view capacities, and referral bonus rates. Upgrading your tier unlocks higher daily task limits. Packages are task allocation tiers, not financial investments.',
+              a: 'Task packages set your daily task limits, sponsored ad view capacities, and referral bonus rates. Choosing higher capacity packages unlocks more daily tasks. Packages represent work allocation limits, not financial investments.',
             },
             {
               q: '5. How do users and administrators change their login password?',

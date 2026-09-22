@@ -3,13 +3,12 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, CheckSquare, Wallet, Users, User, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Target, Wallet, User, ShieldCheck } from 'lucide-react';
 
 const navItems = [
-  { label: 'Home', href: '/dashboard', icon: LayoutDashboard },
-  { label: 'Tasks', href: '/tasks', icon: CheckSquare },
+  { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { label: 'Tasks', href: '/tasks', icon: Target },
   { label: 'Wallet', href: '/wallet', icon: Wallet },
-  { label: 'Referrals', href: '/referrals', icon: Users },
   { label: 'Profile', href: '/profile', icon: User },
   { label: 'Admin', href: '/admin', icon: ShieldCheck },
 ];
@@ -27,7 +26,7 @@ export default function MobileNav() {
         }
       })
       .catch(() => {});
-  }, []);
+  }, [pathname]);
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-nav border-t border-slate-800/80 px-2 py-1.5">

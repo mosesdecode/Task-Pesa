@@ -13,6 +13,7 @@ import {
   Zap,
   ArrowUpRight,
   ShieldCheck,
+  CheckCircle2,
   AlertCircle,
   PlaySquare,
   Share2,
@@ -31,14 +32,10 @@ export default function UserDashboard() {
       .then((res) => res.json())
       .then((data) => {
         if (!data.user) {
-          router.push('/login');
+          window.location.href = '/login?redirect=/dashboard';
           return;
         }
         setUser(data.user);
-        if (data.user.role !== 'ADMIN' && data.user.status === 'PENDING_ACTIVATION') {
-          router.push('/activate');
-          return;
-        }
 
         // Fetch wallet details
         fetch('/api/wallet')
@@ -55,6 +52,9 @@ export default function UserDashboard() {
             if (tData.tasks) setTasks(tData.tasks.slice(0, 3));
           })
           .finally(() => setLoading(false));
+      })
+      .catch(() => {
+        window.location.href = '/login?redirect=/dashboard';
       });
   }, [router]);
 
@@ -76,21 +76,30 @@ export default function UserDashboard() {
       <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="space-y-2 relative z-10">
           <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 uppercase tracking-wider">
-              {user.package?.name || 'BRONZE'} TIER
-            </span>
-            {user.status === 'ACTIVE' && (
+            {user.phoneVerified ? (
               <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                <ShieldCheck className="w-3.5 h-3.5" />
-                Account Active
+                <CheckCircle2 className="w-3.5 h-3.5" />
+                Phone Verified
               </span>
+            ) : (
+              <Link
+                href="/profile"
+                className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors flex items-center gap-1"
+              >
+                <AlertCircle className="w-3.5 h-3.5" />
+                Verify Safaricom Phone
+              </Link>
             )}
+            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 flex items-center gap-1">
+              <ShieldCheck className="w-3.5 h-3.5" />
+              Account Active
+            </span>
           </div>
           <h1 className="text-2xl sm:text-4xl font-black text-white">
             Jambo, {user.fullName}! 👋
           </h1>
           <p className="text-xs sm:text-sm text-gray-300">
-            Welcome back to your task dashboard. Manage earnings, complete data annotation tasks, and track M-Pesa payouts.
+            Welcome back to your TaskMint dashboard. Manage earnings, complete data annotation tasks, and track M-Pesa payouts.
           </p>
         </div>
 
@@ -105,7 +114,7 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* Metric Cards Grid (Requirement 12) */}
+      {/* Metric Cards Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Earnings */}
         <div className="p-6 rounded-3xl glass-card space-y-3">
@@ -151,22 +160,24 @@ export default function UserDashboard() {
           <p className="text-2xl sm:text-3xl font-black text-white">
             KES {pendingBalance.toLocaleString('en-KE', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-gray-400">Under quality review or Friday payout</p>
+          <p className="text-[11px] text-gray-400">Under quality review or weekly payout</p>
         </div>
 
-        {/* Active Package & Next Payout */}
+        {/* Account Status Card */}
         <div className="p-6 rounded-3xl glass-card space-y-3">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Active Package</span>
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Account Status</span>
             <div className="w-9 h-9 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
-              <Sparkles className="w-5 h-5" />
+              <ShieldCheck className="w-5 h-5" />
             </div>
           </div>
-          <p className="text-xl font-black text-white">{user.package?.name || 'BRONZE'}</p>
+          <p className="text-xl font-black text-white">
+            {user.phoneVerified ? 'Fully Verified' : 'Standard Member'}
+          </p>
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-gray-400">Next Payout: Friday</span>
-            <Link href="/packages" className="text-brand-400 font-bold hover:underline">
-              Upgrade
+            <span className="text-gray-400">Payouts: Enabled</span>
+            <Link href="/profile" className="text-brand-400 font-bold hover:underline">
+              {user.phoneVerified ? 'View Profile →' : 'Verify Phone →'}
             </Link>
           </div>
         </div>

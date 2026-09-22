@@ -17,27 +17,66 @@ export async function middleware(request: NextRequest) {
 
   const token = request.cookies.get('taskmint_token')?.value || request.cookies.get('taskpesa_token')?.value;
 
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register');
+  const pathname = request.nextUrl.pathname;
+  const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register');
   
-  // Note: /admin handles its own secure gate: unauthenticated visitors see ONLY the admin login page
+  // Admin area protection - only ADMIN role permitted
+  if (pathname.startsWith('/admin')) {
+    if (!token) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    try {
+      const verified = await jwtVerify(token, SECRET_KEY);
+      const payload = verified.payload as any;
+      if (payload.role !== 'ADMIN') {
+        // Ordinary users cannot access the admin panel
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      }
+      const response = NextResponse.next();
+      response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+      return response;
+    } catch (error) {
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.delete('taskmint_token');
+      response.cookies.delete('taskpesa_token');
+      return response;
+    }
+  }
+
+  // Protected user areas that require valid authentication
   const isProtectedPath = 
-    request.nextUrl.pathname.startsWith('/dashboard') || 
-    request.nextUrl.pathname.startsWith('/tasks') ||
-    request.nextUrl.pathname.startsWith('/wallet') ||
-    request.nextUrl.pathname.startsWith('/referrals') ||
-    request.nextUrl.pathname.startsWith('/support') ||
-    request.nextUrl.pathname.startsWith('/activate');
+    pathname.startsWith('/dashboard') || 
+    pathname.startsWith('/tasks') ||
+    pathname.startsWith('/wallet') ||
+    pathname.startsWith('/profile') ||
+    pathname.startsWith('/notifications') ||
+    pathname.startsWith('/packages') ||
+    pathname.startsWith('/referrals') ||
+    pathname.startsWith('/support');
 
   if (isProtectedPath) {
     if (!token) {
-      return NextResponse.redirect(new URL('/login', request.url));
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(loginUrl);
     }
 
     try {
       await jwtVerify(token, SECRET_KEY);
+      const response = NextResponse.next();
+      // Enforce strict no-cache on private user data
+      response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
+      return response;
     } catch (error) {
       // Token is invalid or expired
-      const response = NextResponse.redirect(new URL('/login', request.url));
+      const loginUrl = new URL('/login', request.url);
+      loginUrl.searchParams.set('redirect', pathname);
+      const response = NextResponse.redirect(loginUrl);
       response.cookies.delete('taskmint_token');
       response.cookies.delete('taskpesa_token');
       return response;
@@ -54,7 +93,7 @@ export async function middleware(request: NextRequest) {
       }
       return NextResponse.redirect(new URL('/dashboard', request.url));
     } catch (error) {
-      // Invalid token, do nothing, let them access login/register
+      // Invalid token, allow access to login/register
     }
   }
 
@@ -64,12 +103,13 @@ export async function middleware(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for the ones starting with:
-     * - api (API routes)
+     * Match all request paths except for:
+     * - api (API routes handle their own auth)
      * - _next/static (static files)
      * - _next/image (image optimization files)
-     * - favicon.ico, sitemap.xml, robots.txt (metadata files)
+     * - uploads (uploaded media/avatars)
+     * - favicon.ico, sitemap.xml, robots.txt
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt).*)',
+    '/((?!api|_next/static|_next/image|uploads|favicon.ico|sitemap.xml|robots.txt).*)',
   ],
 };

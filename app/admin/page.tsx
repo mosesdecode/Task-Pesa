@@ -1,8 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import Navbar from '@/components/Navbar';
-import Footer from '@/components/Footer';
+
 import {
   Shield,
   PlusCircle,
@@ -18,6 +17,7 @@ import {
   Zap,
   RefreshCw,
   Eye,
+  EyeOff,
   FileText,
   Share2,
   PlaySquare,
@@ -90,6 +90,7 @@ export default function AdminDashboardPage() {
   // In-Page Admin Login States (shown if unauthenticated when opening /admin)
   const [loginIdentifier, setLoginIdentifier] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
 
@@ -689,8 +690,6 @@ export default function AdminDashboardPage() {
   if (!isAdminAuthed) {
     return (
       <div className="min-h-screen bg-[#050B12] text-[#E6F1FF] flex flex-col font-sans selection:bg-[#00C853]/30 selection:text-white">
-        <Navbar />
-
         <main className="flex-1 flex items-center justify-center px-4 py-12">
           <div className="w-full max-w-md bg-[#0F172A] border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
             <div className="text-center space-y-2">
@@ -731,14 +730,24 @@ export default function AdminDashboardPage() {
                 <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-1.5">
                   Administrator Password
                 </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="••••••••"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-500"
-                />
+                <div className="relative">
+                  <input
+                    type={showLoginPassword ? 'text' : 'password'}
+                    required
+                    placeholder="••••••••"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                    className="w-full px-4 py-3 pr-10 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-sm focus:outline-none focus:border-brand-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword(!showLoginPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                    title={showLoginPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <button
@@ -770,8 +779,6 @@ export default function AdminDashboardPage() {
             </div>
           </div>
         </main>
-
-        <Footer />
       </div>
     );
   }
@@ -779,8 +786,6 @@ export default function AdminDashboardPage() {
   // 3. Authenticated Admin Dashboard
   return (
     <div className="min-h-screen bg-[#050B12] text-[#E6F1FF] flex flex-col font-sans selection:bg-[#00C853]/30 selection:text-white">
-      <Navbar />
-
       {/* Top ChatHive-Style Admin Sub-Header */}
       <div className="sticky top-0 z-30 bg-[#050B12]/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -2290,7 +2295,7 @@ export default function AdminDashboardPage() {
                     <th className="px-4 py-3">User</th>
                     <th className="px-4 py-3">Phone / M-Pesa</th>
                     <th className="px-4 py-3">Status / Flags</th>
-                    <th className="px-4 py-3">Package Tier</th>
+                    <th className="px-4 py-3">Phone Verification</th>
                     <th className="px-4 py-3 text-right">Available Balance</th>
                     <th className="px-4 py-3 text-right">Actions</th>
                   </tr>
@@ -2336,7 +2341,17 @@ export default function AdminDashboardPage() {
                           {u.isBanned ? 'BANNED' : u.status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 font-semibold text-brand-300">{u.package?.name || 'BRONZE'}</td>
+                      <td className="px-4 py-3">
+                        <span
+                          className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                            u.phoneVerified
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          }`}
+                        >
+                          {u.phoneVerified ? '✓ Verified' : 'Unverified'}
+                        </span>
+                      </td>
                       <td className="px-4 py-3 text-right font-extrabold text-white">
                         KES {(u.wallet?.availableBalance || 0).toLocaleString('en-KE')}
                       </td>
@@ -2590,8 +2605,6 @@ export default function AdminDashboardPage() {
           </div>
         )}
       </main>
-
-      <Footer />
     </div>
   );
 }

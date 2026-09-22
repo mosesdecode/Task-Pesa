@@ -1,64 +1,63 @@
-import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-import { jwtVerify } from 'jose';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAuth } from '@/lib/auth';
+import { prisma } from '@/lib/prisma';
+import { sendSmsOtp } from '@/lib/sms';
 
-const prisma = new PrismaClient();
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'default_taskmint_secret_key_change_in_production_2026'
-);
-
-export async function POST(request: Request) {
+export async function POST(req: NextRequest) {
   try {
-    const cookieHeader = request.headers.get('cookie') || '';
-    const cookies = cookieHeader.split(';').map(c => c.trim());
-    const token =
-      cookies.find(c => c.startsWith('taskmint_token='))?.split('=')[1] ||
-      cookies.find(c => c.startsWith('taskpesa_token='))?.split('=')[1];
-
-    if (!token) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const verified = await jwtVerify(token, SECRET_KEY);
-    const userId = (verified.payload as any).userId;
-
-    const { type } = await request.json(); // EMAIL or PHONE
+    const user = await requireAuth(req);
+    const { type } = await req.json(); // EMAIL or PHONE
 
     if (type !== 'EMAIL' && type !== 'PHONE') {
-      return NextResponse.json({ error: 'Invalid OTP type' }, { status: 400 });
+      return NextResponse.json({ error: 'Invalid OTP type. Expected EMAIL or PHONE.' }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    // Cooldown check (60s)
+    const latestOtp = await prisma.otpCode.findFirst({
+      where: { userId: user.id, type },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (latestOtp) {
+      const elapsed = Math.floor((Date.now() - new Date(latestOtp.createdAt).getTime()) / 1000);
+      if (elapsed < 60) {
+        return NextResponse.json(
+          { error: `Please wait ${60 - elapsed} seconds before requesting a new code.` },
+          { status: 429 }
+        );
+      }
     }
 
     // Generate 6-digit code
     const code = Math.floor(100000 + Math.random() * 900000).toString();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    // Invalidate existing active codes for this user and type
     await prisma.otpCode.updateMany({
-      where: { userId, type, isUsed: false },
-      data: { isUsed: true }
+      where: { userId: user.id, type, isUsed: false },
+      data: { isUsed: true },
     });
 
-    // Create new code
     await prisma.otpCode.create({
       data: {
-        userId,
+        userId: user.id,
         code,
         type,
-        expiresAt
-      }
+        expiresAt,
+      },
     });
 
-    // MOCK SENDING LOGIC (In production, integrate Resend/Nodemailer for Email, Africa's Talking for SMS)
-    console.log(`[SECURITY] Simulated sending ${type} OTP to user ${userId}. Code: ${code}`);
+    if (type === 'PHONE' && user.phone) {
+      await sendSmsOtp(user.phone, code);
+    }
 
-    return NextResponse.json({ success: true, message: `OTP sent successfully to your ${type.toLowerCase()}` });
-  } catch (error) {
-    console.error('Send OTP error:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+      message: `OTP code sent to your registered ${type.toLowerCase()}`,
+    });
+  } catch (error: any) {
+    if (error.message?.includes('Unauthorized')) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 });
   }
 }

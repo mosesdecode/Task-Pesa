@@ -13,17 +13,14 @@ import {
   Zap,
   LayoutDashboard,
   Target,
-  Award,
-  Share2,
-  ShieldAlert
+  ShieldAlert,
 } from 'lucide-react';
 
 const navLinks = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Task Market', href: '/tasks', icon: Target },
-  { name: 'Packages', href: '/packages', icon: Award },
+  { name: 'Tasks', href: '/tasks', icon: Target },
   { name: 'Wallet', href: '/wallet', icon: Wallet },
-  { name: 'Refer & Earn', href: '/referrals', icon: Share2 },
+  { name: 'Profile', href: '/profile', icon: UserIcon },
 ];
 
 export default function Navbar() {
@@ -63,16 +60,18 @@ export default function Navbar() {
   }, [pathname]);
 
   const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {}
     setUser(null);
-    router.push('/login');
+    window.location.href = '/login';
   };
 
   return (
     <header className="sticky top-0 z-50 glass-nav">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
-          {/* Logo */}
+          {/* Brand Logo */}
           <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-emerald-400 p-0.5 shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
               <div className="w-full h-full bg-dark-900 rounded-[10px] flex items-center justify-center">
@@ -92,7 +91,7 @@ export default function Navbar() {
             </div>
           </Link>
 
-          {/* Desktop Nav Links */}
+          {/* Desktop Nav Links (Clean 4 Core Sections) */}
           {user && (
             <div className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => {
@@ -102,10 +101,10 @@ export default function Navbar() {
                   <Link
                     key={link.name}
                     href={link.href}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all ${
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${
                       isActive
-                        ? 'bg-brand-500/10 text-brand-400'
-                        : 'text-gray-400 hover:text-white hover:bg-slate-800'
+                        ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20'
+                        : 'text-gray-400 hover:text-white hover:bg-slate-800/80'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -113,32 +112,32 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-              
+
               {user.role === 'ADMIN' && (
                 <Link
                   href="/admin"
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-semibold transition-all ${
+                  className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${
                     pathname === '/admin'
-                      ? 'bg-amber-500/10 text-amber-400'
-                      : 'text-amber-500/70 hover:text-amber-400 hover:bg-slate-800'
+                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                      : 'text-amber-500/80 hover:text-amber-300 hover:bg-slate-800/80'
                   }`}
                 >
                   <ShieldAlert className="w-4 h-4" />
-                  Admin Panel
+                  Admin Portal
                 </Link>
               )}
             </div>
           )}
 
-            {/* Right Action & User Controls */}
+          {/* Right Action & User Controls */}
           <div className="flex items-center gap-3">
             {user ? (
               <>
-                {/* Balance Pill - Hidden for Admin */}
+                {/* Balance Pill - For Regular Users */}
                 {user.role !== 'ADMIN' && (
                   <Link
                     href="/wallet"
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800/80 border border-slate-700/60 text-xs font-semibold hover:border-brand-500/40 transition-colors"
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs font-semibold hover:border-brand-500/40 transition-colors"
                   >
                     <Wallet className="w-4 h-4 text-brand-400" />
                     <span className="text-gray-200">
@@ -150,7 +149,8 @@ export default function Navbar() {
                 {/* Notifications Bell */}
                 <Link
                   href="/notifications"
-                  className="relative p-2 rounded-lg text-gray-300 hover:text-white hover:bg-slate-800/60 transition-colors"
+                  className="relative p-2 rounded-xl text-gray-300 hover:text-white hover:bg-slate-800/60 transition-colors"
+                  title="Notifications"
                 >
                   <Bell className="w-5 h-5" />
                   {unreadNotifications > 0 && (
@@ -162,53 +162,71 @@ export default function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    className="flex items-center gap-2 p-1.5 rounded-xl bg-slate-800/60 hover:bg-slate-800 border border-slate-700/50 transition-all"
+                    className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-800/80 transition-all border border-slate-700/50"
                   >
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-white text-xs">
-                      {user.username?.substring(0, 2).toUpperCase()}
+                    <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center">
+                      {user.profilePhoto ? (
+                        <img
+                          src={user.profilePhoto}
+                          alt={user.fullName || user.username}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-white text-xs">
+                          {user.username?.substring(0, 2).toUpperCase()}
+                        </div>
+                      )}
                     </div>
                   </button>
 
                   {profileDropdownOpen && (
                     <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-slate-900 border border-slate-700/80 shadow-2xl p-2 z-50">
                       <div className="px-3 py-2 border-b border-slate-800 mb-1">
-                        <p className="text-sm font-semibold text-white">{user.fullName}</p>
-                        <p className="text-xs text-gray-400">@{user.username}</p>
-                        <div className="mt-1 flex items-center gap-1.5">
-                          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-brand-500/20 text-brand-300 border border-brand-500/30">
-                            {user.package?.name || 'BRONZE'} TIER
-                          </span>
-                        </div>
+                        <p className="text-sm font-semibold text-white truncate">{user.fullName}</p>
+                        <p className="text-xs text-gray-400 truncate">@{user.username}</p>
+                        {user.phoneVerified && (
+                          <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Phone Verified
+                          </div>
+                        )}
                       </div>
-
-                      {user.role !== 'ADMIN' && (
-                        <Link
-                          href="/dashboard"
-                          onClick={() => setProfileDropdownOpen(false)}
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-800/70 rounded-xl"
-                        >
-                          <UserIcon className="w-4 h-4 text-brand-400" />
-                          User Dashboard
-                        </Link>
-                      )}
 
                       <Link
                         href="/profile"
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-800/70 rounded-xl"
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-800/70 rounded-xl transition-colors"
                       >
-                        <CheckCircle2 className="w-4 h-4 text-brand-400" />
-                        Account & Verification
+                        <UserIcon className="w-4 h-4 text-brand-400" />
+                        Profile & Security
+                      </Link>
+
+                      <Link
+                        href="/wallet"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-800/70 rounded-xl transition-colors"
+                      >
+                        <Wallet className="w-4 h-4 text-emerald-400" />
+                        Wallet & Payouts
+                      </Link>
+
+                      <Link
+                        href="/tasks"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-800/70 rounded-xl transition-colors"
+                      >
+                        <Target className="w-4 h-4 text-blue-400" />
+                        Task Marketplace
                       </Link>
 
                       {user.role === 'ADMIN' && (
                         <Link
                           href="/admin"
                           onClick={() => setProfileDropdownOpen(false)}
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/10 rounded-xl font-medium"
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/10 rounded-xl font-medium transition-colors"
                         >
                           <Shield className="w-4 h-4" />
-                          Admin Control Panel
+                          Admin Portal
                         </Link>
                       )}
 
