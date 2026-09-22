@@ -759,6 +759,15 @@ export default function AdminDashboardPage() {
                 )}
               </button>
             </form>
+
+            <div className="text-center pt-1 border-t border-slate-800/60">
+              <a
+                href="/"
+                className="text-xs text-slate-400 hover:text-brand-400 font-semibold transition-colors inline-flex items-center gap-1.5"
+              >
+                ← Return to TaskMint Home
+              </a>
+            </div>
           </div>
         </main>
 

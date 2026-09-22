@@ -5,10 +5,10 @@ import MobileNav from '@/components/MobileNav';
 import Footer from '@/components/Footer';
 
 export const metadata: Metadata = {
-  title: 'Task Mint — Digital Micro-Work and Opportunity Marketplace',
+  title: 'TaskMint — Digital Micro-Work and Opportunity Marketplace',
   description:
     'Earn money by completing legitimate digital tasks, data annotation, sponsored campaigns, and microtasks in Kenya. Fast payouts.',
-  keywords: ['Task Mint', 'Kenyan Microtasks', 'Data Annotation Kenya', 'Earn Money Online Kenya', 'Micro Work'],
+  keywords: ['TaskMint', 'Kenyan Microtasks', 'Data Annotation Kenya', 'Earn Money Online Kenya', 'Micro Work'],
 };
 
 export default function RootLayout({

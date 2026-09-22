@@ -97,7 +97,7 @@ export default function Footer() {
 
 
         <div className="border-t border-slate-800/80 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-          <p>© {new Date().getFullYear()} Task Mint Platform (Kenya). All rights reserved.</p>
+          <p>© {new Date().getFullYear()} TaskMint Platform (Kenya). All rights reserved.</p>
           <p className="text-gray-500">Built with Next.js, Prisma &amp; Safaricom Daraja API</p>
         </div>
       </div>

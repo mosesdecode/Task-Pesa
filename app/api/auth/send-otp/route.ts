@@ -4,14 +4,16 @@ import { jwtVerify } from 'jose';
 
 const prisma = new PrismaClient();
 const SECRET_KEY = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'default_taskpesa_secret_key_change_in_production_2026'
+  process.env.NEXTAUTH_SECRET || 'default_taskmint_secret_key_change_in_production_2026'
 );
 
 export async function POST(request: Request) {
   try {
-    const token = request.headers.get('cookie')?.split(';')
-      .find(c => c.trim().startsWith('taskpesa_token=') || c.trim().startsWith('taskmint_token='))
-      ?.split('=')[1];
+    const cookieHeader = request.headers.get('cookie') || '';
+    const cookies = cookieHeader.split(';').map(c => c.trim());
+    const token =
+      cookies.find(c => c.startsWith('taskmint_token='))?.split('=')[1] ||
+      cookies.find(c => c.startsWith('taskpesa_token='))?.split('=')[1];
 
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

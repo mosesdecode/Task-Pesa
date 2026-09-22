@@ -4,7 +4,7 @@ import bcrypt from 'bcryptjs';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting Task Mint Database Seeding...');
+  console.log('🌱 Starting TaskMint Database Seeding...');
 
   // 1. System Settings
   const settings = [
@@ -12,7 +12,7 @@ async function main() {
     { key: 'MIN_WITHDRAWAL_KES', value: '2500', description: 'Minimum withdrawable balance' },
     { key: 'PAYOUT_DAY', value: 'Friday', description: 'Weekly payout processing day' },
     { key: 'PAYOUT_WINDOW', value: '09:00 AM - 05:00 PM EAT', description: 'Payout hours' },
-    { key: 'PLATFORM_NAME', value: 'Task Mint', description: 'Branding technology name' },
+    { key: 'PLATFORM_NAME', value: 'TaskMint', description: 'Branding technology name' },
   ];
 
   for (const s of settings) {

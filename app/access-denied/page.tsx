@@ -13,7 +13,7 @@ export default function AccessDeniedPage() {
         <h1 className="text-2xl font-black text-white">Access Restricted</h1>
         
         <p className="text-gray-400 text-sm leading-relaxed">
-          Task Mint is currently only available to users located in <strong>Kenya</strong>. 
+          TaskMint is currently only available to users located in <strong>Kenya</strong>. 
           Our security systems have detected that you are accessing the platform from outside the supported region.
         </p>
 

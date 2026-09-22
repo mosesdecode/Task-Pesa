@@ -4,7 +4,7 @@ import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from './prisma';
 
 const SECRET_KEY = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'default_taskpesa_secret_key_change_in_production_2026'
+  process.env.NEXTAUTH_SECRET || 'default_taskmint_secret_key_change_in_production_2026'
 );
 
 export interface JWTPayload {
@@ -41,8 +41,8 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 
 export async function getSessionUser(req: NextRequest) {
   const token =
-    req.cookies.get('taskpesa_token')?.value ||
     req.cookies.get('taskmint_token')?.value ||
+    req.cookies.get('taskpesa_token')?.value ||
     req.headers.get('authorization')?.replace('Bearer ', '');
 
   if (!token) return null;

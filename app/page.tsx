@@ -106,7 +106,7 @@ export default function LandingPage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center space-y-3">
           <h2 className="text-xs font-extrabold uppercase tracking-widest text-brand-400">Simple Process</h2>
-          <h3 className="text-3xl sm:text-4xl font-black text-white">How Task Mint Works</h3>
+          <h3 className="text-3xl sm:text-4xl font-black text-white">How TaskMint Works</h3>
           <p className="text-gray-400 max-w-xl mx-auto text-sm">
             Get started in 6 straightforward steps and start earning from verified task campaigns.
           </p>
@@ -229,7 +229,7 @@ export default function LandingPage() {
               a: 'Simply register an account and complete identity verification via Paystack. The KES 200 access fee acts as an anti-spam filter to prevent bot registrations and ensure only genuine workers access paid brand campaigns.',
             },
             {
-              q: '2. How do I earn money on Task Mint?',
+              q: '2. How do I earn money on TaskMint?',
               a: 'You can earn by completing microtasks such as AI data annotation (produce image labeling, Swahili voice transcription, text sentiment classification), watching sponsored brand advertisements, sharing WhatsApp status promotional campaigns, and inviting friends via your referral code.',
             },
             {

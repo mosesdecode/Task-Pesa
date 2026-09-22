@@ -3,7 +3,7 @@ import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 const SECRET_KEY = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'default_taskpesa_secret_key_change_in_production_2026'
+  process.env.NEXTAUTH_SECRET || 'default_taskmint_secret_key_change_in_production_2026'
 );
 
 export async function middleware(request: NextRequest) {
@@ -15,18 +15,18 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/access-denied', request.url));
   }
 
-  const token = request.cookies.get('taskpesa_token')?.value || request.cookies.get('taskmint_token')?.value;
+  const token = request.cookies.get('taskmint_token')?.value || request.cookies.get('taskpesa_token')?.value;
 
   const isAuthPage = request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register');
   
+  // Note: /admin handles its own secure gate: unauthenticated visitors see ONLY the admin login page
   const isProtectedPath = 
     request.nextUrl.pathname.startsWith('/dashboard') || 
     request.nextUrl.pathname.startsWith('/tasks') ||
     request.nextUrl.pathname.startsWith('/wallet') ||
     request.nextUrl.pathname.startsWith('/referrals') ||
     request.nextUrl.pathname.startsWith('/support') ||
-    request.nextUrl.pathname.startsWith('/activate') ||
-    request.nextUrl.pathname.startsWith('/admin');
+    request.nextUrl.pathname.startsWith('/activate');
 
   if (isProtectedPath) {
     if (!token) {
@@ -34,19 +34,12 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      const verified = await jwtVerify(token, SECRET_KEY);
-      const payload = verified.payload as any;
-
-      // If trying to access admin route, ensure they have ADMIN role
-      const isAdminPath = request.nextUrl.pathname.startsWith('/admin');
-      if (isAdminPath && payload.role !== 'ADMIN') {
-        return NextResponse.redirect(new URL('/login', request.url));
-      }
+      await jwtVerify(token, SECRET_KEY);
     } catch (error) {
       // Token is invalid or expired
       const response = NextResponse.redirect(new URL('/login', request.url));
-      response.cookies.delete('taskpesa_token');
       response.cookies.delete('taskmint_token');
+      response.cookies.delete('taskpesa_token');
       return response;
     }
   }
