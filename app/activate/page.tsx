@@ -25,6 +25,10 @@ export default function ActivatePage() {
       .then((data) => {
         if (data.user) {
           setUser(data.user);
+          if (data.user.role === 'ADMIN') {
+            router.push('/admin');
+            return;
+          }
           if (data.user.status === 'ACTIVE') {
             router.push('/dashboard');
           }

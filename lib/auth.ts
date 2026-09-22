@@ -42,6 +42,7 @@ export async function verifyToken(token: string): Promise<JWTPayload | null> {
 export async function getSessionUser(req: NextRequest) {
   const token =
     req.cookies.get('taskpesa_token')?.value ||
+    req.cookies.get('taskmint_token')?.value ||
     req.headers.get('authorization')?.replace('Bearer ', '');
 
   if (!token) return null;

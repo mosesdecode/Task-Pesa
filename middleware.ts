@@ -54,7 +54,11 @@ export async function middleware(request: NextRequest) {
   // Redirect logged-in users away from auth pages
   if (isAuthPage && token) {
     try {
-      await jwtVerify(token, SECRET_KEY);
+      const verified = await jwtVerify(token, SECRET_KEY);
+      const payload = verified.payload as any;
+      if (payload.role === 'ADMIN') {
+        return NextResponse.redirect(new URL('/admin', request.url));
+      }
       return NextResponse.redirect(new URL('/dashboard', request.url));
     } catch (error) {
       // Invalid token, do nothing, let them access login/register

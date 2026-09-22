@@ -35,7 +35,7 @@ export default function UserDashboard() {
           return;
         }
         setUser(data.user);
-        if (data.user.status === 'PENDING_ACTIVATION') {
+        if (data.user.role !== 'ADMIN' && data.user.status === 'PENDING_ACTIVATION') {
           router.push('/activate');
           return;
         }

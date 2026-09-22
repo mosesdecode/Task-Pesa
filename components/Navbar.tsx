@@ -95,7 +95,7 @@ export default function Navbar() {
           {/* Desktop Nav Links */}
           {user && (
             <div className="hidden md:flex items-center gap-1">
-              {navLinks.filter(link => user.role !== 'ADMIN').map((link) => {
+              {navLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
                 return (

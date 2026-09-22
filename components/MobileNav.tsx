@@ -16,12 +16,24 @@ const navItems = [
 
 export default function MobileNav() {
   const pathname = usePathname();
+  const [isAdmin, setIsAdmin] = React.useState(false);
+
+  React.useEffect(() => {
+    fetch('/api/auth/me')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data?.user?.role === 'ADMIN') {
+          setIsAdmin(true);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-nav border-t border-slate-800/80 px-2 py-1.5">
       <div className="flex items-center justify-around">
         {navItems
-          .filter((item) => item.href !== '/admin')
+          .filter((item) => item.href !== '/admin' || isAdmin)
           .map((item) => {
             const Icon = item.icon;
             const isActive = pathname === item.href;

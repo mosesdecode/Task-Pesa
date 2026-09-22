@@ -632,6 +632,15 @@ export default function AdminDashboardPage() {
                 </div>
               </div>
             </div>
+
+            <a
+              href="/dashboard"
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs font-semibold transition-all ml-2"
+              title="Go to User Dashboard"
+            >
+              <span>User View</span>
+              <ExternalLink className="w-3.5 h-3.5 text-brand-400" />
+            </a>
           </div>
 
           {/* Quick ChatHive Action Icons */}
@@ -767,6 +776,35 @@ export default function AdminDashboardPage() {
             >
               <Lock className="w-4 h-4" /> Security
             </button>
+
+            {/* Links to Platform Pages for Admin */}
+            <div className="col-span-2 pt-2 mt-1 border-t border-slate-800 text-[10px] uppercase font-bold text-slate-400">
+              Platform Views
+            </div>
+            <a
+              href="/dashboard"
+              className="px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 bg-slate-900 text-slate-300 hover:text-white"
+            >
+              <BarChart3 className="w-4 h-4 text-emerald-400" /> Dashboard
+            </a>
+            <a
+              href="/tasks"
+              className="px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 bg-slate-900 text-slate-300 hover:text-white"
+            >
+              <CheckSquare className="w-4 h-4 text-blue-400" /> Task Market
+            </a>
+            <a
+              href="/wallet"
+              className="px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 bg-slate-900 text-slate-300 hover:text-white"
+            >
+              <Wallet className="w-4 h-4 text-brand-400" /> Wallet
+            </a>
+            <a
+              href="/packages"
+              className="px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 bg-slate-900 text-slate-300 hover:text-white"
+            >
+              <Package className="w-4 h-4 text-amber-400" /> Packages
+            </a>
           </div>
         )}
       </div>
@@ -775,9 +813,17 @@ export default function AdminDashboardPage() {
         {/* System Alerts / Messages (10 Golden Rules: Error Diagnosis & Recovery) */}
         {error && (
           <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-between gap-3 shadow-lg">
-            <div className="flex items-center gap-3">
+            <div className="flex flex-wrap items-center gap-2">
               <AlertCircle className="w-5 h-5 shrink-0" />
               <span className="text-sm font-semibold">{error}</span>
+              {(error.toLowerCase().includes('denied') || error.toLowerCase().includes('auth') || error.toLowerCase().includes('forbidden')) && (
+                <a
+                  href="/login"
+                  className="px-3 py-1 rounded-lg bg-rose-500 text-white font-bold text-xs hover:bg-rose-400 transition-colors ml-2"
+                >
+                  Log In
+                </a>
+              )}
             </div>
             <button onClick={() => setError('')} className="text-rose-400 hover:text-white">
               <X className="w-4 h-4" />

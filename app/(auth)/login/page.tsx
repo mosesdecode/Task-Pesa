@@ -30,7 +30,9 @@ export default function LoginPage() {
         throw new Error(data.error || 'Login failed');
       }
 
-      if (data.user?.status === 'PENDING_ACTIVATION') {
+      if (data.user?.role === 'ADMIN') {
+        router.push('/admin');
+      } else if (data.user?.status === 'PENDING_ACTIVATION') {
         router.push('/activate');
       } else {
         router.push('/dashboard');
