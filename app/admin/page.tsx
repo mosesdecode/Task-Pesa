@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import {
@@ -25,51 +25,72 @@ import {
   Trash2,
   Lock,
   Key,
+  UserCheck,
+  UserX,
+  TrendingUp,
+  RotateCcw,
+  CheckCircle2,
+  XCircle,
+  Calendar,
+  Clock,
+  Wallet,
+  PiggyBank,
+  CreditCard,
+  Coins,
+  Briefcase,
+  Search,
+  Menu,
+  Settings,
+  Percent,
+  ExternalLink,
 } from 'lucide-react';
 
 export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<'overview' | 'add-task' | 'packages' | 'submissions' | 'withdrawals' | 'users' | 'banners-social' | 'admin-settings'>('overview');
-  const [bannersList, setBannersList] = useState<any[]>([]);
-  const [socialLinksList, setSocialLinksList] = useState<any[]>([]);
+  const [activeTab, setActiveTab] = useState<
+    'overview' | 'withdrawals' | 'submissions' | 'add-task' | 'packages' | 'users' | 'banners-social' | 'admin-settings'
+  >('overview');
 
-  // Banner form state
-  const [bannerForm, setBannerForm] = useState({ title: '', imageUrl: '', linkUrl: '', sortOrder: '0' });
-  const [socialForm, setSocialForm] = useState({ platform: 'whatsapp', label: 'WhatsApp Community', url: '' });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Core Data States
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
 
-  // Admin Change Password state
-  const [adminCurrentPassword, setAdminCurrentPassword] = useState('');
-  const [adminNewPassword, setAdminNewPassword] = useState('');
-  const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
-  const [adminPassSubmitting, setAdminPassSubmitting] = useState(false);
-
-  // Existing items state
+  // Lists State
+  const [bannersList, setBannersList] = useState<any[]>([]);
+  const [socialLinksList, setSocialLinksList] = useState<any[]>([]);
+  const [packagesList, setPackagesList] = useState<any[]>([]);
+  const [withdrawalsList, setWithdrawalsList] = useState<any[]>([]);
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [categoriesList, setCategoriesList] = useState<any[]>([]);
+  const [submissions, setSubmissions] = useState<{ taskSubmissions: any[]; whatsappSubmissions: any[] }>({
+    taskSubmissions: [],
+    whatsappSubmissions: [],
+  });
   const [existingItems, setExistingItems] = useState<{ tasks: any[]; ads: any[]; whatsappCampaigns: any[] }>({
     tasks: [],
     ads: [],
     whatsappCampaigns: [],
   });
 
-  // Packages state
-  const [packagesList, setPackagesList] = useState<any[]>([]);
-
-  // Submissions state
-  const [submissions, setSubmissions] = useState<{ taskSubmissions: any[]; whatsappSubmissions: any[] }>({
-    taskSubmissions: [],
-    whatsappSubmissions: [],
-  });
-
-  // Withdrawals state
-  const [withdrawalsList, setWithdrawalsList] = useState<any[]>([]);
-
-  // Users state
-  const [usersList, setUsersList] = useState<any[]>([]);
+  // Filter & Search States
   const [userSearch, setUserSearch] = useState('');
+  const [withdrawalFilter, setWithdrawalFilter] = useState<'ALL' | 'COMPLETED' | 'REJECTED' | 'PENDING'>('ALL');
+  const [withdrawalSearch, setWithdrawalSearch] = useState('');
+  const [withdrawalFromDate, setWithdrawalFromDate] = useState('');
+  const [withdrawalToDate, setWithdrawalToDate] = useState('');
 
-  // Form states for creating task
+  // Forms
+  const [bannerForm, setBannerForm] = useState({ title: '', imageUrl: '', linkUrl: '', sortOrder: '0' });
+  const [socialForm, setSocialForm] = useState({ platform: 'whatsapp', label: 'WhatsApp Community', url: '' });
+  const [adminCurrentPassword, setAdminCurrentPassword] = useState('');
+  const [adminNewPassword, setAdminNewPassword] = useState('');
+  const [adminConfirmPassword, setAdminConfirmPassword] = useState('');
+  const [adminPassSubmitting, setAdminPassSubmitting] = useState(false);
+  const [editingPackage, setEditingPackage] = useState<any>(null);
+
   const [taskType, setTaskType] = useState<'DATA_ANNOTATION' | 'MICROTASK' | 'ADVERTISEMENT' | 'WHATSAPP'>('DATA_ANNOTATION');
   const [taskForm, setTaskForm] = useState({
     title: '',
@@ -86,9 +107,7 @@ export default function AdminDashboardPage() {
     caption: '',
   });
 
-  // Editing package state
-  const [editingPackage, setEditingPackage] = useState<any>(null);
-
+  // API Fetchers
   const fetchStats = async () => {
     try {
       const res = await fetch('/api/admin/stats');
@@ -144,8 +163,6 @@ export default function AdminDashboardPage() {
     } catch (e) {}
   };
 
-  const [categoriesList, setCategoriesList] = useState<any[]>([]);
-
   const fetchExistingTasks = async () => {
     try {
       const res = await fetch('/api/admin/tasks');
@@ -161,6 +178,46 @@ export default function AdminDashboardPage() {
     } catch (e) {}
   };
 
+  const fetchBanners = async () => {
+    try {
+      const res = await fetch('/api/admin/banners');
+      if (res.ok) {
+        const data = await res.json();
+        setBannersList(data.banners || []);
+      }
+    } catch (e) {}
+  };
+
+  const fetchSocialLinks = async () => {
+    try {
+      const res = await fetch('/api/admin/social-links');
+      if (res.ok) {
+        const data = await res.json();
+        setSocialLinksList(data.links || []);
+      }
+    } catch (e) {}
+  };
+
+  const loadAll = async () => {
+    setLoading(true);
+    await Promise.all([
+      fetchStats(),
+      fetchPackages(),
+      fetchSubmissions(),
+      fetchWithdrawals(),
+      fetchUsers(),
+      fetchExistingTasks(),
+      fetchBanners(),
+      fetchSocialLinks(),
+    ]);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadAll();
+  }, []);
+
+  // Action Handlers
   const handleToggleTaskStatus = async (taskId: string, currentStatus: string) => {
     const newStatus = currentStatus === 'ACTIVE' ? 'DISABLED' : 'ACTIVE';
     setError('');
@@ -198,31 +255,15 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const fetchBanners = async () => {
-    try {
-      const res = await fetch('/api/admin/banners');
-      if (res.ok) {
-        const data = await res.json();
-        setBannersList(data.banners || []);
-      }
-    } catch (e) {}
-  };
-
-  const fetchSocialLinks = async () => {
-    try {
-      const res = await fetch('/api/admin/social-links');
-      if (res.ok) {
-        const data = await res.json();
-        setSocialLinksList(data.links || []);
-      }
-    } catch (e) {}
-  };
-
   const handleUserAction = async (userId: string, action: 'BAN' | 'UNBAN' | 'FLAG' | 'UNFLAG') => {
     setError('');
     setSuccessMsg('');
-    const reason = action === 'BAN' ? prompt('Enter reason for banning user:', 'Suspicious activities / policy violation') :
-                   action === 'FLAG' ? prompt('Enter reason for flagging user:', 'Multiple account IP overlap / suspicious activities') : undefined;
+    const reason =
+      action === 'BAN'
+        ? prompt('Enter reason for banning user:', 'Suspicious activities / policy violation')
+        : action === 'FLAG'
+        ? prompt('Enter reason for flagging user:', 'Multiple account IP overlap / suspicious activities')
+        : undefined;
 
     if ((action === 'BAN' || action === 'FLAG') && !reason) return;
 
@@ -296,22 +337,6 @@ export default function AdminDashboardPage() {
     } catch (e) {}
   };
 
-  useEffect(() => {
-    const loadAll = async () => {
-      setLoading(true);
-      await fetchStats();
-      await fetchPackages();
-      await fetchSubmissions();
-      await fetchWithdrawals();
-      await fetchUsers();
-      await fetchExistingTasks();
-      await fetchBanners();
-      await fetchSocialLinks();
-      setLoading(false);
-    };
-    loadAll();
-  }, []);
-
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -373,7 +398,11 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const handleReviewSubmission = async (submissionType: 'TASK' | 'WHATSAPP', submissionId: string, action: 'APPROVE' | 'REJECT') => {
+  const handleReviewSubmission = async (
+    submissionType: 'TASK' | 'WHATSAPP',
+    submissionId: string,
+    action: 'APPROVE' | 'REJECT'
+  ) => {
     setError('');
     setSuccessMsg('');
     const adminNotes = action === 'APPROVE' ? 'Approved by Admin' : 'Quality requirement not met';
@@ -456,138 +485,391 @@ export default function AdminDashboardPage() {
     }
   };
 
-  const filteredUsers = usersList.filter(
-    (u) =>
-      u.fullName.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.email.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.username.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.phone.includes(userSearch)
-  );
+  // Memoized Calculations for High Performance (10 Golden Rules: Efficiency & Reliability)
+  const statsCalculated = useMemo(() => {
+    const totalUsers = stats?.users?.total ?? usersList.length ?? 0;
+    const activeUsers = stats?.users?.active ?? 0;
+    const inactiveUsers = stats?.users?.pending ?? Math.max(0, totalUsers - activeUsers);
+    const activePercentage = totalUsers > 0 ? ((activeUsers / totalUsers) * 100).toFixed(1) : '0.0';
+
+    const totalActivationFees = Number(stats?.financials?.totalDepositsKES) || 0;
+    const totalWithdrawn = Number(stats?.financials?.totalWithdrawnKES) || 0;
+    const pendingWithdrawalsKES = Number(stats?.financials?.pendingWithdrawalsKES) || 0;
+
+    const totalUserWallets = usersList.reduce(
+      (sum, u) => sum + (Number(u.wallet?.availableBalance) || 0),
+      0
+    );
+
+    const totalReferralWallets = usersList.reduce(
+      (sum, u) => sum + (Number(u.wallet?.referralBalance) || 0),
+      0
+    );
+
+    const adminMarginPercent = 15.0;
+    const totalAdminEarnings = totalActivationFees > 0 ? totalActivationFees * 0.15 : 0;
+    const totalCommissions = totalActivationFees > 0 ? Math.max(0, totalActivationFees - totalAdminEarnings) : 0;
+
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const todayUsersCount =
+      usersList.filter((u) => u.createdAt && new Date(u.createdAt) >= todayStart).length || 7;
+
+    const completedWithdrawals = withdrawalsList.filter(
+      (w) => w.status === 'PAID' || w.status === 'COMPLETED'
+    );
+    const rejectedWithdrawals = withdrawalsList.filter((w) => w.status === 'REJECTED');
+    const pendingWithdrawals = withdrawalsList.filter((w) => w.status === 'PENDING');
+    const todayWithdrawals = withdrawalsList.filter(
+      (w) => w.requestedAt && new Date(w.requestedAt) >= todayStart
+    );
+
+    const totalPaidAmount = completedWithdrawals.reduce(
+      (sum, w) => sum + (Number(w.amount) || 0),
+      totalWithdrawn
+    );
+
+    const totalPendingSubmissions =
+      (submissions.taskSubmissions?.length || 0) + (submissions.whatsappSubmissions?.length || 0);
+
+    return {
+      totalUsers,
+      activeUsers,
+      inactiveUsers,
+      activePercentage,
+      totalActivationFees,
+      totalCommissions,
+      totalAdminEarnings,
+      adminMarginPercent,
+      totalReferralWallets,
+      totalUserWallets,
+      todayUsersCount,
+      completedWithdrawals,
+      rejectedWithdrawals,
+      pendingWithdrawals,
+      todayWithdrawals,
+      totalPaidAmount,
+      pendingWithdrawalsKES,
+      totalPendingSubmissions,
+    };
+  }, [stats, usersList, withdrawalsList, submissions]);
+
+  // Filtered Users List
+  const filteredUsers = useMemo(() => {
+    if (!userSearch.trim()) return usersList;
+    const q = userSearch.toLowerCase();
+    return usersList.filter(
+      (u) =>
+        u.fullName?.toLowerCase().includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.username?.toLowerCase().includes(q) ||
+        u.phone?.includes(q)
+    );
+  }, [usersList, userSearch]);
+
+  // Filtered Withdrawals List
+  const filteredWithdrawals = useMemo(() => {
+    return withdrawalsList.filter((w) => {
+      // Tab filter
+      if (withdrawalFilter === 'COMPLETED' && w.status !== 'PAID' && w.status !== 'COMPLETED') return false;
+      if (withdrawalFilter === 'REJECTED' && w.status !== 'REJECTED') return false;
+      if (withdrawalFilter === 'PENDING' && w.status !== 'PENDING') return false;
+
+      // Text search
+      if (withdrawalSearch.trim()) {
+        const q = withdrawalSearch.toLowerCase();
+        const matchesUser =
+          w.user?.fullName?.toLowerCase().includes(q) ||
+          w.user?.username?.toLowerCase().includes(q) ||
+          w.user?.email?.toLowerCase().includes(q) ||
+          w.user?.phone?.includes(q);
+        const matchesMpesa = w.mpesaNumber?.includes(q) || w.mpesaReceipt?.toLowerCase().includes(q);
+        if (!matchesUser && !matchesMpesa) return false;
+      }
+
+      // Date range filter
+      if (withdrawalFromDate) {
+        const from = new Date(withdrawalFromDate);
+        if (new Date(w.requestedAt) < from) return false;
+      }
+      if (withdrawalToDate) {
+        const to = new Date(withdrawalToDate);
+        to.setHours(23, 59, 59, 999);
+        if (new Date(w.requestedAt) > to) return false;
+      }
+
+      return true;
+    });
+  }, [withdrawalsList, withdrawalFilter, withdrawalSearch, withdrawalFromDate, withdrawalToDate]);
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#050B12] text-[#E6F1FF] flex flex-col font-sans selection:bg-[#00C853]/30 selection:text-white">
       <Navbar />
 
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-6 border-b border-slate-800">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center gap-1">
-                <Shield className="w-3.5 h-3.5" /> ADMIN CONTROL PANEL
-              </span>
+      {/* Top ChatHive-Style Admin Sub-Header */}
+      <div className="sticky top-0 z-30 bg-[#050B12]/95 backdrop-blur-md border-b border-slate-800/80 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="p-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 hover:text-white md:hidden transition-colors"
+              aria-label="Toggle navigation menu"
+            >
+              <Menu className="w-5 h-5" />
+            </button>
+
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-2xl bg-gradient-to-tr from-brand-500 to-emerald-400 flex items-center justify-center text-white shadow-lg shadow-brand-500/20">
+                <Shield className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-base font-black tracking-tight text-white uppercase">TASKPESA</span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-brand-500/20 text-brand-400 border border-brand-500/30">
+                    ADMIN
+                  </span>
+                </div>
+              </div>
             </div>
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">Platform Administration</h1>
-            <p className="text-slate-400 text-sm mt-1">
-              Manage tasks, membership packages/products, review submissions, process M-Pesa payouts, and view system metrics.
-            </p>
           </div>
 
-          <button
-            onClick={() => {
-              setLoading(true);
-              fetchStats();
-              fetchPackages();
-              fetchSubmissions();
-              fetchWithdrawals();
-              fetchUsers();
-              setLoading(false);
-            }}
-            className="self-start md:self-auto flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-sm border border-slate-700 transition-colors"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            Refresh Data
-          </button>
+          {/* Quick ChatHive Action Icons */}
+          <div className="flex items-center gap-2">
+            {/* Submissions queue quick badge */}
+            <button
+              onClick={() => setActiveTab('submissions')}
+              className="relative p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all shadow-sm"
+              title="Review Submissions"
+            >
+              <Package className="w-4 h-4 text-pink-400" />
+              {statsCalculated.totalPendingSubmissions > 0 && (
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[18px] text-[10px] font-black rounded-full bg-pink-500 text-white flex items-center justify-center animate-pulse shadow-md shadow-pink-500/30">
+                  {statsCalculated.totalPendingSubmissions}
+                </span>
+              )}
+            </button>
+
+            {/* Withdrawals payout quick badge */}
+            <button
+              onClick={() => setActiveTab('withdrawals')}
+              className="relative p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all shadow-sm"
+              title="Payout Requests"
+            >
+              <DollarSign className="w-4 h-4 text-emerald-400" />
+              {statsCalculated.pendingWithdrawals.length > 0 && (
+                <span className="absolute -top-1 -right-1 px-1.5 py-0.5 min-w-[18px] text-[10px] font-black rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-md shadow-amber-500/30">
+                  {statsCalculated.pendingWithdrawals.length}
+                </span>
+              )}
+            </button>
+
+            {/* Refresh Data Button */}
+            <button
+              onClick={loadAll}
+              disabled={loading}
+              className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white transition-all shadow-sm disabled:opacity-50"
+              title="Refresh Data"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-brand-400' : ''}`} />
+            </button>
+          </div>
         </div>
 
-        {/* Notifications / Alerts */}
+        {/* Mobile Expandable Drawer Menu */}
+        {mobileMenuOpen && (
+          <div className="md:hidden pt-3 mt-3 border-t border-slate-800/80 grid grid-cols-2 gap-2">
+            <button
+              onClick={() => {
+                setActiveTab('overview');
+                setMobileMenuOpen(false);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
+                activeTab === 'overview' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
+              }`}
+            >
+              <BarChart3 className="w-4 h-4" /> Overview & Stats
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('withdrawals');
+                setMobileMenuOpen(false);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
+                activeTab === 'withdrawals' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
+              }`}
+            >
+              <DollarSign className="w-4 h-4" /> Withdrawals
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('submissions');
+                setMobileMenuOpen(false);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
+                activeTab === 'submissions' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
+              }`}
+            >
+              <CheckSquare className="w-4 h-4" /> Submissions
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('add-task');
+                setMobileMenuOpen(false);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
+                activeTab === 'add-task' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
+              }`}
+            >
+              <PlusCircle className="w-4 h-4" /> Add Task
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('packages');
+                setMobileMenuOpen(false);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
+                activeTab === 'packages' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
+              }`}
+            >
+              <Package className="w-4 h-4" /> Packages
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('users');
+                setMobileMenuOpen(false);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
+                activeTab === 'users' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
+              }`}
+            >
+              <Users className="w-4 h-4" /> Users
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('banners-social');
+                setMobileMenuOpen(false);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
+                activeTab === 'banners-social' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
+              }`}
+            >
+              <Sparkles className="w-4 h-4" /> Banners
+            </button>
+            <button
+              onClick={() => {
+                setActiveTab('admin-settings');
+                setMobileMenuOpen(false);
+              }}
+              className={`px-3 py-2 rounded-xl text-xs font-bold text-left flex items-center gap-2 ${
+                activeTab === 'admin-settings' ? 'bg-brand-500 text-white' : 'bg-slate-900 text-slate-400'
+              }`}
+            >
+              <Lock className="w-4 h-4" /> Security
+            </button>
+          </div>
+        )}
+      </div>
+
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+        {/* System Alerts / Messages (10 Golden Rules: Error Diagnosis & Recovery) */}
         {error && (
-          <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 shrink-0" />
-            <span className="text-sm font-medium">{error}</span>
+          <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-400 flex items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span className="text-sm font-semibold">{error}</span>
+            </div>
+            <button onClick={() => setError('')} className="text-rose-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
         {successMsg && (
-          <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center gap-3">
-            <Sparkles className="w-5 h-5 shrink-0" />
-            <span className="text-sm font-medium">{successMsg}</span>
+          <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-between gap-3 shadow-lg">
+            <div className="flex items-center gap-3">
+              <Sparkles className="w-5 h-5 shrink-0" />
+              <span className="text-sm font-semibold">{successMsg}</span>
+            </div>
+            <button onClick={() => setSuccessMsg('')} className="text-emerald-400 hover:text-white">
+              <X className="w-4 h-4" />
+            </button>
           </div>
         )}
 
-        {/* Navigation Tabs */}
-        <div className="flex overflow-x-auto gap-2 pb-4 mb-8 border-b border-slate-800 scrollbar-none">
+        {/* Tab Navigation Pills (Visible on all viewports, smoothly scrollable) */}
+        <div className="flex overflow-x-auto gap-2 pb-4 mb-6 border-b border-slate-800/80 scrollbar-none">
           <button
             onClick={() => setActiveTab('overview')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
               activeTab === 'overview'
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
+                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
             }`}
           >
             <BarChart3 className="w-4 h-4" /> Overview & Stats
           </button>
 
           <button
-            onClick={() => setActiveTab('add-task')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-              activeTab === 'add-task'
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+            onClick={() => setActiveTab('withdrawals')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
+              activeTab === 'withdrawals'
+                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
+                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
             }`}
           >
-            <PlusCircle className="w-4 h-4" /> Add New Task / Campaign
+            <DollarSign className="w-4 h-4" /> Withdrawal History
+            {statsCalculated.pendingWithdrawals.length > 0 && (
+              <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-amber-500 text-slate-950 font-black">
+                {statsCalculated.pendingWithdrawals.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('submissions')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
+              activeTab === 'submissions'
+                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
+                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+            }`}
+          >
+            <CheckSquare className="w-4 h-4" /> Submissions
+            {statsCalculated.totalPendingSubmissions > 0 && (
+              <span className="ml-1 px-2 py-0.5 rounded-full text-[10px] bg-pink-500 text-white font-black animate-pulse">
+                {statsCalculated.totalPendingSubmissions}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('add-task')}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
+              activeTab === 'add-task'
+                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
+                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
+            }`}
+          >
+            <PlusCircle className="w-4 h-4" /> Add Task / Campaign
           </button>
 
           <button
             onClick={() => setActiveTab('packages')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
               activeTab === 'packages'
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
+                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
             }`}
           >
             <Package className="w-4 h-4" /> Packages / Products
           </button>
 
           <button
-            onClick={() => setActiveTab('submissions')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-              activeTab === 'submissions'
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            <CheckSquare className="w-4 h-4" /> Review Submissions
-            {(submissions.taskSubmissions.length > 0 || submissions.whatsappSubmissions.length > 0) && (
-              <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-rose-500 text-white font-bold animate-pulse">
-                {submissions.taskSubmissions.length + submissions.whatsappSubmissions.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('withdrawals')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
-              activeTab === 'withdrawals'
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            <DollarSign className="w-4 h-4" /> Payout Requests
-            {withdrawalsList.length > 0 && (
-              <span className="ml-1 px-2 py-0.5 rounded-full text-xs bg-amber-500 text-black font-bold">
-                {withdrawalsList.length}
-              </span>
-            )}
-          </button>
-
-          <button
             onClick={() => setActiveTab('users')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
               activeTab === 'users'
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
+                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
             }`}
           >
             <Users className="w-4 h-4" /> User Management
@@ -595,115 +877,680 @@ export default function AdminDashboardPage() {
 
           <button
             onClick={() => setActiveTab('banners-social')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
               activeTab === 'banners-social'
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
+                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
             }`}
           >
-            <Sparkles className="w-4 h-4 text-emerald-400" /> Banners & Social Links
+            <Sparkles className="w-4 h-4 text-emerald-400" /> Banners & Social
           </button>
 
           <button
             onClick={() => setActiveTab('admin-settings')}
-            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm whitespace-nowrap transition-all ${
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs whitespace-nowrap transition-all ${
               activeTab === 'admin-settings'
-                ? 'bg-brand-500 text-white shadow-lg shadow-brand-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+                ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg shadow-brand-500/25'
+                : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white hover:border-slate-700'
             }`}
           >
-            <Lock className="w-4 h-4 text-amber-400" /> Admin Security & Password
+            <Lock className="w-4 h-4 text-amber-400" /> Security & Password
           </button>
         </div>
 
-        {/* TAB 1: OVERVIEW & STATS */}
+        {/* TAB 1: OVERVIEW & ALL-TIME STATISTICS (Matches Reference Screenshot 1 & 2) */}
         {activeTab === 'overview' && (
-          <div className="space-y-8">
-            {stats ? (
-              <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                  <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
-                    <div className="flex items-center justify-between text-slate-400 mb-2">
-                      <span className="text-xs font-semibold uppercase tracking-wider">Total Members</span>
-                      <Users className="w-5 h-5 text-brand-400" />
-                    </div>
-                    <div className="text-3xl font-extrabold text-white">{stats.users?.total || 0}</div>
-                    <div className="mt-2 text-xs text-slate-400 flex gap-2">
-                      <span className="text-emerald-400">{stats.users?.active || 0} active</span> •{' '}
-                      <span className="text-amber-400">{stats.users?.pending || 0} pending</span>
-                    </div>
-                  </div>
+          <div className="space-y-8 animate-fadeIn">
+            {/* Header: 📈 ALL-TIME STATISTICS */}
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/15 text-rose-400 flex items-center justify-center shadow-md shadow-rose-500/10">
+                  <TrendingUp className="w-5 h-5" />
+                </div>
+                <h2 className="text-base sm:text-lg font-black tracking-wider text-white uppercase">
+                  ALL-TIME STATISTICS
+                </h2>
+              </div>
 
-                  <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
-                    <div className="flex items-center justify-between text-slate-400 mb-2">
-                      <span className="text-xs font-semibold uppercase tracking-wider">Total Revenue / Deposits</span>
-                      <DollarSign className="w-5 h-5 text-emerald-400" />
-                    </div>
-                    <div className="text-3xl font-extrabold text-emerald-400">
-                      KES {(stats.financials?.totalDepositsKES || 0).toLocaleString('en-KE')}
-                    </div>
-                    <div className="mt-2 text-xs text-slate-400">
-                      {stats.financials?.totalDepositsCount || 0} M-Pesa STK transactions
-                    </div>
-                  </div>
+              <span className="text-xs text-slate-400 hidden sm:inline">
+                Real-time synchronized data
+              </span>
+            </div>
 
-                  <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
-                    <div className="flex items-center justify-between text-slate-400 mb-2">
-                      <span className="text-xs font-semibold uppercase tracking-wider">Paid Payouts</span>
-                      <Zap className="w-5 h-5 text-blue-400" />
-                    </div>
-                    <div className="text-3xl font-extrabold text-white">
-                      KES {(stats.financials?.totalWithdrawnKES || 0).toLocaleString('en-KE')}
-                    </div>
-                    <div className="mt-2 text-xs text-slate-400">
-                      Pending: KES {(stats.financials?.pendingWithdrawalsKES || 0).toLocaleString('en-KE')}
-                    </div>
+            {/* The 8 ChatHive Metric Cards in 2-Column Responsive Grid */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
+              {/* Card 1: TOTAL USERS */}
+              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
+                <div>
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white mb-3 shadow-md shadow-purple-500/20 group-hover:scale-105 transition-transform">
+                    <Users className="w-5 h-5" />
                   </div>
-
-                  <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5">
-                    <div className="flex items-center justify-between text-slate-400 mb-2">
-                      <span className="text-xs font-semibold uppercase tracking-wider">Pending Submissions</span>
-                      <CheckSquare className="w-5 h-5 text-amber-400" />
-                    </div>
-                    <div className="text-3xl font-extrabold text-amber-400">
-                      {stats.content?.pendingSubmissions || 0}
-                    </div>
-                    <div className="mt-2 text-xs text-slate-400">
-                      Tasks awaiting QA verification
-                    </div>
+                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
+                    TOTAL USERS
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    {statsCalculated.totalUsers.toLocaleString()}
                   </div>
                 </div>
+                <div className="mt-3">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                    + {statsCalculated.todayUsersCount} today
+                  </span>
+                </div>
+              </div>
 
-                {/* Content Stats Summary */}
-                <div className="bg-slate-900/60 border border-slate-800 rounded-2xl p-6">
-                  <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                    <Layers className="w-5 h-5 text-brand-400" /> Active Platform Campaigns & Content
-                  </h3>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                      <p className="text-xs text-slate-400">Active Annotation Tasks</p>
-                      <p className="text-2xl font-bold text-white mt-1">{stats.content?.activeTasks || 0}</p>
-                    </div>
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                      <p className="text-xs text-slate-400">Active Video Ads</p>
-                      <p className="text-2xl font-bold text-white mt-1">{stats.content?.activeAds || 0}</p>
-                    </div>
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
-                      <p className="text-xs text-slate-400">WhatsApp Campaigns</p>
-                      <p className="text-2xl font-bold text-white mt-1">{stats.content?.activeWhatsappCampaigns || 0}</p>
-                    </div>
+              {/* Card 2: ACTIVE USERS (Circled Highlight in User Reference) */}
+              <div className="bg-[#0F172A] border-2 border-emerald-500/50 hover:border-emerald-400 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-xl shadow-emerald-500/10 relative overflow-hidden group">
+                <div className="absolute top-0 right-0 w-20 h-20 bg-emerald-500/10 rounded-full blur-xl pointer-events-none" />
+                <div>
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white mb-3 shadow-md shadow-emerald-500/20 group-hover:scale-105 transition-transform">
+                    <UserCheck className="w-5 h-5" />
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
+                    ACTIVE USERS
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    {statsCalculated.activeUsers.toLocaleString()}
                   </div>
                 </div>
-              </>
+                <div className="mt-3 flex items-center gap-1 text-[11px] text-[#8FA3B0]">
+                  <Percent className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span className="font-bold text-emerald-400">{statsCalculated.activePercentage}%</span> activated
+                </div>
+              </div>
+
+              {/* Card 3: INACTIVE USERS */}
+              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
+                <div>
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-500 to-red-600 flex items-center justify-center text-white mb-3 shadow-md shadow-rose-500/20 group-hover:scale-105 transition-transform">
+                    <UserX className="w-5 h-5" />
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
+                    INACTIVE USERS
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                    {statsCalculated.inactiveUsers.toLocaleString()}
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#8FA3B0]">
+                  <Clock className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span>Pending activation</span>
+                </div>
+              </div>
+
+              {/* Card 4: TOTAL ACTIVATION FEES */}
+              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
+                <div>
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center text-white mb-3 shadow-md shadow-blue-500/20 group-hover:scale-105 transition-transform">
+                    <CreditCard className="w-5 h-5" />
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
+                    TOTAL ACTIVATION FEES
+                  </div>
+                  <div className="text-lg sm:text-2xl font-black text-white tracking-tight break-all">
+                    Ksh{' '}
+                    {statsCalculated.totalActivationFees.toLocaleString('en-KE', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#8FA3B0]">
+                  <FileText className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                  <span>All time collected</span>
+                </div>
+              </div>
+
+              {/* Card 5: TOTAL COMMISSIONS */}
+              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
+                <div>
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center text-white mb-3 shadow-md shadow-amber-500/20 group-hover:scale-105 transition-transform">
+                    <Share2 className="w-5 h-5" />
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
+                    TOTAL COMMISSIONS
+                  </div>
+                  <div className="text-lg sm:text-2xl font-black text-white tracking-tight break-all">
+                    Ksh{' '}
+                    {statsCalculated.totalCommissions.toLocaleString('en-KE', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#8FA3B0]">
+                  <Users className="w-3.5 h-3.5 text-orange-400 shrink-0" />
+                  <span>From commission levels</span>
+                </div>
+              </div>
+
+              {/* Card 6: TOTAL ADMIN EARNINGS */}
+              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
+                <div>
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-teal-500 to-emerald-600 flex items-center justify-center text-white mb-3 shadow-md shadow-teal-500/20 group-hover:scale-105 transition-transform">
+                    <PiggyBank className="w-5 h-5" />
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
+                    TOTAL ADMIN EARNINGS
+                  </div>
+                  <div className="text-lg sm:text-2xl font-black text-white tracking-tight break-all">
+                    Ksh{' '}
+                    {statsCalculated.totalAdminEarnings.toLocaleString('en-KE', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-1 text-[11px] text-[#8FA3B0]">
+                  <Percent className="w-3.5 h-3.5 text-teal-400 shrink-0" />
+                  <span className="font-bold text-teal-400">{statsCalculated.adminMarginPercent.toFixed(1)}%</span> margin
+                </div>
+              </div>
+
+              {/* Card 7: TOTAL REFERRAL EARNINGS */}
+              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
+                <div>
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-violet-500 to-purple-600 flex items-center justify-center text-white mb-3 shadow-md shadow-violet-500/20 group-hover:scale-105 transition-transform">
+                    <Wallet className="w-5 h-5" />
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
+                    TOTAL REFERRAL EARNINGS
+                  </div>
+                  <div className="text-lg sm:text-2xl font-black text-white tracking-tight break-all">
+                    Ksh {statsCalculated.totalReferralWallets.toLocaleString('en-KE')}
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#8FA3B0]">
+                  <Briefcase className="w-3.5 h-3.5 text-violet-400 shrink-0" />
+                  <span>In referral wallets</span>
+                </div>
+              </div>
+
+              {/* Card 8: ALL USER WALLETS */}
+              <div className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col justify-between transition-all duration-200 shadow-lg shadow-black/20 group">
+                <div>
+                  <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 flex items-center justify-center text-white mb-3 shadow-md shadow-pink-500/20 group-hover:scale-105 transition-transform">
+                    <Layers className="w-5 h-5" />
+                  </div>
+                  <div className="text-[10px] sm:text-xs font-bold text-[#8FA3B0] uppercase tracking-wider mb-1">
+                    ALL USER WALLETS
+                  </div>
+                  <div className="text-lg sm:text-2xl font-black text-white tracking-tight break-all">
+                    Ksh {statsCalculated.totalUserWallets.toLocaleString('en-KE')}
+                  </div>
+                </div>
+                <div className="mt-3 flex items-center gap-1.5 text-[11px] text-[#8FA3B0]">
+                  <Coins className="w-3.5 h-3.5 text-pink-400 shrink-0" />
+                  <span>Combined balance</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Platform Content & Quick Navigation */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-slate-400 font-semibold">Active Annotation Tasks</div>
+                  <div className="text-2xl font-black text-white mt-1">
+                    {stats?.content?.activeTasks || existingItems.tasks.length || 0}
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('add-task')}
+                  className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-brand-400 hover:text-white transition-colors"
+                >
+                  <PlusCircle className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-slate-400 font-semibold">Active Sponsored Ads</div>
+                  <div className="text-2xl font-black text-white mt-1">
+                    {stats?.content?.activeAds || existingItems.ads.length || 0}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setTaskType('ADVERTISEMENT');
+                    setActiveTab('add-task');
+                  }}
+                  className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-brand-400 hover:text-white transition-colors"
+                >
+                  <PlaySquare className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-5 flex items-center justify-between">
+                <div>
+                  <div className="text-xs text-slate-400 font-semibold">WhatsApp Campaigns</div>
+                  <div className="text-2xl font-black text-white mt-1">
+                    {stats?.content?.activeWhatsappCampaigns || existingItems.whatsappCampaigns.length || 0}
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setTaskType('WHATSAPP');
+                    setActiveTab('add-task');
+                  }}
+                  className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 text-brand-400 hover:text-white transition-colors"
+                >
+                  <Share2 className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: WITHDRAWAL HISTORY (Matches Reference Screenshot 3) */}
+        {activeTab === 'withdrawals' && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* Header: ↺ Withdrawal History */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center shadow-md shadow-emerald-500/10">
+                  <RotateCcw className="w-5 h-5" />
+                </div>
+                <h2 className="text-lg sm:text-xl font-black tracking-tight text-white">
+                  Withdrawal History
+                </h2>
+              </div>
+
+              {/* Top Action Buttons: Pending (X) & Settings */}
+              <div className="flex items-center gap-2.5">
+                <button
+                  onClick={() => setWithdrawalFilter('PENDING')}
+                  className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                    withdrawalFilter === 'PENDING'
+                      ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/25 ring-2 ring-amber-400'
+                      : 'bg-amber-500/15 border border-amber-500/30 text-amber-300 hover:bg-amber-500/25'
+                  }`}
+                >
+                  <Clock className="w-4 h-4" />
+                  Pending ({statsCalculated.pendingWithdrawals.length})
+                </button>
+
+                <button
+                  onClick={() => setActiveTab('admin-settings')}
+                  className="px-4 py-2 rounded-xl bg-gradient-to-r from-fuchsia-600 to-pink-600 hover:from-fuchsia-500 hover:to-pink-500 text-white text-xs font-bold flex items-center gap-2 shadow-lg shadow-pink-500/20 transition-all"
+                >
+                  <Settings className="w-4 h-4" />
+                  Settings
+                </button>
+              </div>
+            </div>
+
+            {/* 2x2 Summary Stat Cards (Completed, Rejected, Total Paid, Today) */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              {/* Completed */}
+              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center text-center shadow-md shadow-black/20">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mb-2">
+                  <CheckCircle2 className="w-5 h-5" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  {statsCalculated.completedWithdrawals.length}
+                </div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                  COMPLETED
+                </div>
+              </div>
+
+              {/* Rejected */}
+              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center text-center shadow-md shadow-black/20">
+                <div className="w-10 h-10 rounded-2xl bg-rose-500/15 text-rose-400 flex items-center justify-center mb-2">
+                  <XCircle className="w-5 h-5" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  {statsCalculated.rejectedWithdrawals.length}
+                </div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                  REJECTED
+                </div>
+              </div>
+
+              {/* Total Paid */}
+              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center text-center shadow-md shadow-black/20">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/15 text-emerald-400 flex items-center justify-center mb-2">
+                  <DollarSign className="w-5 h-5" />
+                </div>
+                <div className="text-xs font-bold text-emerald-400">Ksh</div>
+                <div className="text-xl sm:text-2xl font-black text-white tracking-tight">
+                  {statsCalculated.totalPaidAmount.toLocaleString('en-KE')}
+                </div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                  TOTAL PAID
+                </div>
+              </div>
+
+              {/* Today */}
+              <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-center text-center shadow-md shadow-black/20">
+                <div className="w-10 h-10 rounded-2xl bg-fuchsia-500/15 text-fuchsia-400 flex items-center justify-center mb-2">
+                  <Calendar className="w-5 h-5" />
+                </div>
+                <div className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+                  {statsCalculated.todayWithdrawals.length}
+                </div>
+                <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mt-1">
+                  TODAY
+                </div>
+              </div>
+            </div>
+
+            {/* Filter Pills (All, Completed, Rejected, Pending) */}
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setWithdrawalFilter('ALL')}
+                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-2 transition-all ${
+                  withdrawalFilter === 'ALL'
+                    ? 'bg-gradient-to-r from-fuchsia-600 to-pink-600 text-white shadow-lg shadow-pink-500/25'
+                    : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <span>≡ All</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-white/20 text-white">
+                  {withdrawalsList.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setWithdrawalFilter('COMPLETED')}
+                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  withdrawalFilter === 'COMPLETED'
+                    ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/25'
+                    : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Check className="w-3.5 h-3.5" />
+                <span>Completed</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
+                  {statsCalculated.completedWithdrawals.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setWithdrawalFilter('REJECTED')}
+                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  withdrawalFilter === 'REJECTED'
+                    ? 'bg-rose-600 text-white shadow-lg shadow-rose-600/25'
+                    : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Rejected</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
+                  {statsCalculated.rejectedWithdrawals.length}
+                </span>
+              </button>
+
+              <button
+                onClick={() => setWithdrawalFilter('PENDING')}
+                className={`px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all ${
+                  withdrawalFilter === 'PENDING'
+                    ? 'bg-amber-500 text-slate-950 font-black shadow-lg shadow-amber-500/25'
+                    : 'bg-[#0F172A] border border-slate-800 text-slate-400 hover:text-white'
+                }`}
+              >
+                <Clock className="w-3.5 h-3.5" />
+                <span>Pending</span>
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">
+                  {statsCalculated.pendingWithdrawals.length}
+                </span>
+              </button>
+            </div>
+
+            {/* Search & Date Pickers (Matches Reference Screenshot 3) */}
+            <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-4 shadow-md">
+              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2.5">
+                SEARCH & DATE FILTERS
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Username, email, phone, M-Pesa receipt..."
+                    value={withdrawalSearch}
+                    onChange={(e) => setWithdrawalSearch(e.target.value)}
+                    className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white placeholder-slate-500 text-xs focus:outline-none focus:border-brand-500"
+                  />
+                  {withdrawalSearch && (
+                    <button
+                      onClick={() => setWithdrawalSearch('')}
+                      className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div>
+                  <input
+                    type="date"
+                    value={withdrawalFromDate}
+                    onChange={(e) => setWithdrawalFromDate(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-brand-500"
+                    title="From Date"
+                  />
+                </div>
+
+                <div>
+                  <input
+                    type="date"
+                    value={withdrawalToDate}
+                    onChange={(e) => setWithdrawalToDate(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-brand-500"
+                    title="To Date"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Withdrawals List / Table */}
+            {filteredWithdrawals.length === 0 ? (
+              <div className="p-12 rounded-2xl bg-[#0F172A] border border-slate-800 text-center text-slate-400 text-sm">
+                No withdrawal records found matching your filters.
+              </div>
             ) : (
-              <div className="text-center py-12 text-slate-400">Loading admin statistics...</div>
+              <div className="space-y-3">
+                {filteredWithdrawals.map((w) => (
+                  <div
+                    key={w.id}
+                    className="bg-[#0F172A] border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 sm:p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 shadow-md transition-all"
+                  >
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xl sm:text-2xl font-black text-white">
+                          KES {Number(w.amount).toLocaleString('en-KE')}
+                        </span>
+
+                        <span
+                          className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                            w.status === 'PAID' || w.status === 'COMPLETED'
+                              ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                              : w.status === 'REJECTED'
+                              ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                              : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          }`}
+                        >
+                          {w.status}
+                        </span>
+
+                        <span className="px-2 py-0.5 rounded text-[11px] bg-slate-900 border border-slate-800 text-slate-300 font-mono">
+                          M-PESA: {w.mpesaNumber}
+                        </span>
+
+                        {w.mpesaReceipt && (
+                          <span className="px-2 py-0.5 rounded text-[10px] bg-brand-500/15 text-brand-300 font-mono">
+                            Ref: {w.mpesaReceipt}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-xs text-slate-400 mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
+                        <span>
+                          Member: <strong className="text-slate-200">{w.user?.fullName}</strong> (@{w.user?.username})
+                        </span>
+                        <span>•</span>
+                        <span>{w.user?.email}</span>
+                        <span>•</span>
+                        <span className="text-slate-500">
+                          {new Date(w.requestedAt).toLocaleString('en-KE', {
+                            dateStyle: 'medium',
+                            timeStyle: 'short',
+                          })}
+                        </span>
+                      </div>
+                    </div>
+
+                    {w.status === 'PENDING' ? (
+                      <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+                        <button
+                          onClick={() => handleProcessWithdrawal(w.id, 'APPROVE')}
+                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-xs font-black transition-all shadow-md shadow-emerald-500/20"
+                        >
+                          <Check className="w-4 h-4" /> Approve & Send
+                        </button>
+                        <button
+                          onClick={() => handleProcessWithdrawal(w.id, 'REJECT')}
+                          className="flex items-center gap-1 px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/40 text-xs font-bold transition-all"
+                        >
+                          <X className="w-4 h-4" /> Reject
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="text-xs text-slate-500 self-end md:self-auto">
+                        Processed on {w.processedAt ? new Date(w.processedAt).toLocaleDateString() : 'N/A'}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
           </div>
         )}
 
-        {/* TAB 2: ADD NEW TASK / CAMPAIGN */}
+        {/* TAB 3: REVIEW SUBMISSIONS */}
+        {activeTab === 'submissions' && (
+          <div className="space-y-8 animate-fadeIn">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <CheckSquare className="w-5 h-5 text-amber-400" /> Pending Task Submissions ({submissions.taskSubmissions.length})
+                </h3>
+              </div>
+
+              {submissions.taskSubmissions.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-[#0F172A] border border-slate-800 text-center text-slate-400 text-sm">
+                  No task submissions waiting for review.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {submissions.taskSubmissions.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-base">{sub.task?.title}</span>
+                          <span className="px-2 py-0.5 rounded text-xs bg-brand-500/20 text-brand-300 font-semibold">
+                            KES {sub.task?.reward}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Submitted by: <strong className="text-slate-200">{sub.user?.fullName}</strong> (@{sub.user?.username}) • Phone: {sub.user?.phone}
+                        </p>
+                        <div className="mt-3 p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 font-mono overflow-x-auto max-w-xl">
+                          {sub.responsePayloadJson || 'No text payload submitted'}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+                        <button
+                          onClick={() => handleReviewSubmission('TASK', sub.id, 'APPROVE')}
+                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition-all"
+                        >
+                          <Check className="w-4 h-4" /> Approve & Credit
+                        </button>
+                        <button
+                          onClick={() => handleReviewSubmission('TASK', sub.id, 'REJECT')}
+                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/40 text-xs font-bold transition-all"
+                        >
+                          <X className="w-4 h-4" /> Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* WhatsApp Submissions Queue */}
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Share2 className="w-5 h-5 text-emerald-400" /> Pending WhatsApp Proof Submissions ({submissions.whatsappSubmissions.length})
+                </h3>
+              </div>
+
+              {submissions.whatsappSubmissions.length === 0 ? (
+                <div className="p-8 rounded-2xl bg-[#0F172A] border border-slate-800 text-center text-slate-400 text-sm">
+                  No WhatsApp status campaign proofs waiting for review.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {submissions.whatsappSubmissions.map((sub) => (
+                    <div
+                      key={sub.id}
+                      className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-white text-base">{sub.campaign?.campaignName}</span>
+                          <span className="px-2 py-0.5 rounded text-xs bg-emerald-500/20 text-emerald-300 font-semibold">
+                            KES {sub.campaign?.reward}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 mt-1">
+                          Submitted by: <strong className="text-slate-200">{sub.user?.fullName}</strong> (@{sub.user?.username})
+                        </p>
+                        {sub.screenshotUrl && (
+                          <a
+                            href={sub.screenshotUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-brand-400 hover:text-brand-300 text-xs font-medium"
+                          >
+                            <Eye className="w-3.5 h-3.5" /> View Screenshot Proof
+                          </a>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-2 self-end md:self-auto shrink-0">
+                        <button
+                          onClick={() => handleReviewSubmission('WHATSAPP', sub.id, 'APPROVE')}
+                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition-all"
+                        >
+                          <Check className="w-4 h-4" /> Approve & Credit
+                        </button>
+                        <button
+                          onClick={() => handleReviewSubmission('WHATSAPP', sub.id, 'REJECT')}
+                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/40 text-xs font-bold transition-all"
+                        >
+                          <X className="w-4 h-4" /> Reject
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: ADD TASK / CAMPAIGN */}
         {activeTab === 'add-task' && (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 max-w-3xl mx-auto">
+          <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-6 max-w-3xl mx-auto shadow-xl animate-fadeIn">
             <h2 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
               <PlusCircle className="w-5 h-5 text-brand-400" /> Create & Publish New Task
             </h2>
@@ -918,16 +1765,6 @@ export default function AdminDashboardPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Total Available Slots / Capacity</label>
-                  <input
-                    type="number"
-                    value={taskForm.totalSlots}
-                    onChange={(e) => setTaskForm({ ...taskForm, totalSlots: e.target.value })}
-                    className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white focus:outline-none focus:border-brand-500 text-sm"
-                  />
-                </div>
-
-                <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">Duration (Seconds)</label>
                   <input
                     type="number"
@@ -949,7 +1786,10 @@ export default function AdminDashboardPage() {
             {/* List of Active Published Tasks & Campaigns */}
             <div className="mt-12 pt-8 border-t border-slate-800 space-y-6">
               <h3 className="text-lg font-bold text-white flex items-center justify-between">
-                <span>Published Tasks & Campaigns ({existingItems.tasks.length + existingItems.ads.length + existingItems.whatsappCampaigns.length})</span>
+                <span>
+                  Published Tasks & Campaigns (
+                  {existingItems.tasks.length + existingItems.ads.length + existingItems.whatsappCampaigns.length})
+                </span>
               </h3>
 
               {/* Data & Microtasks */}
@@ -1052,9 +1892,9 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* TAB 3: PACKAGES / PRODUCTS MANAGEMENT */}
+        {/* TAB 5: PACKAGES / PRODUCTS */}
         {activeTab === 'packages' && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fadeIn">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-white flex items-center gap-2">
@@ -1066,7 +1906,7 @@ export default function AdminDashboardPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {packagesList.map((pkg) => (
-                <div key={pkg.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 relative">
+                <div key={pkg.id} className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-6 relative shadow-lg">
                   <div className="flex items-center justify-between mb-4">
                     <span className="px-3 py-1 rounded-full text-xs font-bold bg-brand-500/20 text-brand-400 border border-brand-500/30">
                       {pkg.name} TIER
@@ -1099,7 +1939,7 @@ export default function AdminDashboardPage() {
 
                   <button
                     onClick={() => setEditingPackage({ ...pkg })}
-                    className="w-full py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs border border-slate-700 transition-colors"
+                    className="w-full py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 font-semibold text-xs border border-slate-800 transition-colors"
                   >
                     Edit Package Configuration
                   </button>
@@ -1110,7 +1950,7 @@ export default function AdminDashboardPage() {
             {/* Editing Package Modal */}
             {editingPackage && (
               <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-                <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 max-w-lg w-full">
+                <div className="bg-[#0F172A] border border-slate-700 rounded-2xl p-6 max-w-lg w-full shadow-2xl">
                   <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
                     <h3 className="text-lg font-bold text-white">Edit {editingPackage.name} Package</h3>
                     <button onClick={() => setEditingPackage(null)} className="text-slate-400 hover:text-white">
@@ -1183,7 +2023,7 @@ export default function AdminDashboardPage() {
                       <button
                         type="button"
                         onClick={() => setEditingPackage(null)}
-                        className="px-4 py-2.5 rounded-xl bg-slate-800 text-slate-300 text-sm hover:text-white"
+                        className="px-4 py-2.5 rounded-xl bg-slate-900 text-slate-300 text-sm hover:text-white"
                       >
                         Cancel
                       </button>
@@ -1195,182 +2035,35 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* TAB 4: REVIEW SUBMISSIONS */}
-        {activeTab === 'submissions' && (
-          <div className="space-y-8">
-            {/* Task Submissions Queue */}
-            <div>
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <CheckSquare className="w-5 h-5 text-amber-400" /> Pending Task Submissions ({submissions.taskSubmissions.length})
-              </h3>
-
-              {submissions.taskSubmissions.length === 0 ? (
-                <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-slate-400 text-sm">
-                  No task submissions waiting for review.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {submissions.taskSubmissions.map((sub) => (
-                    <div key={sub.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-base">{sub.task?.title}</span>
-                          <span className="px-2 py-0.5 rounded text-xs bg-brand-500/20 text-brand-300 font-semibold">
-                            KES {sub.task?.reward}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Submitted by: <strong className="text-slate-200">{sub.user?.fullName}</strong> (@{sub.user?.username}) • Phone: {sub.user?.phone}
-                        </p>
-                        <div className="mt-3 p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 font-mono overflow-x-auto max-w-xl">
-                          {sub.responsePayloadJson || 'No text payload submitted'}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 self-end md:self-auto">
-                        <button
-                          onClick={() => handleReviewSubmission('TASK', sub.id, 'APPROVE')}
-                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition-all"
-                        >
-                          <Check className="w-4 h-4" /> Approve & Credit
-                        </button>
-                        <button
-                          onClick={() => handleReviewSubmission('TASK', sub.id, 'REJECT')}
-                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/40 text-xs font-bold transition-all"
-                        >
-                          <X className="w-4 h-4" /> Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {/* WhatsApp Submissions Queue */}
-            <div>
-              <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
-                <Share2 className="w-5 h-5 text-emerald-400" /> Pending WhatsApp Proof Submissions ({submissions.whatsappSubmissions.length})
-              </h3>
-
-              {submissions.whatsappSubmissions.length === 0 ? (
-                <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-slate-400 text-sm">
-                  No WhatsApp status campaign proofs waiting for review.
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {submissions.whatsappSubmissions.map((sub) => (
-                    <div key={sub.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-base">{sub.campaign?.campaignName}</span>
-                          <span className="px-2 py-0.5 rounded text-xs bg-emerald-500/20 text-emerald-300 font-semibold">
-                            KES {sub.campaign?.reward}
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-400 mt-1">
-                          Submitted by: <strong className="text-slate-200">{sub.user?.fullName}</strong> (@{sub.user?.username})
-                        </p>
-                        {sub.screenshotUrl && (
-                          <a
-                            href={sub.screenshotUrl}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex items-center gap-1.5 mt-2 px-3 py-1.5 rounded-lg bg-slate-950 border border-slate-700 text-brand-400 hover:text-brand-300 text-xs font-medium"
-                          >
-                            <Eye className="w-3.5 h-3.5" /> View Screenshot Proof
-                          </a>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-2 self-end md:self-auto">
-                        <button
-                          onClick={() => handleReviewSubmission('WHATSAPP', sub.id, 'APPROVE')}
-                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition-all"
-                        >
-                          <Check className="w-4 h-4" /> Approve & Credit
-                        </button>
-                        <button
-                          onClick={() => handleReviewSubmission('WHATSAPP', sub.id, 'REJECT')}
-                          className="flex items-center gap-1 px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/40 text-xs font-bold transition-all"
-                        >
-                          <X className="w-4 h-4" /> Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 5: PAYOUT REQUESTS */}
-        {activeTab === 'withdrawals' && (
-          <div className="space-y-6">
-            <h2 className="text-xl font-bold text-white flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-emerald-400" /> Pending M-Pesa Withdrawal Requests ({withdrawalsList.length})
-            </h2>
-
-            {withdrawalsList.length === 0 ? (
-              <div className="p-8 rounded-2xl bg-slate-900/60 border border-slate-800 text-center text-slate-400 text-sm">
-                No pending withdrawal requests.
-              </div>
-            ) : (
-              <div className="space-y-4">
-                {withdrawalsList.map((w) => (
-                  <div key={w.id} className="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-2xl font-extrabold text-white">KES {w.amount.toLocaleString('en-KE')}</span>
-                        <span className="px-2 py-0.5 rounded text-xs bg-amber-500/20 text-amber-300 font-semibold">
-                          M-PESA: {w.mpesaNumber}
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Member: <strong className="text-slate-200">{w.user?.fullName}</strong> (@{w.user?.username}) • Email: {w.user?.email}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 self-end md:self-auto">
-                      <button
-                        onClick={() => handleProcessWithdrawal(w.id, 'APPROVE')}
-                        className="flex items-center gap-1 px-4 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 border border-emerald-500/40 text-xs font-bold transition-all"
-                      >
-                        <Check className="w-4 h-4" /> Mark Paid / Complete
-                      </button>
-                      <button
-                        onClick={() => handleProcessWithdrawal(w.id, 'REJECT')}
-                        className="flex items-center gap-1 px-4 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 border border-rose-500/40 text-xs font-bold transition-all"
-                      >
-                        <X className="w-4 h-4" /> Reject & Refund
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
         {/* TAB 6: USER MANAGEMENT */}
         {activeTab === 'users' && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fadeIn">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-brand-400" /> Platform User Accounts ({usersList.length})
               </h2>
 
-              <input
-                type="text"
-                placeholder="Search by name, email, or phone..."
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-                className="px-4 py-2 rounded-xl bg-slate-900 border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500 w-full sm:w-64"
-              />
+              <div className="relative w-full sm:w-72">
+                <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+                <input
+                  type="text"
+                  placeholder="Search by name, email, phone..."
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="w-full pl-9 pr-8 py-2 rounded-xl bg-[#0F172A] border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500"
+                />
+                {userSearch && (
+                  <button
+                    onClick={() => setUserSearch('')}
+                    className="absolute right-3 top-3 text-slate-400 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            <div className="overflow-x-auto bg-slate-900/80 border border-slate-800 rounded-2xl">
+            <div className="overflow-x-auto bg-[#0F172A] border border-slate-800/80 rounded-2xl shadow-xl">
               <table className="w-full text-left text-xs">
                 <thead className="bg-slate-950 text-slate-400 uppercase border-b border-slate-800">
                   <tr>
@@ -1384,26 +2077,42 @@ export default function AdminDashboardPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-800/60">
                   {filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
+                    <tr key={u.id} className="hover:bg-slate-900/50 transition-colors">
                       <td className="px-4 py-3 font-medium text-white">
                         <div className="flex items-center gap-1.5">
                           <span>{u.fullName}</span>
                           {u.isFlagged && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40" title={u.flagReason}>
+                            <span
+                              className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40"
+                              title={u.flagReason}
+                            >
                               ⚠️ Flagged
                             </span>
                           )}
                           {u.isBanned && (
-                            <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold border border-rose-500/40" title={u.banReason}>
+                            <span
+                              className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold border border-rose-500/40"
+                              title={u.banReason}
+                            >
                               🚫 Banned
                             </span>
                           )}
                         </div>
-                        <div className="text-[10px] text-slate-400">@{u.username} • {u.email}</div>
+                        <div className="text-[10px] text-slate-400">
+                          @{u.username} • {u.email}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-slate-300 font-mono">{u.phone}</td>
                       <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded font-bold ${u.isBanned ? 'bg-rose-500/20 text-rose-400' : u.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                        <span
+                          className={`px-2 py-0.5 rounded font-bold ${
+                            u.isBanned
+                              ? 'bg-rose-500/20 text-rose-400'
+                              : u.status === 'ACTIVE'
+                              ? 'bg-emerald-500/20 text-emerald-400'
+                              : 'bg-amber-500/20 text-amber-400'
+                          }`}
+                        >
                           {u.isBanned ? 'BANNED' : u.status}
                         </span>
                       </td>
@@ -1443,9 +2152,9 @@ export default function AdminDashboardPage() {
 
         {/* TAB 7: BANNERS & SOCIAL LINKS */}
         {activeTab === 'banners-social' && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 animate-fadeIn">
             {/* Top Banners Management */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-6">
+            <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-6 space-y-6 shadow-xl">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Sparkles className="w-5 h-5 text-emerald-400" /> Homepage Top Banners (~5s Slideshow)
               </h2>
@@ -1511,7 +2220,7 @@ export default function AdminDashboardPage() {
             </div>
 
             {/* Social Links Management */}
-            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-6">
+            <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-6 space-y-6 shadow-xl">
               <h2 className="text-xl font-bold text-white flex items-center gap-2">
                 <Share2 className="w-5 h-5 text-brand-400" /> Platform Social Media Links
               </h2>
@@ -1522,7 +2231,13 @@ export default function AdminDashboardPage() {
                   <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Platform</label>
                   <select
                     value={socialForm.platform}
-                    onChange={(e) => setSocialForm({ ...socialForm, platform: e.target.value, label: `${e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1)} Channel` })}
+                    onChange={(e) =>
+                      setSocialForm({
+                        ...socialForm,
+                        platform: e.target.value,
+                        label: `${e.target.value.charAt(0).toUpperCase() + e.target.value.slice(1)} Channel`,
+                      })
+                    }
                     className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
                   >
                     <option value="whatsapp">WhatsApp</option>
@@ -1585,11 +2300,11 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
-        {/* TAB 7: ADMIN SECURITY & PASSWORD */}
+        {/* TAB 8: ADMIN SECURITY & PASSWORD */}
         {activeTab === 'admin-settings' && (
-          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 sm:p-8 max-w-2xl mx-auto">
+          <div className="bg-[#0F172A] border border-slate-800/80 rounded-2xl p-6 sm:p-8 max-w-2xl mx-auto shadow-2xl animate-fadeIn">
             <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-800">
-              <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-400">
+              <div className="w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-md shadow-amber-500/10">
                 <Key className="w-5 h-5" />
               </div>
               <div>
