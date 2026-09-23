@@ -29,6 +29,8 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const [logoutLoading, setLogoutLoading] = useState(false);
+  const [logoutError, setLogoutError] = useState('');
 
   const fetchUser = async () => {
     try {
@@ -60,11 +62,28 @@ export default function Navbar() {
   }, [pathname]);
 
   const handleLogout = async () => {
+    setLogoutError('');
+    setLogoutLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-    } catch (e) {}
-    setUser(null);
-    window.location.href = '/login';
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        throw new Error('Server error during logout');
+      }
+      // Clear local state before navigating
+      setUser(null);
+      // replace() removes the page from history so Back cannot restore it
+      window.location.replace('/login');
+    } catch (e: any) {
+      clearTimeout(timeoutId);
+      setLogoutLoading(false);
+      setLogoutError('Couldn\'t log out. Check your connection and try again.');
+    }
   };
 
   return (
@@ -230,12 +249,20 @@ export default function Navbar() {
                         </Link>
                       )}
 
+                      {logoutError && (
+                        <div className="px-3 py-2 text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2">
+                          <span className="shrink-0">⚠</span>
+                          <span>{logoutError}</span>
+                        </div>
+                      )}
+
                       <button
                         onClick={handleLogout}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors mt-1"
+                        disabled={logoutLoading}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <LogOut className="w-4 h-4" />
-                        Sign Out
+                        {logoutLoading ? 'Logging out...' : 'Sign Out'}
                       </button>
                     </div>
                   )}

@@ -104,6 +104,7 @@ export default function AdminDashboardPage() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isAdminAuthed, setIsAdminAuthed] = useState(false);
   const [adminUser, setAdminUser] = useState<any>(null);
+  const [logoutLoading, setLogoutLoading] = useState(false);
 
   // In-Page Admin Login States
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -381,11 +382,25 @@ export default function AdminDashboardPage() {
   };
 
   const handleLogout = async () => {
+    setError('');
+    setLogoutLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
     try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      window.location.href = '/login';
-    } catch (e) {
-      window.location.href = '/login';
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        throw new Error('Server error during logout');
+      }
+      // Cookie cleared — use replace() so Back button cannot restore this page
+      window.location.replace('/login');
+    } catch (e: any) {
+      clearTimeout(timeoutId);
+      setLogoutLoading(false);
+      setError('Couldn\'t log out. Check your connection and try again.');
     }
   };
 
@@ -859,10 +874,15 @@ export default function AdminDashboardPage() {
             <div className="pt-4 border-t border-dark-800">
               <button
                 onClick={handleLogout}
-                className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2"
+                disabled={logoutLoading}
+                className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <LogOut className="w-4 h-4" />
-                <span>Log Out</span>
+                {logoutLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <LogOut className="w-4 h-4" />
+                )}
+                <span>{logoutLoading ? 'Logging out...' : 'Log Out'}</span>
               </button>
             </div>
           </div>
@@ -933,10 +953,15 @@ export default function AdminDashboardPage() {
 
           <button
             onClick={handleLogout}
-            className="w-full px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors cursor-pointer"
+            disabled={logoutLoading}
+            className="w-full px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <LogOut className="w-4 h-4" />
-            <span>Terminate Admin Session</span>
+            {logoutLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <LogOut className="w-4 h-4" />
+            )}
+            <span>{logoutLoading ? 'Logging out...' : 'Terminate Admin Session'}</span>
           </button>
         </div>
       </aside>
