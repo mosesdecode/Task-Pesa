@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import {
   Shield,
   PlusCircle,
@@ -59,6 +59,29 @@ type AdminTab =
   | 'adverts'
   | 'banners-social'
   | 'admin-settings';
+
+const ErrorBanner = ({ error, onRetry, onDismiss }: { error: string, onRetry?: () => void, onDismiss: () => void }) => {
+  if (!error) return null;
+  return (
+    <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center justify-between gap-3 animate-in fade-in duration-200 shadow-lg shadow-rose-900/20">
+      <div className="flex items-center gap-2">
+        <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+        <span>{error}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        {onRetry && (
+          <button onClick={onRetry} className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold transition-colors flex items-center gap-1.5">
+            <RefreshCw className="w-3.5 h-3.5" />
+            Retry
+          </button>
+        )}
+        <button onClick={onDismiss} className="text-slate-400 hover:text-white p-1">
+          <X className="w-4 h-4" />
+        </button>
+      </div>
+    </div>
+  );
+};
 
 export default function AdminDashboardPage() {
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
@@ -161,88 +184,174 @@ export default function AdminDashboardPage() {
   const [withdrawalFilter, setWithdrawalFilter] = useState<'ALL' | 'COMPLETED' | 'REJECTED' | 'PENDING'>('ALL');
   const [taskSearch, setTaskSearch] = useState('');
 
+  // API Error States
+  const [statsError, setStatsError] = useState('');
+  const [tasksError, setTasksError] = useState('');
+  const [categoriesError, setCategoriesError] = useState('');
+  const [submissionsError, setSubmissionsError] = useState('');
+  const [withdrawalsError, setWithdrawalsError] = useState('');
+  const [usersError, setUsersError] = useState('');
+  const [advertsError, setAdvertsError] = useState('');
+  const [bannersSocialError, setBannersSocialError] = useState('');
+  const [earningsError, setEarningsError] = useState('');
+
+  const sessionExpiredHandled = useRef(false);
+
+  const handleApiError = (res: Response, setErrorState: (msg: string) => void, fallbackMsg: string) => {
+    if (res.status === 401) {
+      if (!sessionExpiredHandled.current) {
+        sessionExpiredHandled.current = true;
+        setIsAdminAuthed(false);
+        setAdminUser(null);
+        setError('Your session expired. Please log in again.');
+      }
+    } else if (res.status === 403) {
+      setErrorState('Access denied.');
+    } else {
+      setErrorState(fallbackMsg);
+    }
+  };
+
   // API Fetchers
   const fetchStats = async () => {
+    setStatsError('');
     try {
       const res = await fetch('/api/admin/stats');
-      if (res.ok) setStats(await res.json());
-    } catch (e) {}
+      if (res.ok) {
+        setStats(await res.json());
+      } else {
+        handleApiError(res, setStatsError, "Couldn't load stats. Retry");
+      }
+    } catch (e) {
+      console.error("Failed to load stats:", e);
+      setStatsError("Couldn't load stats. Retry");
+    }
   };
 
   const fetchTasks = async () => {
+    setTasksError('');
     try {
       const res = await fetch('/api/admin/tasks');
       if (res.ok) {
         const data = await res.json();
         setTasksList(data.tasks || []);
         if (data.categories) setCategoriesList(data.categories);
+      } else {
+        handleApiError(res, setTasksError, "Couldn't load tasks. Retry");
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to load tasks:", e);
+      setTasksError("Couldn't load tasks. Retry");
+    }
   };
 
   const fetchCategories = async () => {
+    setCategoriesError('');
     try {
       const res = await fetch('/api/admin/categories');
       if (res.ok) {
         const data = await res.json();
         setCategoriesList(data.categories || []);
+      } else {
+        handleApiError(res, setCategoriesError, "Couldn't load categories. Retry");
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to load categories:", e);
+      setCategoriesError("Couldn't load categories. Retry");
+    }
   };
 
   const fetchSubmissions = async () => {
+    setSubmissionsError('');
     try {
       const res = await fetch(`/api/admin/submissions?status=${submissionFilter}`);
       if (res.ok) {
         const data = await res.json();
         setSubmissionsList(data.taskSubmissions || []);
         if (data.counts) setSubmissionCounts(data.counts);
+      } else {
+        handleApiError(res, setSubmissionsError, "Couldn't load submissions. Retry");
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to load submissions:", e);
+      setSubmissionsError("Couldn't load submissions. Retry");
+    }
   };
 
   const fetchWithdrawals = async () => {
+    setWithdrawalsError('');
     try {
       const res = await fetch('/api/admin/withdrawals');
       if (res.ok) {
         const data = await res.json();
         setWithdrawalsList(data.withdrawals || []);
+      } else {
+        handleApiError(res, setWithdrawalsError, "Couldn't load withdrawals. Retry");
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to load withdrawals:", e);
+      setWithdrawalsError("Couldn't load withdrawals. Retry");
+    }
   };
 
   const fetchUsers = async () => {
+    setUsersError('');
     try {
       const res = await fetch('/api/admin/users');
       if (res.ok) {
         const data = await res.json();
         setUsersList(data.users || []);
+      } else {
+        handleApiError(res, setUsersError, "Couldn't load users. Retry");
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to load users:", e);
+      setUsersError("Couldn't load users. Retry");
+    }
   };
 
   const fetchAdverts = async () => {
+    setAdvertsError('');
     try {
       const res = await fetch('/api/admin/adverts');
       if (res.ok) {
         const data = await res.json();
         setAdvertsList(data.adverts || []);
+      } else {
+        handleApiError(res, setAdvertsError, "Couldn't load adverts. Retry");
       }
-    } catch (e) {}
+    } catch (e) {
+      console.error("Failed to load adverts:", e);
+      setAdvertsError("Couldn't load adverts. Retry");
+    }
   };
 
   const fetchBannersAndSocial = async () => {
+    setBannersSocialError('');
     try {
       const [bRes, sRes] = await Promise.all([
         fetch('/api/admin/banners'),
         fetch('/api/admin/social-links'),
       ]);
-      if (bRes.ok) setBannersList((await bRes.json()).banners || []);
-      if (sRes.ok) setSocialLinksList((await sRes.json()).links || []);
-    } catch (e) {}
+      if (bRes.ok) {
+        setBannersList((await bRes.json()).banners || []);
+      } else {
+        handleApiError(bRes, setBannersSocialError, "Couldn't load banners. Retry");
+      }
+      
+      if (sRes.ok) {
+        setSocialLinksList((await sRes.json()).links || []);
+      } else {
+        handleApiError(sRes, setBannersSocialError, "Couldn't load social links. Retry");
+      }
+    } catch (e) {
+      console.error("Failed to load banners and social links:", e);
+      setBannersSocialError("Couldn't load banners/socials. Retry");
+    }
   };
 
   const fetchEarnings = async () => {
+    setEarningsError('');
     try {
       setEarningsLoading(true);
       const url = new URL('/api/admin/earnings', window.location.origin);
@@ -264,8 +373,12 @@ export default function AdminDashboardPage() {
             platformRetainedAmountKES: data.config.platformRetainedAmountKES?.toString() || '100',
           });
         }
+      } else {
+        handleApiError(res, setEarningsError, "Couldn't load earnings. Retry");
       }
     } catch (e) {
+      console.error("Failed to load earnings:", e);
+      setEarningsError("Couldn't load earnings. Retry");
     } finally {
       setEarningsLoading(false);
     }
@@ -321,15 +434,23 @@ export default function AdminDashboardPage() {
       if (res.ok) {
         const data = await res.json();
         if (data?.user?.role === 'ADMIN') {
+          sessionExpiredHandled.current = false;
           setIsAdminAuthed(true);
           setAdminUser(data.user);
-          await loadAll();
+          
+          try {
+            await loadAll();
+          } catch (e) {
+            console.error("Data load failed:", e);
+          }
+          
           setCheckingAuth(false);
           return;
         }
       }
       setIsAdminAuthed(false);
     } catch (e) {
+      console.error("Auth check failed:", e);
       setIsAdminAuthed(false);
     } finally {
       setCheckingAuth(false);
@@ -371,6 +492,7 @@ export default function AdminDashboardPage() {
         throw new Error('Access denied. Administrator privileges required.');
       }
 
+      sessionExpiredHandled.current = false;
       setIsAdminAuthed(true);
       setAdminUser(data.user);
       await loadAll();
@@ -996,6 +1118,7 @@ export default function AdminDashboardPage() {
         {/* TAB 1: DASHBOARD OVERVIEW */}
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            <ErrorBanner error={statsError} onRetry={fetchStats} onDismiss={() => setStatsError('')} />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
               <div>
                 <h1 className="text-2xl font-black text-white tracking-tight">Administrative Overview</h1>
@@ -1100,6 +1223,7 @@ export default function AdminDashboardPage() {
         {/* TAB: EARNINGS & FINANCIAL LEDGER (Requirements 4, 5, 6, 21, 23, 24) */}
         {activeTab === 'earnings' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            <ErrorBanner error={earningsError} onRetry={fetchEarnings} onDismiss={() => setEarningsError('')} />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
               <div>
                 <h1 className="text-2xl font-black text-white">Platform Revenue & Financial Ledger</h1>
@@ -1382,6 +1506,7 @@ export default function AdminDashboardPage() {
         {/* TAB 2: TASKS MANAGEMENT (Requirement 13) */}
         {activeTab === 'tasks' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            <ErrorBanner error={tasksError} onRetry={fetchTasks} onDismiss={() => setTasksError('')} />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
               <div>
                 <h1 className="text-2xl font-black text-white">Task Management</h1>
@@ -1644,6 +1769,7 @@ export default function AdminDashboardPage() {
         {/* TAB 4: CATEGORIES MANAGER (Requirement 17) */}
         {activeTab === 'categories' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            <ErrorBanner error={categoriesError} onRetry={fetchCategories} onDismiss={() => setCategoriesError('')} />
             <div className="border-b border-dark-800 pb-4">
               <h1 className="text-2xl font-black text-white">Task Categories</h1>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -1711,6 +1837,7 @@ export default function AdminDashboardPage() {
         {/* TAB 5: SUBMISSIONS REVIEW (Requirements 7, 8, 9, 10) */}
         {activeTab === 'submissions' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            <ErrorBanner error={submissionsError} onRetry={fetchSubmissions} onDismiss={() => setSubmissionsError('')} />
             <div className="border-b border-dark-800 pb-4">
               <h1 className="text-2xl font-black text-white">Submissions Review Queue</h1>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -1887,6 +2014,7 @@ export default function AdminDashboardPage() {
         {/* TAB 6: WALLETS & WITHDRAWALS (Requirements 14 & 15) */}
         {activeTab === 'wallets' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            <ErrorBanner error={withdrawalsError} onRetry={fetchWithdrawals} onDismiss={() => setWithdrawalsError('')} />
             <div className="border-b border-dark-800 pb-4">
               <h1 className="text-2xl font-black text-white">User Wallets & Withdrawals</h1>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -1987,6 +2115,7 @@ export default function AdminDashboardPage() {
         {/* TAB 7: ADVERTS (Requirement 16) */}
         {activeTab === 'adverts' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            <ErrorBanner error={advertsError} onRetry={fetchAdverts} onDismiss={() => setAdvertsError('')} />
             <div className="border-b border-dark-800 pb-4">
               <h1 className="text-2xl font-black text-white">Sponsored Advert Campaigns</h1>
               <p className="text-xs text-slate-400 mt-0.5">
@@ -2108,6 +2237,7 @@ export default function AdminDashboardPage() {
         {/* TAB 8: USERS DIRECTORY (Requirement 24: No Account Tiers) */}
         {activeTab === 'users' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            <ErrorBanner error={usersError} onRetry={fetchUsers} onDismiss={() => setUsersError('')} />
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-4">
               <div>
                 <h1 className="text-2xl font-black text-white">User Directory</h1>
@@ -2183,6 +2313,7 @@ export default function AdminDashboardPage() {
         {/* TAB 9: BANNERS & SOCIAL */}
         {activeTab === 'banners-social' && (
           <div className="space-y-6 animate-in fade-in duration-200">
+            <ErrorBanner error={bannersSocialError} onRetry={fetchBannersAndSocial} onDismiss={() => setBannersSocialError('')} />
             <div className="border-b border-dark-800 pb-4">
               <h1 className="text-2xl font-black text-white">Banners &amp; Social Communities</h1>
               <p className="text-xs text-slate-400 mt-0.5">Manage homepage banner carousels and official social links.</p>
