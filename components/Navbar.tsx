@@ -61,6 +61,8 @@ export default function Navbar() {
     fetchNotifications();
   }, [pathname]);
 
+  if (pathname === '/admin/login') return null;
+
   const handleLogout = async () => {
     setLogoutError('');
     setLogoutLoading(true);

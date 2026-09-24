@@ -2,9 +2,12 @@
 
 import React from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { ShieldCheck, Smartphone } from 'lucide-react';
 
 export default function Footer() {
+  const pathname = usePathname();
+  if (pathname === '/admin/login') return null;
   return (
     <footer className="bg-dark-900 border-t border-slate-800/80 pt-12 pb-24 md:pb-12 mt-20 text-gray-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">

@@ -28,6 +28,8 @@ export default function MobileNav() {
       .catch(() => {});
   }, [pathname]);
 
+  if (pathname === '/admin/login') return null;
+
   return (
     <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-nav border-t border-slate-800/80 px-2 py-1.5">
       <div className="flex items-center justify-around">

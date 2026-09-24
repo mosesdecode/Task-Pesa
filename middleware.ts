@@ -20,10 +20,27 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password');
   
+  // Public admin login page handling
+  if (pathname === '/admin/login') {
+    if (token) {
+      try {
+        const verified = await jwtVerify(token, SECRET_KEY);
+        const payload = verified.payload as any;
+        if (payload.role === 'ADMIN') {
+          return NextResponse.redirect(new URL('/admin', request.url));
+        }
+        return NextResponse.redirect(new URL('/dashboard', request.url));
+      } catch (error) {
+        // Invalid/expired token: treat as logged out, allow rendering login page
+      }
+    }
+    return NextResponse.next();
+  }
+
   // Admin area protection - only ADMIN role permitted
   if (pathname.startsWith('/admin')) {
     if (!token) {
-      const loginUrl = new URL('/login', request.url);
+      const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(loginUrl);
     }
@@ -39,7 +56,7 @@ export async function middleware(request: NextRequest) {
       response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
       return response;
     } catch (error) {
-      const loginUrl = new URL('/login', request.url);
+      const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       const response = NextResponse.redirect(loginUrl);
       response.cookies.delete('taskmint_token');

@@ -197,14 +197,35 @@ export default function AdminDashboardPage() {
 
   const sessionExpiredHandled = useRef(false);
 
+  const handle401Expired = async () => {
+    if (sessionExpiredHandled.current) return;
+    sessionExpiredHandled.current = true;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+    try {
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (res.ok) {
+        window.location.replace('/admin/login');
+        return;
+      }
+      throw new Error('Logout failed');
+    } catch (e) {
+      clearTimeout(timeoutId);
+      sessionExpiredHandled.current = false;
+      setIsAdminAuthed(false);
+      setAdminUser(null);
+      setError("Session problem. Couldn't sign you out. Try again.");
+    }
+  };
+
   const handleApiError = (res: Response, setErrorState: (msg: string) => void, fallbackMsg: string) => {
     if (res.status === 401) {
-      if (!sessionExpiredHandled.current) {
-        sessionExpiredHandled.current = true;
-        setIsAdminAuthed(false);
-        setAdminUser(null);
-        setError('Your session expired. Please log in again.');
-      }
+      handle401Expired();
     } else if (res.status === 403) {
       setErrorState('Access denied.');
     } else {
@@ -429,6 +450,7 @@ export default function AdminDashboardPage() {
 
   const checkAdminAuth = async () => {
     setCheckingAuth(true);
+    setError('');
     try {
       const res = await fetch('/api/auth/me');
       if (res.ok) {
@@ -446,13 +468,28 @@ export default function AdminDashboardPage() {
           
           setCheckingAuth(false);
           return;
+        } else {
+          // Logged in user is not an admin
+          await handle401Expired();
+          setCheckingAuth(false);
+          return;
         }
+      } else if (res.status === 401) {
+        // Explicit 401 from /api/auth/me -> trigger 401 logout-and-redirect
+        await handle401Expired();
+        setCheckingAuth(false);
+        return;
+      } else {
+        // Network error / 500 status -> show retry banner, DO NOT log admin out
+        setError("Couldn't verify admin session. Check your connection.");
+        setIsAdminAuthed(true);
+        setCheckingAuth(false);
+        return;
       }
-      setIsAdminAuthed(false);
     } catch (e) {
       console.error("Auth check failed:", e);
-      setIsAdminAuthed(false);
-    } finally {
+      setError("Network error verifying session. Check your connection.");
+      setIsAdminAuthed(true);
       setCheckingAuth(false);
     }
   };
@@ -473,36 +510,6 @@ export default function AdminDashboardPage() {
     }
   }, [ledgerFilterType, activeTab, isAdminAuthed]);
 
-  const handleAdminLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoginError('');
-    setLoginLoading(true);
-
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: loginIdentifier.trim(), password: loginPassword }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Login failed');
-
-      if (data.user?.role !== 'ADMIN') {
-        throw new Error('Access denied. Administrator privileges required.');
-      }
-
-      sessionExpiredHandled.current = false;
-      setIsAdminAuthed(true);
-      setAdminUser(data.user);
-      await loadAll();
-    } catch (err: any) {
-      setLoginError(err.message);
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
   const handleLogout = async () => {
     setError('');
     setLogoutLoading(true);
@@ -518,7 +525,7 @@ export default function AdminDashboardPage() {
         throw new Error('Server error during logout');
       }
       // Cookie cleared — use replace() so Back button cannot restore this page
-      window.location.replace('/login');
+      window.location.replace('/admin/login');
     } catch (e: any) {
       clearTimeout(timeoutId);
       setLogoutLoading(false);
@@ -829,68 +836,38 @@ export default function AdminDashboardPage() {
     );
   }
 
-  // IF NOT AUTHENTICATED AS ADMIN: SHOW DEDICATED ADMIN LOGIN
+  // IF NOT AUTHENTICATED AS ADMIN
   if (!isAdminAuthed) {
     return (
       <div className="min-h-screen bg-dark-950 text-slate-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-dark-900 border border-dark-800 rounded-3xl p-8 space-y-6 shadow-2xl">
-          <div className="text-center space-y-2">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-black text-dark-950 text-xl mx-auto shadow-lg shadow-brand-500/20">
-              TM
+        <div className="w-full max-w-md bg-dark-900 border border-dark-800 rounded-3xl p-8 space-y-6 shadow-2xl text-center">
+          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-brand-500 to-emerald-400 p-0.5 shadow-xl shadow-amber-500/10 mx-auto">
+            <div className="w-full h-full bg-dark-900 rounded-[14px] flex items-center justify-center">
+              <Shield className="w-7 h-7 text-amber-400 fill-amber-400/20" />
             </div>
-            <h1 className="text-2xl font-black text-white">TaskMint Admin Portal</h1>
-            <p className="text-xs text-slate-400">Secure access reserved for platform administrators only</p>
           </div>
-
-          {loginError && (
-            <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>{loginError}</span>
+          <h1 className="text-2xl font-extrabold text-white">TaskMint Admin Portal</h1>
+          {error && (
+            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-3 text-left">
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <span>{error}</span>
+              </div>
+              <button
+                onClick={() => checkAdminAuth()}
+                className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold transition-colors shrink-0 flex items-center gap-1"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Retry
+              </button>
             </div>
           )}
-
-          <form onSubmit={handleAdminLogin} className="space-y-4">
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-300 uppercase">Administrator Email / Username</label>
-              <input
-                type="text"
-                required
-                placeholder="admin@taskmint.co.ke"
-                value={loginIdentifier}
-                onChange={(e) => setLoginIdentifier(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
-              />
-            </div>
-
-            <div className="space-y-1">
-              <label className="text-xs font-semibold text-slate-300 uppercase">Password</label>
-              <div className="relative">
-                <input
-                  type={showLoginPassword ? 'text' : 'password'}
-                  required
-                  placeholder="••••••••••••"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  className="w-full px-4 py-3 pr-10 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowLoginPassword(!showLoginPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                >
-                  {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loginLoading}
-              className="w-full py-3.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-black text-sm shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
-            >
-              {loginLoading ? 'Authenticating...' : 'Sign In to Admin Panel'}
-            </button>
-          </form>
+          <button
+            onClick={() => handle401Expired()}
+            className="w-full py-3.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-sm transition-all"
+          >
+            Go to Admin Login
+          </button>
         </div>
       </div>
     );
@@ -1092,14 +1069,23 @@ export default function AdminDashboardPage() {
       <main className="flex-1 lg:pl-64 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl">
         {/* Global Notifications */}
         {error && (
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center justify-between gap-3 animate-in fade-in duration-200">
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center justify-between gap-3 animate-in fade-in duration-200 shadow-lg shadow-rose-900/20">
             <div className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
               <span>{error}</span>
             </div>
-            <button onClick={() => setError('')} className="text-slate-400 hover:text-white">
-              <X className="w-4 h-4" />
-            </button>
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => checkAdminAuth()}
+                className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold transition-colors flex items-center gap-1.5 shrink-0"
+              >
+                <RefreshCw className="w-3.5 h-3.5" />
+                Retry
+              </button>
+              <button onClick={() => setError('')} className="text-slate-400 hover:text-white p-1">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         )}
 
