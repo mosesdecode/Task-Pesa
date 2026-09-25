@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Shield,
   PlusCircle,
@@ -83,8 +84,10 @@ const ErrorBanner = ({ error, onRetry, onDismiss }: { error: string, onRetry?: (
   );
 };
 
-export default function AdminDashboardPage() {
-  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+function AdminDashboardInner() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const activeTab = ((searchParams.get('tab') as AdminTab) || 'overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Core Data States
@@ -565,7 +568,7 @@ export default function AdminDashboardPage() {
         status: 'PUBLISHED',
       });
       fetchTasks();
-      setActiveTab('tasks');
+      router.push('/admin?tab=tasks');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -942,7 +945,7 @@ export default function AdminDashboardPage() {
                     <button
                       key={item.id}
                       onClick={() => {
-                        setActiveTab(item.id);
+                        router.push(`/admin?tab=${item.id}`);
                         setMobileMenuOpen(false);
                       }}
                       className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-left flex items-center justify-between transition-all ${
@@ -1012,7 +1015,7 @@ export default function AdminDashboardPage() {
               return (
                 <button
                   key={item.id}
-                  onClick={() => setActiveTab(item.id)}
+                  onClick={() => router.push(`/admin?tab=${item.id}`)}
                   className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold text-left flex items-center justify-between transition-all cursor-pointer ${
                     isActive
                       ? 'bg-brand-500 text-dark-950 shadow-md shadow-brand-500/20'
@@ -1128,7 +1131,7 @@ export default function AdminDashboardPage() {
                 </span>
                 <p className="text-2xl font-black text-white">{stats?.submissions?.pendingReview || 0}</p>
                 <button
-                  onClick={() => setActiveTab('submissions')}
+                  onClick={() => router.push('/admin?tab=submissions')}
                   className="text-xs text-brand-400 font-bold hover:underline flex items-center gap-1 cursor-pointer pt-1"
                 >
                   Review Submissions <ChevronRight className="w-3.5 h-3.5" />
@@ -1176,7 +1179,7 @@ export default function AdminDashboardPage() {
               <h2 className="text-base font-bold text-white">Administrative Actions</h2>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <button
-                  onClick={() => setActiveTab('add-task')}
+                  onClick={() => router.push('/admin?tab=add-task')}
                   className="p-4 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-left transition-all cursor-pointer"
                 >
                   <PlusCircle className="w-5 h-5 text-brand-400 mb-2" />
@@ -1185,7 +1188,7 @@ export default function AdminDashboardPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('submissions')}
+                  onClick={() => router.push('/admin?tab=submissions')}
                   className="p-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-left transition-all cursor-pointer"
                 >
                   <CheckCircle2 className="w-5 h-5 text-amber-400 mb-2" />
@@ -1194,7 +1197,7 @@ export default function AdminDashboardPage() {
                 </button>
 
                 <button
-                  onClick={() => setActiveTab('wallets')}
+                  onClick={() => router.push('/admin?tab=wallets')}
                   className="p-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-left transition-all cursor-pointer"
                 >
                   <Wallet className="w-5 h-5 text-emerald-400 mb-2" />
@@ -1502,7 +1505,7 @@ export default function AdminDashboardPage() {
               </div>
 
               <button
-                onClick={() => setActiveTab('add-task')}
+                onClick={() => router.push('/admin?tab=add-task')}
                 className="px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-bold text-xs flex items-center gap-1.5 cursor-pointer shadow-md shadow-brand-500/20"
               >
                 <PlusCircle className="w-4 h-4" /> Add New Task
@@ -2424,5 +2427,20 @@ export default function AdminDashboardPage() {
         )}
       </main>
     </div>
+  );
+}
+
+export default function AdminDashboardPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-dark-950 flex items-center justify-center text-slate-400">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm font-bold tracking-wider uppercase text-slate-300">Loading Admin Panel...</p>
+        </div>
+      </div>
+    }>
+      <AdminDashboardInner />
+    </Suspense>
   );
 }
