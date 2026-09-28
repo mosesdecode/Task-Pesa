@@ -130,7 +130,6 @@ function AdminDashboardInner() {
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [isAdminAuthed, setIsAdminAuthed] = useState(false);
   const [adminUser, setAdminUser] = useState<any>(null);
-  const [logoutLoading, setLogoutLoading] = useState(false);
 
   // In-Page Admin Login States
   const [loginIdentifier, setLoginIdentifier] = useState('');
@@ -138,7 +137,6 @@ function AdminDashboardInner() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
-
   // Task Creation Form State
   const [taskForm, setTaskForm] = useState({
     title: '',
@@ -513,29 +511,6 @@ function AdminDashboardInner() {
     }
   }, [ledgerFilterType, activeTab, isAdminAuthed]);
 
-  const handleLogout = async () => {
-    setError('');
-    setLogoutLoading(true);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-    try {
-      const res = await fetch('/api/auth/logout', {
-        method: 'POST',
-        signal: controller.signal,
-      });
-      clearTimeout(timeoutId);
-      if (!res.ok) {
-        throw new Error('Server error during logout');
-      }
-      // Cookie cleared — use replace() so Back button cannot restore this page
-      window.location.replace('/admin/login');
-    } catch (e: any) {
-      clearTimeout(timeoutId);
-      setLogoutLoading(false);
-      setError('Couldn\'t log out. Check your connection and try again.');
-    }
-  };
-
   // Task Actions (Create, Pause/Resume, Delete)
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -876,200 +851,9 @@ function AdminDashboardInner() {
     );
   }
 
-  // SIDEBAR NAVIGATION ITEMS (Requirement 11)
-  const navItems: { id: AdminTab; label: string; icon: any; count?: number }[] = [
-    { id: 'overview', label: 'Dashboard Overview', icon: BarChart3 },
-    { id: 'earnings', label: 'Earnings & Ledger', icon: TrendingUp },
-    { id: 'tasks', label: 'Tasks Management', icon: CheckSquare, count: tasksList.length },
-    { id: 'add-task', label: 'Add New Task', icon: PlusCircle },
-    { id: 'categories', label: 'Task Categories', icon: Tag, count: categoriesList.length },
-    { id: 'submissions', label: 'Submissions Review', icon: FileText, count: submissionCounts.pendingReview },
-    { id: 'wallets', label: 'Wallets & Withdrawals', icon: Wallet, count: stats?.wallets?.pendingWithdrawalsCount },
-    { id: 'users', label: 'User Directory', icon: Users, count: stats?.users?.total },
-    { id: 'adverts', label: 'Advert Campaigns', icon: PlaySquare, count: advertsList.length },
-    { id: 'banners-social', label: 'Banners & Social', icon: Sparkles },
-    { id: 'admin-settings', label: 'Security & Password', icon: Lock },
-  ];
-
+  // SIDEBAR NAVIGATION ITEMS MOVED TO LAYOUT
   return (
-    <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col font-sans">
-      {/* MOBILE TOP BAR WITH ☰ MENU BUTTON */}
-      <div className="lg:hidden flex items-center justify-between p-4 bg-dark-900 border-b border-dark-800 sticky top-0 z-30">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-dark-950 text-sm">
-            TM
-          </div>
-          <span className="font-extrabold text-white text-base">
-            TaskMint <span className="text-brand-400 text-xs uppercase px-1.5 py-0.5 rounded bg-brand-500/10 border border-brand-500/20">Admin</span>
-          </span>
-        </div>
-
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 rounded-xl bg-dark-800 text-slate-300 hover:text-white border border-dark-700 flex items-center gap-1.5 text-xs font-bold"
-        >
-          <Menu className="w-5 h-5" />
-          <span>ADMIN MENU</span>
-        </button>
-      </div>
-
-      {/* MOBILE SLIDE-OVER DRAWER (Requirement 20) */}
-      {mobileMenuOpen && (
-        <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <div className="relative w-72 max-w-[85vw] bg-dark-950 border-r border-dark-800 flex flex-col justify-between p-5 z-10 h-full overflow-y-auto">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between pb-4 border-b border-dark-800">
-                <div className="flex items-center gap-2">
-                  <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center font-black text-dark-950 text-sm">
-                    TM
-                  </div>
-                  <span className="font-bold text-white text-sm">TaskMint Admin</span>
-                </div>
-                <button
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-white"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <div className="space-y-1">
-                {navItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = activeTab === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      onClick={() => {
-                        router.push(`/admin?tab=${item.id}`);
-                        setMobileMenuOpen(false);
-                      }}
-                      className={`w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-left flex items-center justify-between transition-all ${
-                        isActive
-                          ? 'bg-brand-500 text-dark-950 font-black shadow-md shadow-brand-500/20'
-                          : 'text-slate-400 hover:text-white hover:bg-dark-900'
-                      }`}
-                    >
-                      <div className="flex items-center gap-2.5">
-                        <Icon className="w-4 h-4" />
-                        <span>{item.label}</span>
-                      </div>
-                      {item.count !== undefined && item.count > 0 && (
-                        <span
-                          className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
-                            isActive ? 'bg-dark-950 text-brand-300' : 'bg-dark-900 text-slate-300'
-                          }`}
-                        >
-                          {item.count}
-                        </span>
-                      )}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            <div className="pt-4 border-t border-dark-800">
-              <button
-                onClick={handleLogout}
-                disabled={logoutLoading}
-                className="w-full px-3.5 py-2.5 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {logoutLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <LogOut className="w-4 h-4" />
-                )}
-                <span>{logoutLoading ? 'Logging out...' : 'Log Out'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* DESKTOP FIXED LEFT SIDEBAR (Requirement 11) */}
-      <aside className="hidden lg:flex flex-col w-64 fixed inset-y-0 left-0 bg-dark-950 border-r border-dark-800/90 z-30 p-5 justify-between">
-        <div className="space-y-6 overflow-y-auto pr-1">
-          {/* Admin Header Branding */}
-          <div className="flex items-center gap-2.5 pb-5 border-b border-dark-800">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-black text-dark-950 text-base shadow-md shadow-brand-500/20">
-              TM
-            </div>
-            <div>
-              <span className="font-extrabold text-white text-sm block">TaskMint</span>
-              <span className="text-[10px] text-brand-400 font-bold tracking-wider uppercase flex items-center gap-1">
-                <Shield className="w-3 h-3" /> Control Panel
-              </span>
-            </div>
-          </div>
-
-          {/* Navigation Links */}
-          <nav className="space-y-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => router.push(`/admin?tab=${item.id}`)}
-                  className={`w-full px-3 py-2.5 rounded-xl text-xs font-bold text-left flex items-center justify-between transition-all cursor-pointer ${
-                    isActive
-                      ? 'bg-brand-500 text-dark-950 shadow-md shadow-brand-500/20'
-                      : 'text-slate-400 hover:text-white hover:bg-dark-900'
-                  }`}
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Icon className="w-4 h-4" />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.count !== undefined && item.count > 0 && (
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-mono ${
-                        isActive ? 'bg-dark-950 text-brand-300' : 'bg-dark-900 text-slate-300'
-                      }`}
-                    >
-                      {item.count}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
-        </div>
-
-        {/* Footer Admin User & Logout */}
-        <div className="pt-4 border-t border-dark-800 space-y-3">
-          <div className="flex items-center gap-2.5 px-2">
-            <div className="w-8 h-8 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-300 flex items-center justify-center font-bold text-xs">
-              AD
-            </div>
-            <div className="truncate">
-              <span className="text-xs font-bold text-white block truncate">{adminUser?.fullName || 'Administrator'}</span>
-              <span className="text-[10px] text-slate-400 font-mono block">@{adminUser?.username || 'admin'}</span>
-            </div>
-          </div>
-
-          <button
-            onClick={handleLogout}
-            disabled={logoutLoading}
-            className="w-full px-3 py-2 rounded-xl text-xs font-bold text-rose-400 hover:bg-rose-500/10 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {logoutLoading ? (
-              <Loader2 className="w-4 h-4 animate-spin" />
-            ) : (
-              <LogOut className="w-4 h-4" />
-            )}
-            <span>{logoutLoading ? 'Logging out...' : 'Terminate Admin Session'}</span>
-          </button>
-        </div>
-      </aside>
-
-      {/* MAIN CONTENT AREA */}
-      <main className="flex-1 lg:pl-64 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl">
+      <main className="flex-1 lg:pl-64 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl pt-20 lg:pt-8">
         {/* Global Notifications */}
         {error && (
           <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center justify-between gap-3 animate-in fade-in duration-200 shadow-lg shadow-rose-900/20">
@@ -1122,55 +906,121 @@ function AdminDashboardInner() {
               </button>
             </div>
 
-            {/* Quick Metrics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
-                <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+            {/* Quick Metrics Grid — 2-Column Mobile Grid Layout */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* Card 1: Total Registered Users */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Total Users
+                  <Users className="w-4 h-4 text-blue-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-white font-mono">
+                  {stats ? (stats.users?.total ?? 0).toLocaleString() : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {stats ? `${(stats.users?.verified ?? 0)} phone verified` : '—'}
+                </span>
+              </div>
+
+              {/* Card 2: Active Users */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Active Users
+                  <Users className="w-4 h-4 text-emerald-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-white font-mono">
+                  {stats ? (stats.users?.active ?? 0).toLocaleString() : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {stats ? `${(stats.users?.suspended ?? 0)} suspended` : '—'}
+                </span>
+              </div>
+
+              {/* Card 3: Total Activation Fees (from /api/admin/earnings) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Activation Fees
+                  <Coins className="w-4 h-4 text-brand-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-white font-mono truncate">
+                  {earningsData?.stats ? `KES ${(earningsData.stats.totalActivationRevenue ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {earningsData?.stats ? `${(earningsData.stats.totalActivationPayments ?? 0)} paid activations` : '—'}
+                </span>
+              </div>
+
+              {/* Card 4: Total Admin Earnings (from /api/admin/earnings) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-emerald-500/20 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-emerald-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Admin Earnings
+                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-emerald-400 font-mono truncate">
+                  {earningsData?.stats ? `KES ${(earningsData.stats.totalAdminEarnings ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {earningsData?.stats ? `Today: KES ${(earningsData.stats.todayAdminEarnings ?? 0).toLocaleString()}` : '—'}
+                </span>
+              </div>
+
+              {/* Card 5: Total Referral Earnings / Commissions (from /api/admin/earnings) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-cyan-500/20 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-cyan-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Total Commissions
+                  <Users className="w-4 h-4 text-cyan-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-cyan-300 font-mono truncate">
+                  {earningsData?.stats ? `KES ${(earningsData.stats.totalReferralRewardsPaid ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  Referral rewards paid to users
+                </span>
+              </div>
+
+              {/* Card 6: All User Wallets (from /api/admin/stats) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  User Wallets
+                  <Wallet className="w-4 h-4 text-purple-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-white font-mono truncate">
+                  {stats ? `KES ${(stats.wallets?.totalUserBalanceKES ?? 0).toLocaleString()}` : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {stats ? `KES ${(stats.wallets?.pendingBalanceKES ?? 0).toLocaleString()} pending` : '—'}
+                </span>
+              </div>
+
+              {/* Card 7: Pending Withdrawals (from /api/admin/stats) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Pending Payouts
+                  <Wallet className="w-4 h-4 text-amber-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-white font-mono truncate">
+                  {stats ? `KES ${(stats.wallets?.pendingWithdrawalsKES ?? 0).toLocaleString()}` : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {stats ? `${(stats.wallets?.pendingWithdrawalsCount ?? 0)} awaiting review` : '—'}
+                </span>
+              </div>
+
+              {/* Card 8: Pending Submissions (from /api/admin/stats) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
                   Pending Submissions
                   <FileText className="w-4 h-4 text-amber-400" />
                 </span>
-                <p className="text-2xl font-black text-white">{stats?.submissions?.pendingReview || 0}</p>
+                <p className="text-xl sm:text-2xl font-black text-white font-mono">
+                  {stats ? (stats.submissions?.pendingReview ?? 0).toLocaleString() : '—'}
+                </p>
                 <button
                   onClick={() => router.push('/admin?tab=submissions')}
-                  className="text-xs text-brand-400 font-bold hover:underline flex items-center gap-1 cursor-pointer pt-1"
+                  className="text-[11px] text-brand-400 font-bold hover:underline flex items-center gap-1 cursor-pointer pt-0.5 truncate"
                 >
-                  Review Submissions <ChevronRight className="w-3.5 h-3.5" />
+                  {stats ? `${(stats.submissions?.pendingTasks ?? 0)} task • ${(stats.submissions?.pendingWhatsapp ?? 0)} WA` : '—'} <ChevronRight className="w-3 h-3" />
                 </button>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
-                <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  Pending Withdrawals
-                  <Wallet className="w-4 h-4 text-emerald-400" />
-                </span>
-                <p className="text-2xl font-black text-white">
-                  KES {stats?.wallets?.pendingWithdrawalsKES?.toLocaleString() || 0}
-                </p>
-                <span className="text-xs text-slate-400 block">
-                  {stats?.wallets?.pendingWithdrawalsCount || 0} requests awaiting review
-                </span>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
-                <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  Total Registered Users
-                  <Users className="w-4 h-4 text-blue-400" />
-                </span>
-                <p className="text-2xl font-black text-white">{stats?.users?.total || 0}</p>
-                <span className="text-xs text-slate-400 block">
-                  {stats?.users?.verified || 0} Safaricom phone verified
-                </span>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
-                <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  Published Tasks
-                  <CheckSquare className="w-4 h-4 text-brand-400" />
-                </span>
-                <p className="text-2xl font-black text-white">{stats?.tasks?.published || 0}</p>
-                <span className="text-xs text-slate-400 block">
-                  across {stats?.tasks?.categoriesCount || 0} active categories
-                </span>
               </div>
             </div>
 
@@ -1232,7 +1082,7 @@ function AdminDashboardInner() {
             </div>
 
             {/* Financial Overview Metrics (Requirements 5 & 24) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* 1. Total Activation Revenue */}
               <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
                 <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
@@ -2426,7 +2276,6 @@ function AdminDashboardInner() {
           </div>
         )}
       </main>
-    </div>
   );
 }
 

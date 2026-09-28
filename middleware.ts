@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
-import { jwtVerify } from 'jose';
+import { verifyToken } from '@/lib/jwt';
 
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'default_taskmint_secret_key_change_in_production_2026'
-);
 
 export async function middleware(request: NextRequest) {
   // Geo-IP Blocking (Kenya Only)
@@ -24,14 +21,12 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/admin/login') {
     if (token) {
       try {
-        const verified = await jwtVerify(token, SECRET_KEY);
-        const payload = verified.payload as any;
-        if (payload.role === 'ADMIN') {
+        const payload = await verifyToken(token);
+        if (payload?.role === 'ADMIN') {
           return NextResponse.redirect(new URL('/admin', request.url));
         }
-        return NextResponse.redirect(new URL('/dashboard', request.url));
+        if (payload) return NextResponse.redirect(new URL('/dashboard', request.url));
       } catch (error) {
-        // Invalid/expired token: treat as logged out, allow rendering login page
       }
     }
     return NextResponse.next();
@@ -46,9 +41,8 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      const verified = await jwtVerify(token, SECRET_KEY);
-      const payload = verified.payload as any;
-      if (payload.role !== 'ADMIN') {
+      const payload = await verifyToken(token);
+      if (!payload || payload.role !== 'ADMIN') {
         // Ordinary users cannot access the admin panel
         return NextResponse.redirect(new URL('/dashboard', request.url));
       }
@@ -56,6 +50,7 @@ export async function middleware(request: NextRequest) {
       response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
       return response;
     } catch (error) {
+      // Only reachable if verifyToken itself throws — defensive, should not occur
       const loginUrl = new URL('/admin/login', request.url);
       loginUrl.searchParams.set('redirect', pathname);
       const response = NextResponse.redirect(loginUrl);
@@ -84,7 +79,8 @@ export async function middleware(request: NextRequest) {
     }
 
     try {
-      await jwtVerify(token, SECRET_KEY);
+      const payload = await verifyToken(token);
+      if (!payload) throw new Error('invalid token');
       const response = NextResponse.next();
       // Enforce strict no-cache on private user data
       response.headers.set('Cache-Control', 'no-store, max-age=0, must-revalidate');
@@ -103,14 +99,12 @@ export async function middleware(request: NextRequest) {
   // Redirect logged-in users away from auth pages
   if (isAuthPage && token) {
     try {
-      const verified = await jwtVerify(token, SECRET_KEY);
-      const payload = verified.payload as any;
-      if (payload.role === 'ADMIN') {
+      const payload = await verifyToken(token);
+      if (payload?.role === 'ADMIN') {
         return NextResponse.redirect(new URL('/admin', request.url));
       }
-      return NextResponse.redirect(new URL('/dashboard', request.url));
+      if (payload) return NextResponse.redirect(new URL('/dashboard', request.url));
     } catch (error) {
-      // Invalid token, allow access to login/register
     }
   }
 

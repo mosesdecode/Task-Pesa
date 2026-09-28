@@ -1,18 +1,10 @@
 import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
-import { SignJWT, jwtVerify } from 'jose';
 import { prisma } from './prisma';
+import { JWTPayload, signToken, verifyToken, getAdminTokenPayload } from './jwt';
 
-const SECRET_KEY = new TextEncoder().encode(
-  process.env.NEXTAUTH_SECRET || 'default_taskmint_secret_key_change_in_production_2026'
-);
-
-export interface JWTPayload {
-  userId: string;
-  email: string;
-  role: 'USER' | 'ADMIN';
-  phone: string;
-}
+export type { JWTPayload };
+export { signToken, verifyToken, getAdminTokenPayload };
 
 export async function hashPassword(password: string): Promise<string> {
   return await bcrypt.hash(password, 10);
@@ -22,22 +14,7 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
   return await bcrypt.compare(password, hash);
 }
 
-export async function signToken(payload: JWTPayload): Promise<string> {
-  return await new SignJWT({ ...payload })
-    .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime('7d')
-    .sign(SECRET_KEY);
-}
 
-export async function verifyToken(token: string): Promise<JWTPayload | null> {
-  try {
-    const verified = await jwtVerify(token, SECRET_KEY);
-    return verified.payload as unknown as JWTPayload;
-  } catch (error) {
-    return null;
-  }
-}
 
 export async function getSessionUser(req: NextRequest) {
   const token =

@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import Navbar from '@/components/Navbar';
-import MobileNav from '@/components/MobileNav';
-import Footer from '@/components/Footer';
+import ConditionalPublicChrome from './ConditionalPublicChrome';
 
 export const metadata: Metadata = {
   title: 'TaskMint — Digital Micro-Work and Opportunity Marketplace',
@@ -19,10 +17,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark scroll-smooth">
       <body className="bg-dark-900 text-slate-100 flex flex-col min-h-screen selection:bg-brand-500 selection:text-dark-900">
-        <Navbar />
-        <main className="flex-grow">{children}</main>
-        <Footer />
-        <MobileNav />
+        <ConditionalPublicChrome>{children}</ConditionalPublicChrome>
       </body>
     </html>
   );
