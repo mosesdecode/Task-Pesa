@@ -790,13 +790,13 @@ function AdminDashboardInner() {
   // Withdrawal Approval Action
   const handleUpdateWithdrawalStatus = async (withdrawalId: string, status: 'PAID' | 'REJECTED') => {
     try {
+      const action = status === 'PAID' ? 'APPROVE' : 'REJECT';
       const res = await fetch('/api/admin/withdrawals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           withdrawalId,
-          status,
-          mpesaReceipt: status === 'PAID' ? `MINT${Math.floor(100000 + Math.random() * 900000)}` : undefined,
+          action,
           adminNotes: status === 'PAID' ? 'Approved & paid out via M-Pesa' : 'Withdrawal rejected by administrator',
         }),
       });
@@ -2149,13 +2149,21 @@ function AdminDashboardInner() {
                     {w.status === 'PENDING' && (
                       <div className="flex items-center gap-2 pt-2 border-t border-dark-800/80">
                         <button
-                          onClick={() => handleUpdateWithdrawalStatus(w.id, 'PAID')}
+                          onClick={() => {
+                            if (window.confirm(`Confirm you have already sent KES ${w.amount} to ${w.mpesaNumber} via M-Pesa? This marks it PAID and cannot be undone.`)) {
+                              handleUpdateWithdrawalStatus(w.id, 'PAID');
+                            }
+                          }}
                           className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-black text-xs cursor-pointer shadow-md shadow-emerald-500/20"
                         >
                           Mark Paid
                         </button>
                         <button
-                          onClick={() => handleUpdateWithdrawalStatus(w.id, 'REJECTED')}
+                          onClick={() => {
+                            if (window.confirm(`Reject this withdrawal? KES ${w.amount} will be refunded to the user's wallet.`)) {
+                              handleUpdateWithdrawalStatus(w.id, 'REJECTED');
+                            }
+                          }}
                           className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold text-xs cursor-pointer"
                         >
                           Reject
