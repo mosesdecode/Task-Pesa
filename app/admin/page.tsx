@@ -183,7 +183,51 @@ function AdminDashboardInner() {
   // Filter & Search States
   const [userSearch, setUserSearch] = useState('');
   const [withdrawalFilter, setWithdrawalFilter] = useState<'ALL' | 'COMPLETED' | 'REJECTED' | 'PENDING'>('ALL');
+  const [withdrawalSearch, setWithdrawalSearch] = useState('');
+  const [withdrawalStartDate, setWithdrawalStartDate] = useState('');
+  const [withdrawalEndDate, setWithdrawalEndDate] = useState('');
   const [taskSearch, setTaskSearch] = useState('');
+
+  // Filtered withdrawals memo
+  const filteredWithdrawals = useMemo(() => {
+    if (!withdrawalsList) return [];
+    return withdrawalsList.filter((w) => {
+      // Status filter
+      if (withdrawalFilter === 'PENDING' && w.status !== 'PENDING') return false;
+      if (withdrawalFilter === 'COMPLETED' && w.status !== 'PAID' && w.status !== 'COMPLETED') return false;
+      if (withdrawalFilter === 'REJECTED' && w.status !== 'REJECTED') return false;
+
+      // Search filter (username, fullName, email, phone, mpesaNumber, mpesaReceipt)
+      if (withdrawalSearch.trim()) {
+        const q = withdrawalSearch.toLowerCase().trim();
+        const uName = (w.user?.username || '').toLowerCase();
+        const fName = (w.user?.fullName || '').toLowerCase();
+        const uEmail = (w.user?.email || '').toLowerCase();
+        const uPhone = (w.user?.phone || '').toLowerCase();
+        const mPhone = (w.mpesaNumber || '').toLowerCase();
+        const mReceipt = (w.mpesaReceipt || '').toLowerCase();
+        if (!uName.includes(q) && !fName.includes(q) && !uEmail.includes(q) && !uPhone.includes(q) && !mPhone.includes(q) && !mReceipt.includes(q)) {
+          return false;
+        }
+      }
+
+      // Date range filters
+      if (withdrawalStartDate) {
+        const start = new Date(withdrawalStartDate);
+        start.setHours(0, 0, 0, 0);
+        const reqDate = new Date(w.requestedAt);
+        if (reqDate < start) return false;
+      }
+      if (withdrawalEndDate) {
+        const end = new Date(withdrawalEndDate);
+        end.setHours(23, 59, 59, 999);
+        const reqDate = new Date(w.requestedAt);
+        if (reqDate > end) return false;
+      }
+
+      return true;
+    });
+  }, [withdrawalsList, withdrawalFilter, withdrawalSearch, withdrawalStartDate, withdrawalEndDate]);
 
   // API Error States
   const [statsError, setStatsError] = useState('');
@@ -1854,98 +1898,272 @@ function AdminDashboardInner() {
         {activeTab === 'wallets' && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <ErrorBanner error={withdrawalsError} onRetry={fetchWithdrawals} onDismiss={() => setWithdrawalsError('')} />
-            <div className="border-b border-dark-800 pb-4">
-              <h1 className="text-2xl font-black text-white">User Wallets & Withdrawals</h1>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Aggregated from actual database user wallet records. No hardcoded metrics.
-              </p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-4">
+              <div>
+                <h1 className="text-2xl font-black text-white">User Wallets & Withdrawals</h1>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Manage worker withdrawal requests, review M-Pesa payout queues, and inspect user balances.
+                </p>
+              </div>
+              <button
+                onClick={fetchWithdrawals}
+                disabled={loading}
+                className="px-4 py-2 rounded-xl bg-dark-900 border border-dark-800 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 self-start cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Refresh Queue</span>
+              </button>
             </div>
 
-            {/* Real Wallet Database Metrics Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Total User Wallets</span>
-                <p className="text-2xl font-black text-white font-mono">{stats?.wallets?.totalWallets || 0}</p>
-                <span className="text-xs text-slate-400">1:1 User-to-Wallet mapping</span>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Wallets With Balance</span>
-                <p className="text-2xl font-black text-emerald-400 font-mono">{stats?.wallets?.walletsWithBalance || 0}</p>
-                <span className="text-xs text-slate-400">Users with funds &gt; KES 0</span>
-              </div>
-
-              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Total User Balance</span>
-                <p className="text-2xl font-black text-brand-400 font-mono">
-                  KES {stats?.wallets?.totalUserBalanceKES?.toLocaleString() || '0.00'}
+            {/* Summary Cards Grid — 2-Column Mobile Grid Layout */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+              {/* 1. Completed Count */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Completed Count
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-emerald-400 font-mono">
+                  {!withdrawalsError && withdrawalsList ? (withdrawalsList.filter(w => w.status === 'PAID' || w.status === 'COMPLETED').length ?? 0).toLocaleString() : '—'}
                 </p>
-                <span className="text-xs text-slate-400">Total available worker funds</span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  Successful payouts
+                </span>
               </div>
 
-              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-1">
-                <span className="text-[10px] text-slate-500 uppercase font-bold">Total Completed Payouts</span>
-                <p className="text-2xl font-black text-white font-mono">
-                  KES {stats?.wallets?.completedWithdrawalsKES?.toLocaleString() || '0.00'}
+              {/* 2. Rejected Count */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Rejected Count
+                  <XCircle className="w-4 h-4 text-rose-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-rose-400 font-mono">
+                  {!withdrawalsError && withdrawalsList ? (withdrawalsList.filter(w => w.status === 'REJECTED').length ?? 0).toLocaleString() : '—'}
                 </p>
-                <span className="text-xs text-slate-400">{stats?.wallets?.completedWithdrawalsCount || 0} processed</span>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  Denied requests
+                </span>
+              </div>
+
+              {/* 3. Total Paid Amount */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Total Paid
+                  <Coins className="w-4 h-4 text-brand-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-white font-mono truncate">
+                  {!withdrawalsError && withdrawalsList
+                    ? `KES ${(withdrawalsList.filter(w => w.status === 'PAID' || w.status === 'COMPLETED').reduce((acc, w) => acc + (w.amount || 0), 0)).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`
+                    : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  Sum of paid withdrawals
+                </span>
+              </div>
+
+              {/* 4. Processed Today */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Processed Today
+                  <Calendar className="w-4 h-4 text-cyan-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-cyan-300 font-mono">
+                  {!withdrawalsError && withdrawalsList ? (() => {
+                    const startOfToday = new Date();
+                    startOfToday.setHours(0, 0, 0, 0);
+                    return withdrawalsList.filter(w => {
+                      const d = new Date(w.processedAt || w.requestedAt);
+                      return d >= startOfToday && (w.status === 'PAID' || w.status === 'COMPLETED' || w.status === 'REJECTED');
+                    }).length.toLocaleString();
+                  })() : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  Processed since midnight
+                </span>
               </div>
             </div>
 
-            {/* Withdrawals Management Queue */}
-            <div className="space-y-4">
-              <h2 className="text-base font-bold text-white">Withdrawal Requests Queue</h2>
-              {withdrawalsList.length === 0 ? (
-                <div className="p-12 text-center text-slate-400 bg-dark-900 rounded-3xl border border-dark-800">
-                  No withdrawal requests in database.
+            {/* Filter & Search Bar Card */}
+            <div className="p-4 rounded-3xl bg-dark-900 border border-dark-800 space-y-4">
+              {/* Status Filter Tabs */}
+              <div className="flex flex-wrap items-center gap-2 border-b border-dark-800 pb-3">
+                {[
+                  { id: 'ALL', label: 'All Requests', count: withdrawalsList?.length ?? 0 },
+                  { id: 'PENDING', label: 'Pending', count: withdrawalsList?.filter(w => w.status === 'PENDING').length ?? 0 },
+                  { id: 'COMPLETED', label: 'Completed', count: withdrawalsList?.filter(w => w.status === 'PAID' || w.status === 'COMPLETED').length ?? 0 },
+                  { id: 'REJECTED', label: 'Rejected', count: withdrawalsList?.filter(w => w.status === 'REJECTED').length ?? 0 },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setWithdrawalFilter(tab.id as any)}
+                    className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                      withdrawalFilter === tab.id
+                        ? 'bg-brand-500 text-dark-950 shadow-md shadow-brand-500/20'
+                        : 'bg-dark-800/60 text-slate-400 hover:text-white hover:bg-dark-800'
+                    }`}
+                  >
+                    <span>{tab.label}</span>
+                    <span className={`px-1.5 py-0.2 rounded-md text-[10px] font-extrabold ${
+                      withdrawalFilter === tab.id ? 'bg-dark-950/20 text-dark-950' : 'bg-dark-950 text-slate-400'
+                    }`}>
+                      {tab.count}
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Search & Date Range Inputs */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="relative">
+                  <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                  <input
+                    type="text"
+                    placeholder="Search user, phone, M-Pesa..."
+                    value={withdrawalSearch}
+                    onChange={(e) => setWithdrawalSearch(e.target.value)}
+                    className="w-full pl-9 pr-4 py-2 rounded-xl bg-dark-950 border border-dark-800 text-slate-200 text-xs focus:outline-none focus:border-brand-500 transition-colors"
+                  />
+                  {withdrawalSearch && (
+                    <button onClick={() => setWithdrawalSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-bold shrink-0">From:</span>
+                  <input
+                    type="date"
+                    value={withdrawalStartDate}
+                    onChange={(e) => setWithdrawalStartDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-dark-800 text-slate-200 text-xs focus:outline-none focus:border-brand-500 transition-colors"
+                  />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-slate-400 font-bold shrink-0">To:</span>
+                  <input
+                    type="date"
+                    value={withdrawalEndDate}
+                    onChange={(e) => setWithdrawalEndDate(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-dark-800 text-slate-200 text-xs focus:outline-none focus:border-brand-500 transition-colors"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile-First Cards List */}
+            <div className="space-y-3">
+              {filteredWithdrawals.length === 0 ? (
+                <div className="p-12 text-center text-slate-400 bg-dark-900 rounded-3xl border border-dark-800 space-y-2">
+                  <Wallet className="w-8 h-8 text-slate-600 mx-auto mb-2" />
+                  <p className="text-sm font-bold text-slate-300">No withdrawal requests found</p>
+                  <p className="text-xs text-slate-500">Try adjusting your filters or search terms.</p>
                 </div>
               ) : (
-                <div className="space-y-3">
-                  {withdrawalsList.map((w) => (
-                    <div
-                      key={w.id}
-                      className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex flex-col md:flex-row md:items-center justify-between gap-3"
-                    >
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white text-sm">@{w.user?.username || 'User'}</span>
-                          <span className="text-xs text-slate-400 font-mono">({w.mpesaNumber})</span>
-                          <span
-                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                              w.status === 'PAID' || w.status === 'COMPLETED'
-                                ? 'bg-emerald-500/15 text-emerald-400'
-                                : w.status === 'REJECTED'
-                                ? 'bg-rose-500/15 text-rose-400'
-                                : 'bg-amber-500/15 text-amber-400'
-                            }`}
-                          >
-                            {w.status}
+                filteredWithdrawals.map((w) => (
+                  <div
+                    key={w.id}
+                    className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3 hover:border-dark-700 transition-colors"
+                  >
+                    {/* Top Row: User details & Status Badge */}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-0.5 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-extrabold text-white text-sm truncate">
+                            {w.user?.fullName || w.user?.username || 'Worker Account'}
+                          </span>
+                          <span className="text-xs text-brand-400 font-mono font-bold">
+                            @{w.user?.username || 'user'}
                           </span>
                         </div>
-                        <span className="text-xs text-slate-400 font-mono mt-1 block">
-                          KES {w.amount?.toFixed(2)} requested on {new Date(w.requestedAt).toLocaleDateString()}
+                        <p className="text-xs text-slate-400 font-mono truncate">
+                          {formatKenyanPhoneDisplay(w.user?.phone || w.mpesaNumber)}
+                          {w.user?.email ? ` • ${w.user.email}` : ''}
+                        </p>
+                      </div>
+
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-[11px] font-extrabold shrink-0 border ${
+                          w.status === 'PAID' || w.status === 'COMPLETED'
+                            ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                            : w.status === 'REJECTED'
+                            ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                            : 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                        }`}
+                      >
+                        {w.status}
+                      </span>
+                    </div>
+
+                    {/* Details Grid: Amount, M-Pesa Number, Fee (if present), Dates */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3 rounded-xl bg-dark-950/60 border border-dark-800/80 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase block">Amount</span>
+                        <span className="font-mono font-black text-white text-sm">
+                          KES {(w.amount ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
                         </span>
                       </div>
 
-                      {w.status === 'PENDING' && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleUpdateWithdrawalStatus(w.id, 'PAID')}
-                            className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-black text-xs cursor-pointer"
-                          >
-                            Mark Paid
-                          </button>
-                          <button
-                            onClick={() => handleUpdateWithdrawalStatus(w.id, 'REJECTED')}
-                            className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold text-xs cursor-pointer"
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      )}
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase block">M-Pesa Number</span>
+                        <span className="font-mono font-bold text-slate-300">
+                          {formatKenyanPhoneDisplay(w.mpesaNumber)}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase block">Requested</span>
+                        <span className="text-slate-400">
+                          {new Date(w.requestedAt).toLocaleDateString()}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] text-slate-500 font-bold uppercase block">
+                          {(w.fee != null || w.withdrawalFee != null) ? 'Fee' : w.processedAt ? 'Processed' : 'Receipt'}
+                        </span>
+                        <span className="text-slate-400 font-mono truncate block">
+                          {(w.fee != null || w.withdrawalFee != null)
+                            ? `KSh ${w.fee ?? w.withdrawalFee}`
+                            : w.processedAt
+                            ? new Date(w.processedAt).toLocaleDateString()
+                            : w.mpesaReceipt || '—'}
+                        </span>
+                      </div>
                     </div>
-                  ))}
-                </div>
+
+                    {/* Admin Notes / M-Pesa Receipt detail if present */}
+                    {(w.adminNotes || w.mpesaReceipt) && (
+                      <div className="text-[11px] text-slate-400 space-y-0.5 pt-1">
+                        {w.mpesaReceipt && (
+                          <p><span className="text-slate-500 font-bold">M-Pesa Receipt:</span> <code className="text-emerald-400 font-mono">{w.mpesaReceipt}</code></p>
+                        )}
+                        {w.adminNotes && (
+                          <p><span className="text-slate-500 font-bold">Admin Notes:</span> {w.adminNotes}</p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* HARD RULE UNTOUCHED ACTION BUTTONS */}
+                    {w.status === 'PENDING' && (
+                      <div className="flex items-center gap-2 pt-2 border-t border-dark-800/80">
+                        <button
+                          onClick={() => handleUpdateWithdrawalStatus(w.id, 'PAID')}
+                          className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-black text-xs cursor-pointer shadow-md shadow-emerald-500/20"
+                        >
+                          Mark Paid
+                        </button>
+                        <button
+                          onClick={() => handleUpdateWithdrawalStatus(w.id, 'REJECTED')}
+                          className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold text-xs cursor-pointer"
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))
               )}
             </div>
           </div>
@@ -2003,29 +2221,38 @@ function AdminDashboardInner() {
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <input
-                  type="number"
-                  placeholder="Duration (Secs)"
-                  value={advertForm.durationSeconds}
-                  onChange={(e) => setAdvertForm({ ...advertForm, durationSeconds: e.target.value })}
-                  className="px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs font-mono"
-                />
-                <input
-                  type="number"
-                  step="0.5"
-                  placeholder="Reward (KES)"
-                  value={advertForm.reward}
-                  onChange={(e) => setAdvertForm({ ...advertForm, reward: e.target.value })}
-                  className="px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs font-mono"
-                />
-                <select
-                  value={advertForm.status}
-                  onChange={(e) => setAdvertForm({ ...advertForm, status: e.target.value })}
-                  className="px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs"
-                >
-                  <option value="ACTIVE">Active (Published)</option>
-                  <option value="PAUSED">Paused</option>
-                </select>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">Duration (Seconds)</label>
+                  <input
+                    type="number"
+                    placeholder="Duration (Secs)"
+                    value={advertForm.durationSeconds}
+                    onChange={(e) => setAdvertForm({ ...advertForm, durationSeconds: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs font-mono focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">Reward (KES)</label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    placeholder="Reward (KES)"
+                    value={advertForm.reward}
+                    onChange={(e) => setAdvertForm({ ...advertForm, reward: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs font-mono focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">Initial Status</label>
+                  <select
+                    value={advertForm.status}
+                    onChange={(e) => setAdvertForm({ ...advertForm, status: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs focus:outline-none focus:border-brand-500"
+                  >
+                    <option value="ACTIVE">Active (Published)</option>
+                    <option value="PAUSED">Paused</option>
+                  </select>
+                </div>
               </div>
 
               <button
