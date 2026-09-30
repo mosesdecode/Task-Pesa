@@ -8,7 +8,6 @@ import {
   PlaySquare,
   Share2,
   Users,
-  Smartphone,
   ShieldCheck,
   Zap,
   ArrowRight,
@@ -265,30 +264,6 @@ export default function LandingPage() {
               )}
             </div>
           ))}
-        </div>
-      </section>
-
-      {/* 6. M-PESA TRUST SECTION */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-slate-900 via-slate-950 to-slate-900 border border-slate-800 flex flex-col md:flex-row items-center justify-between gap-8">
-          <div className="space-y-4 max-w-xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold">
-              <Smartphone className="w-4 h-4" />
-              Safaricom M-Pesa Daraja Secured
-            </div>
-            <h3 className="text-2xl sm:text-3xl font-black text-white">
-              Fast & Convenient M-Pesa Payments
-            </h3>
-            <p className="text-sm text-gray-400 leading-relaxed">
-              All account activation payments use instant STK Push technology directly on your mobile device. Approved withdrawals are disbursed every Friday directly to your verified M-Pesa number.
-            </p>
-          </div>
-          <Link
-            href="/register"
-            className="px-8 py-4 rounded-2xl bg-brand-500 hover:bg-brand-400 text-dark-900 font-extrabold text-sm shadow-xl shadow-brand-500/20 transition-transform hover:scale-105 shrink-0"
-          >
-            Create Your Account Today
-          </Link>
         </div>
       </section>
     </div>

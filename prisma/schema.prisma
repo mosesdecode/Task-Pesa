@@ -58,6 +58,8 @@ model User {
   verificationRecords  VerificationRecord[]
   deviceLogs           DeviceLog[]
   otpCodes             OtpCode[]
+  updatedSocialLinks   SocialLink[]     @relation("SocialLinkUpdatedBy")
+  updatedBanners       Banner[]         @relation("BannerUpdatedBy")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -408,22 +410,38 @@ model OtpCode {
 }
 
 model Banner {
-  id        String   @id @default(uuid())
-  title     String
-  imageUrl  String
-  linkUrl   String?
-  isActive  Boolean  @default(true)
-  sortOrder Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String    @id @default(uuid())
+  title       String
+  subtitle    String?
+  body        String?
+  imageUrl    String
+  imageAlt    String?
+  ctaLabel    String?
+  ctaUrl      String?
+  linkUrl     String?
+  placement   String    @default("landing") // landing, home
+  isActive    Boolean   @default(true)
+  sortOrder   Int       @default(0)
+  startsAt    DateTime?
+  endsAt      DateTime?
+  updatedById String?
+  updatedBy   User?     @relation("BannerUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }
 
 model SocialLink {
-  id        String   @id @default(uuid())
-  platform  String   @unique // whatsapp, facebook, telegram, instagram
-  label     String
-  url       String
-  isActive  Boolean  @default(true)
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  platform    String   // whatsapp, facebook, telegram, instagram, x, tiktok, youtube, email, phone, custom
+  label       String
+  url         String
+  icon_key    String?
+  placement   String[] @default(["community_row"])
+  isActive    Boolean  @default(true)
+  sort_order  Int      @default(0)
+  updatedById String?
+  updatedBy   User?    @relation("SocialLinkUpdatedBy", fields: [updatedById], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }
 

@@ -25,6 +25,7 @@ import {
   Trash2,
   Lock,
   Key,
+<<<<<<< Updated upstream
   TrendingUp,
   RotateCcw,
   CheckCircle2,
@@ -45,6 +46,16 @@ import {
   Tag,
   Radio,
   Loader2,
+=======
+  ArrowUp,
+  ArrowDown,
+  Edit,
+  Calendar,
+  ExternalLink,
+  ToggleLeft,
+  ToggleRight,
+  Plus,
+>>>>>>> Stashed changes
 } from 'lucide-react';
 import { formatKenyanPhoneDisplay } from '@/lib/phone';
 
@@ -61,6 +72,7 @@ type AdminTab =
   | 'banners-social'
   | 'admin-settings';
 
+<<<<<<< Updated upstream
 const ErrorBanner = ({ error, onRetry, onDismiss }: { error: string, onRetry?: () => void, onDismiss: () => void }) => {
   if (!error) return null;
   return (
@@ -91,6 +103,38 @@ function AdminDashboardInner() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Core Data States
+=======
+  // Banner form state
+  const [bannerPlacementFilter, setBannerPlacementFilter] = useState<'landing' | 'home'>('landing');
+  const [bannerForm, setBannerForm] = useState({
+    title: '',
+    subtitle: '',
+    body: '',
+    imageUrl: '',
+    imageAlt: '',
+    ctaLabel: '',
+    ctaUrl: '',
+    linkUrl: '',
+    placement: 'landing',
+    sortOrder: 0,
+    isActive: true,
+    startsAt: '',
+    endsAt: '',
+  });
+  const [editingBanner, setEditingBanner] = useState<any | null>(null);
+
+  // Social link form state
+  const [socialForm, setSocialForm] = useState({
+    platform: 'whatsapp',
+    label: 'WhatsApp Community',
+    url: '',
+    icon_key: 'whatsapp',
+    placement: ['community_row'],
+    sort_order: 0,
+    isActive: true,
+  });
+  const [editingSocialLink, setEditingSocialLink] = useState<any | null>(null);
+>>>>>>> Stashed changes
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -539,6 +583,223 @@ function AdminDashboardInner() {
     }
   };
 
+<<<<<<< Updated upstream
+=======
+  // Banners Handlers
+  const handleCreateBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/banners', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...bannerForm,
+          sortOrder: parseInt(String(bannerForm.sortOrder)) || 0,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save banner');
+      setSuccessMsg('Banner created successfully!');
+      setBannerForm({
+        title: '',
+        subtitle: '',
+        body: '',
+        imageUrl: '',
+        imageAlt: '',
+        ctaLabel: '',
+        ctaUrl: '',
+        linkUrl: '',
+        placement: bannerPlacementFilter,
+        sortOrder: 0,
+        isActive: true,
+        startsAt: '',
+        endsAt: '',
+      });
+      fetchBanners();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleUpdateBanner = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingBanner) return;
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/banners', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...editingBanner,
+          sortOrder: parseInt(String(editingBanner.sortOrder)) || 0,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update banner');
+      setSuccessMsg('Banner updated successfully!');
+      setEditingBanner(null);
+      fetchBanners();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleToggleBanner = async (id: string, currentActive: boolean) => {
+    setError('');
+    try {
+      const res = await fetch('/api/admin/banners?action=toggle', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isActive: !currentActive }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to toggle banner');
+      fetchBanners();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleReorderBanner = async (id: string, direction: 'up' | 'down', currentList: any[]) => {
+    const idx = currentList.findIndex((b) => b.id === id);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= currentList.length) return;
+
+    const items = [...currentList];
+    const temp = items[idx].sortOrder;
+    items[idx].sortOrder = items[targetIdx].sortOrder;
+    items[targetIdx].sortOrder = temp;
+
+    // If sortOrders are equal, auto assign 0, 1, 2...
+    const payloadItems = items.map((item, i) => ({
+      id: item.id,
+      sortOrder: i,
+    }));
+
+    try {
+      await fetch('/api/admin/banners?action=reorder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: payloadItems }),
+      });
+      fetchBanners();
+    } catch (e) {}
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!confirm('Delete banner?')) return;
+    try {
+      await fetch(`/api/admin/banners?id=${id}`, { method: 'DELETE' });
+      fetchBanners();
+    } catch (e) {}
+  };
+
+  // Social Links Handlers
+  const handleSaveSocialLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/social-links', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...socialForm,
+          sort_order: parseInt(String(socialForm.sort_order)) || 0,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save social link');
+      setSuccessMsg('Social link saved successfully!');
+      setSocialForm({
+        platform: 'whatsapp',
+        label: 'WhatsApp Community',
+        url: '',
+        icon_key: 'whatsapp',
+        placement: ['community_row'],
+        sort_order: 0,
+        isActive: true,
+      });
+      fetchSocialLinks();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleUpdateSocialLink = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingSocialLink) return;
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/social-links', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...editingSocialLink,
+          sort_order: parseInt(String(editingSocialLink.sort_order)) || 0,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update social link');
+      setSuccessMsg('Social link updated successfully!');
+      setEditingSocialLink(null);
+      fetchSocialLinks();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleToggleSocialLink = async (id: string, currentActive: boolean) => {
+    setError('');
+    try {
+      const res = await fetch('/api/admin/social-links?action=toggle', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, isActive: !currentActive }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to toggle social link');
+      fetchSocialLinks();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleReorderSocialLink = async (id: string, direction: 'up' | 'down') => {
+    const idx = socialLinksList.findIndex((s) => s.id === id);
+    if (idx === -1) return;
+    const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (targetIdx < 0 || targetIdx >= socialLinksList.length) return;
+
+    const payloadItems = socialLinksList.map((item, i) => ({
+      id: item.id,
+      sort_order: i === idx ? targetIdx : i === targetIdx ? idx : i,
+    }));
+
+    try {
+      await fetch('/api/admin/social-links?action=reorder', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items: payloadItems }),
+      });
+      fetchSocialLinks();
+    } catch (e) {}
+  };
+
+  const handleDeleteSocialLink = async (id: string) => {
+    if (!confirm('Delete social link?')) return;
+    try {
+      await fetch(`/api/admin/social-links?id=${id}`, { method: 'DELETE' });
+      fetchSocialLinks();
+    } catch (e) {}
+  };
+
+>>>>>>> Stashed changes
   useEffect(() => {
     checkAdminAuth();
   }, []);
@@ -2329,6 +2590,7 @@ function AdminDashboardInner() {
               />
             </div>
 
+<<<<<<< Updated upstream
             <div className="space-y-3">
               {usersList
                 .filter(
@@ -2419,6 +2681,773 @@ function AdminDashboardInner() {
                       <span className="text-[10px] text-slate-400 font-mono">{s.url}</span>
                     </div>
                     <span className="text-[10px] text-brand-400 font-bold uppercase">{s.platform}</span>
+=======
+            <div className="overflow-x-auto bg-slate-900/80 border border-slate-800 rounded-2xl">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-950 text-slate-400 uppercase border-b border-slate-800">
+                  <tr>
+                    <th className="px-4 py-3">User</th>
+                    <th className="px-4 py-3">Phone / M-Pesa</th>
+                    <th className="px-4 py-3">Status / Flags</th>
+                    <th className="px-4 py-3">Package Tier</th>
+                    <th className="px-4 py-3 text-right">Available Balance</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/60">
+                  {filteredUsers.map((u) => (
+                    <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
+                      <td className="px-4 py-3 font-medium text-white">
+                        <div className="flex items-center gap-1.5">
+                          <span>{u.fullName}</span>
+                          {u.isFlagged && (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40" title={u.flagReason}>
+                              ⚠️ Flagged
+                            </span>
+                          )}
+                          {u.isBanned && (
+                            <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold border border-rose-500/40" title={u.banReason}>
+                              🚫 Banned
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[10px] text-slate-400">@{u.username} • {u.email}</div>
+                      </td>
+                      <td className="px-4 py-3 text-slate-300 font-mono">{u.phone}</td>
+                      <td className="px-4 py-3">
+                        <span className={`px-2 py-0.5 rounded font-bold ${u.isBanned ? 'bg-rose-500/20 text-rose-400' : u.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
+                          {u.isBanned ? 'BANNED' : u.status}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 font-semibold text-brand-300">{u.package?.name || 'BRONZE'}</td>
+                      <td className="px-4 py-3 text-right font-extrabold text-white">
+                        KES {(u.wallet?.availableBalance || 0).toLocaleString('en-KE')}
+                      </td>
+                      <td className="px-4 py-3 text-right space-x-1">
+                        <button
+                          onClick={() => handleUserAction(u.id, u.isBanned ? 'UNBAN' : 'BAN')}
+                          className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                            u.isBanned
+                              ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                              : 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30'
+                          }`}
+                        >
+                          {u.isBanned ? 'Unban User' : 'Ban User'}
+                        </button>
+                        <button
+                          onClick={() => handleUserAction(u.id, u.isFlagged ? 'UNFLAG' : 'FLAG')}
+                          className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
+                            u.isFlagged
+                              ? 'bg-slate-800 text-slate-300'
+                              : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30'
+                          }`}
+                        >
+                          {u.isFlagged ? 'Unflag' : 'Flag Suspect'}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 7: BANNERS & SOCIAL LINKS */}
+        {activeTab === 'banners-social' && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Top Banners Management */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+                <h2 className="text-xl font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-emerald-400" /> Managed Banners
+                </h2>
+                {/* Placement Tabs */}
+                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800 text-xs">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBannerPlacementFilter('landing');
+                      setBannerForm((prev) => ({ ...prev, placement: 'landing' }));
+                    }}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      bannerPlacementFilter === 'landing'
+                        ? 'bg-emerald-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Landing Page
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBannerPlacementFilter('home');
+                      setBannerForm((prev) => ({ ...prev, placement: 'home' }));
+                    }}
+                    className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                      bannerPlacementFilter === 'home'
+                        ? 'bg-emerald-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Dashboard (Home)
+                  </button>
+                </div>
+              </div>
+
+              {/* Banner Add / Edit Form */}
+              <form
+                onSubmit={editingBanner ? handleUpdateBanner : handleCreateBanner}
+                className="space-y-4 bg-slate-950 p-4 rounded-xl border border-slate-800"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-300 uppercase">
+                    {editingBanner ? `Edit Banner (#${editingBanner.id.slice(0, 8)})` : `Add New ${bannerPlacementFilter === 'landing' ? 'Landing Page' : 'Dashboard'} Banner`}
+                  </h3>
+                  {editingBanner && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingBanner(null)}
+                      className="text-[11px] text-rose-400 hover:underline font-bold"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Banner Title *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. 🔥 Earn KES 500 Daily completing simple verified tasks!"
+                    value={editingBanner ? editingBanner.title || '' : bannerForm.title}
+                    onChange={(e) =>
+                      editingBanner
+                        ? setEditingBanner({ ...editingBanner, title: e.target.value })
+                        : setBannerForm({ ...bannerForm, title: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Subtitle (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Join 15,000+ active Kenyans"
+                      value={editingBanner ? editingBanner.subtitle || '' : bannerForm.subtitle}
+                      onChange={(e) =>
+                        editingBanner
+                          ? setEditingBanner({ ...editingBanner, subtitle: e.target.value })
+                          : setBannerForm({ ...bannerForm, subtitle: e.target.value })
+                      }
+                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Placement Location</label>
+                    <select
+                      value={editingBanner ? editingBanner.placement : bannerForm.placement}
+                      onChange={(e) =>
+                        editingBanner
+                          ? setEditingBanner({ ...editingBanner, placement: e.target.value })
+                          : setBannerForm({ ...bannerForm, placement: e.target.value })
+                      }
+                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                    >
+                      <option value="landing">Landing Page (Public)</option>
+                      <option value="home">Dashboard Home (Authenticated)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Body Text / Announcement Details (Optional)</label>
+                  <textarea
+                    rows={2}
+                    placeholder="Additional context or campaign instructions..."
+                    value={editingBanner ? editingBanner.body || '' : bannerForm.body}
+                    onChange={(e) =>
+                      editingBanner
+                        ? setEditingBanner({ ...editingBanner, body: e.target.value })
+                        : setBannerForm({ ...bannerForm, body: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Image URL (Optional)</label>
+                    <input
+                      type="url"
+                      placeholder="https://images.unsplash.com/..."
+                      value={editingBanner ? editingBanner.imageUrl || '' : bannerForm.imageUrl}
+                      onChange={(e) =>
+                        editingBanner
+                          ? setEditingBanner({ ...editingBanner, imageUrl: e.target.value })
+                          : setBannerForm({ ...bannerForm, imageUrl: e.target.value })
+                      }
+                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Image Alt Text (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="Image description..."
+                      value={editingBanner ? editingBanner.imageAlt || '' : bannerForm.imageAlt}
+                      onChange={(e) =>
+                        editingBanner
+                          ? setEditingBanner({ ...editingBanner, imageAlt: e.target.value })
+                          : setBannerForm({ ...bannerForm, imageAlt: e.target.value })
+                      }
+                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">CTA Button Label (Optional)</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Create Account or Explore Tasks"
+                      value={editingBanner ? editingBanner.ctaLabel || '' : bannerForm.ctaLabel}
+                      onChange={(e) =>
+                        editingBanner
+                          ? setEditingBanner({ ...editingBanner, ctaLabel: e.target.value })
+                          : setBannerForm({ ...bannerForm, ctaLabel: e.target.value })
+                      }
+                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Target URL (CTA or Link)</label>
+                    <input
+                      type="text"
+                      placeholder="/register or /tasks or https://..."
+                      value={editingBanner ? editingBanner.ctaUrl || editingBanner.linkUrl || '' : bannerForm.ctaUrl || bannerForm.linkUrl}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (editingBanner) {
+                          setEditingBanner({ ...editingBanner, ctaUrl: val, linkUrl: val });
+                        } else {
+                          setBannerForm({ ...bannerForm, ctaUrl: val, linkUrl: val });
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Starts At (Schedule Start)</label>
+                    <input
+                      type="datetime-local"
+                      value={
+                        editingBanner
+                          ? editingBanner.startsAt
+                            ? new Date(editingBanner.startsAt).toISOString().slice(0, 16)
+                            : ''
+                          : bannerForm.startsAt
+                      }
+                      onChange={(e) =>
+                        editingBanner
+                          ? setEditingBanner({ ...editingBanner, startsAt: e.target.value })
+                          : setBannerForm({ ...bannerForm, startsAt: e.target.value })
+                      }
+                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Ends At (Schedule End)</label>
+                    <input
+                      type="datetime-local"
+                      value={
+                        editingBanner
+                          ? editingBanner.endsAt
+                            ? new Date(editingBanner.endsAt).toISOString().slice(0, 16)
+                            : ''
+                          : bannerForm.endsAt
+                      }
+                      onChange={(e) =>
+                        editingBanner
+                          ? setEditingBanner({ ...editingBanner, endsAt: e.target.value })
+                          : setBannerForm({ ...bannerForm, endsAt: e.target.value })
+                      }
+                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingBanner ? editingBanner.isActive : bannerForm.isActive}
+                      onChange={(e) =>
+                        editingBanner
+                          ? setEditingBanner({ ...editingBanner, isActive: e.target.checked })
+                          : setBannerForm({ ...bannerForm, isActive: e.target.checked })
+                      }
+                      className="rounded bg-slate-900 border-slate-700 text-emerald-500 focus:ring-emerald-500"
+                    />
+                    <span>Active Banner</span>
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-semibold text-slate-400">Sort Order:</label>
+                    <input
+                      type="number"
+                      value={editingBanner ? editingBanner.sortOrder : bannerForm.sortOrder}
+                      onChange={(e) =>
+                        editingBanner
+                          ? setEditingBanner({ ...editingBanner, sortOrder: parseInt(e.target.value) || 0 })
+                          : setBannerForm({ ...bannerForm, sortOrder: parseInt(e.target.value) || 0 })
+                      }
+                      className="w-16 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-white text-xs"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold transition-all"
+                >
+                  {editingBanner ? 'Save Banner Changes' : 'Add Banner Slide'}
+                </button>
+              </form>
+
+              {/* Banners List */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-slate-400 uppercase">
+                  {bannerPlacementFilter === 'landing' ? 'Landing Page' : 'Dashboard'} Banners (
+                  {bannersList.filter((b) => (b.placement || 'landing') === bannerPlacementFilter).length})
+                </h3>
+
+                {bannersList
+                  .filter((b) => (b.placement || 'landing') === bannerPlacementFilter)
+                  .map((b, idx, list) => {
+                    const now = new Date();
+                    const starts = b.startsAt ? new Date(b.startsAt) : null;
+                    const ends = b.endsAt ? new Date(b.endsAt) : null;
+                    const isFuture = starts && starts > now;
+                    const isExpired = ends && ends < now;
+
+                    let statusBadge = (
+                      <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">
+                        ACTIVE
+                      </span>
+                    );
+                    if (!b.isActive) {
+                      statusBadge = (
+                        <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 font-bold text-[10px]">
+                          DISABLED
+                        </span>
+                      );
+                    } else if (isFuture) {
+                      statusBadge = (
+                        <span className="px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold text-[10px]">
+                          SCHEDULED
+                        </span>
+                      );
+                    } else if (isExpired) {
+                      statusBadge = (
+                        <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-bold text-[10px]">
+                          EXPIRED
+                        </span>
+                      );
+                    }
+
+                    const targetUrl = b.ctaUrl || b.linkUrl;
+
+                    return (
+                      <div
+                        key={b.id}
+                        className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex items-start gap-2.5">
+                            {/* Reorder Buttons */}
+                            <div className="flex flex-col gap-1 pt-0.5">
+                              <button
+                                type="button"
+                                onClick={() => handleReorderBanner(b.id, 'up', list)}
+                                disabled={idx === 0}
+                                className="p-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
+                                title="Move Up"
+                              >
+                                <ArrowUp className="w-3 h-3" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleReorderBanner(b.id, 'down', list)}
+                                disabled={idx === list.length - 1}
+                                className="p-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
+                                title="Move Down"
+                              >
+                                <ArrowDown className="w-3 h-3" />
+                              </button>
+                            </div>
+
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-white text-sm">{b.title}</span>
+                                {statusBadge}
+                              </div>
+
+                              {b.subtitle && <p className="text-slate-300 text-xs mt-0.5">{b.subtitle}</p>}
+                              {b.body && <p className="text-slate-400 text-[11px] mt-0.5 line-clamp-1">{b.body}</p>}
+
+                              <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[10px] text-slate-400">
+                                {targetUrl && (
+                                  <a
+                                    href={targetUrl}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-brand-400 hover:underline flex items-center gap-1 font-mono"
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                    {b.ctaLabel ? `${b.ctaLabel} (${targetUrl})` : targetUrl}
+                                  </a>
+                                )}
+                                {starts && <span>Starts: {starts.toLocaleString()}</span>}
+                                {ends && <span>Ends: {ends.toLocaleString()}</span>}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleToggleBanner(b.id, b.isActive)}
+                              className={`px-2.5 py-1 rounded text-[10px] font-bold transition-all ${
+                                b.isActive
+                                  ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+                                  : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                              }`}
+                            >
+                              {b.isActive ? 'Disable' : 'Enable'}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingBanner(b)}
+                              className="px-2.5 py-1 rounded bg-brand-500/20 text-brand-300 hover:bg-brand-500/30 text-[10px] font-bold"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBanner(b.id)}
+                              className="px-2.5 py-1 rounded bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 text-[10px] font-bold"
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Social Links Management */}
+            <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-6 space-y-6">
+              <h2 className="text-xl font-bold text-white flex items-center gap-2 pb-4 border-b border-slate-800">
+                <Share2 className="w-5 h-5 text-brand-400" /> Platform Social Media Links
+              </h2>
+
+              {/* Social Link Form */}
+              <form
+                onSubmit={editingSocialLink ? handleUpdateSocialLink : handleSaveSocialLink}
+                className="space-y-4 bg-slate-950 p-4 rounded-xl border border-slate-800"
+              >
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-300 uppercase">
+                    {editingSocialLink ? `Edit Social Link (#${editingSocialLink.id.slice(0, 8)})` : 'Add New Social Link'}
+                  </h3>
+                  {editingSocialLink && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingSocialLink(null)}
+                      className="text-[11px] text-rose-400 hover:underline font-bold"
+                    >
+                      Cancel Edit
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Platform *</label>
+                    <select
+                      value={editingSocialLink ? editingSocialLink.platform : socialForm.platform}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        const defaultLabel = `${val.charAt(0).toUpperCase() + val.slice(1)} Channel`;
+                        if (editingSocialLink) {
+                          setEditingSocialLink({ ...editingSocialLink, platform: val, label: editingSocialLink.label || defaultLabel });
+                        } else {
+                          setSocialForm({ ...socialForm, platform: val, label: defaultLabel, icon_key: val });
+                        }
+                      }}
+                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                    >
+                      <option value="whatsapp">WhatsApp</option>
+                      <option value="facebook">Facebook</option>
+                      <option value="telegram">Telegram</option>
+                      <option value="instagram">Instagram</option>
+                      <option value="x">X (Twitter)</option>
+                      <option value="tiktok">TikTok</option>
+                      <option value="youtube">YouTube</option>
+                      <option value="email">Email Support</option>
+                      <option value="phone">Phone Helpline</option>
+                      <option value="custom">Custom Link</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Icon Override (Optional)</label>
+                    <select
+                      value={editingSocialLink ? editingSocialLink.icon_key || '' : socialForm.icon_key || ''}
+                      onChange={(e) =>
+                        editingSocialLink
+                          ? setEditingSocialLink({ ...editingSocialLink, icon_key: e.target.value })
+                          : setSocialForm({ ...socialForm, icon_key: e.target.value })
+                      }
+                      className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs"
+                    >
+                      <option value="">Auto (Use Platform Icon)</option>
+                      <option value="whatsapp">WhatsApp Icon</option>
+                      <option value="facebook">Facebook Icon</option>
+                      <option value="telegram">Telegram Icon</option>
+                      <option value="instagram">Instagram Icon</option>
+                      <option value="x">X / Twitter Icon</option>
+                      <option value="tiktok">Video Icon</option>
+                      <option value="youtube">YouTube Icon</option>
+                      <option value="email">Mail Icon</option>
+                      <option value="phone">Phone Icon</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Display Label *</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. WhatsApp Official Group"
+                    value={editingSocialLink ? editingSocialLink.label : socialForm.label}
+                    onChange={(e) =>
+                      editingSocialLink
+                        ? setEditingSocialLink({ ...editingSocialLink, label: e.target.value })
+                        : setSocialForm({ ...socialForm, label: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Full Target URL *</label>
+                  <input
+                    type="url"
+                    required
+                    placeholder="https://chat.whatsapp.com/... or mailto:..."
+                    value={editingSocialLink ? editingSocialLink.url : socialForm.url}
+                    onChange={(e) =>
+                      editingSocialLink
+                        ? setEditingSocialLink({ ...editingSocialLink, url: e.target.value })
+                        : setSocialForm({ ...socialForm, url: e.target.value })
+                    }
+                    className="w-full px-3 py-2 rounded-lg bg-slate-900 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-semibold text-slate-400 uppercase mb-1">Placement Display Locations</label>
+                  <div className="flex items-center gap-4 text-xs">
+                    <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={
+                          editingSocialLink
+                            ? (editingSocialLink.placement || []).includes('community_row')
+                            : socialForm.placement.includes('community_row')
+                        }
+                        onChange={(e) => {
+                          const current = editingSocialLink
+                            ? editingSocialLink.placement || []
+                            : socialForm.placement;
+                          const updated = e.target.checked
+                            ? [...current, 'community_row']
+                            : current.filter((p: string) => p !== 'community_row');
+                          if (editingSocialLink) {
+                            setEditingSocialLink({ ...editingSocialLink, placement: updated });
+                          } else {
+                            setSocialForm({ ...socialForm, placement: updated });
+                          }
+                        }}
+                        className="rounded bg-slate-900 border-slate-700 text-brand-500 focus:ring-brand-500"
+                      />
+                      <span>Landing Page Community Pill Row</span>
+                    </label>
+                    <label className="flex items-center gap-2 cursor-pointer text-slate-300">
+                      <input
+                        type="checkbox"
+                        checked={
+                          editingSocialLink
+                            ? (editingSocialLink.placement || []).includes('footer')
+                            : socialForm.placement.includes('footer')
+                        }
+                        onChange={(e) => {
+                          const current = editingSocialLink
+                            ? editingSocialLink.placement || []
+                            : socialForm.placement;
+                          const updated = e.target.checked
+                            ? [...current, 'footer']
+                            : current.filter((p: string) => p !== 'footer');
+                          if (editingSocialLink) {
+                            setEditingSocialLink({ ...editingSocialLink, placement: updated });
+                          } else {
+                            setSocialForm({ ...socialForm, placement: updated });
+                          }
+                        }}
+                        className="rounded bg-slate-900 border-slate-700 text-brand-500 focus:ring-brand-500"
+                      />
+                      <span>Footer Column</span>
+                    </label>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-slate-300 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={editingSocialLink ? editingSocialLink.isActive : socialForm.isActive}
+                      onChange={(e) =>
+                        editingSocialLink
+                          ? setEditingSocialLink({ ...editingSocialLink, isActive: e.target.checked })
+                          : setSocialForm({ ...socialForm, isActive: e.target.checked })
+                      }
+                      className="rounded bg-slate-900 border-slate-700 text-brand-500 focus:ring-brand-500"
+                    />
+                    <span>Active Social Link</span>
+                  </label>
+
+                  <div className="flex items-center gap-2">
+                    <label className="text-[11px] font-semibold text-slate-400">Sort Order:</label>
+                    <input
+                      type="number"
+                      value={editingSocialLink ? editingSocialLink.sort_order : socialForm.sort_order}
+                      onChange={(e) =>
+                        editingSocialLink
+                          ? setEditingSocialLink({ ...editingSocialLink, sort_order: parseInt(e.target.value) || 0 })
+                          : setSocialForm({ ...socialForm, sort_order: parseInt(e.target.value) || 0 })
+                      }
+                      className="w-16 px-2 py-1 rounded bg-slate-900 border border-slate-700 text-white text-xs"
+                    />
+                  </div>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-2.5 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-xs font-extrabold transition-all"
+                >
+                  {editingSocialLink ? 'Save Social Link Changes' : 'Add Social Link'}
+                </button>
+              </form>
+
+              {/* Social Links List */}
+              <div className="space-y-3">
+                <h3 className="text-xs font-bold text-slate-400 uppercase">Configured Links ({socialLinksList.length})</h3>
+
+                {socialLinksList.map((s, idx) => (
+                  <div
+                    key={s.id}
+                    className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                  >
+                    <div className="flex items-start gap-2.5">
+                      <div className="flex flex-col gap-1 pt-0.5">
+                        <button
+                          type="button"
+                          onClick={() => handleReorderSocialLink(s.id, 'up')}
+                          disabled={idx === 0}
+                          className="p-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
+                          title="Move Up"
+                        >
+                          <ArrowUp className="w-3 h-3" />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleReorderSocialLink(s.id, 'down')}
+                          disabled={idx === socialLinksList.length - 1}
+                          className="p-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
+                          title="Move Down"
+                        >
+                          <ArrowDown className="w-3 h-3" />
+                        </button>
+                      </div>
+
+                      <div>
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 font-bold uppercase text-[10px]">
+                            {s.platform}
+                          </span>
+                          <span className="font-bold text-white text-sm">{s.label}</span>
+                          <span
+                            className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                              s.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
+                            }`}
+                          >
+                            {s.isActive ? 'ACTIVE' : 'DISABLED'}
+                          </span>
+                        </div>
+
+                        <p className="text-[11px] text-slate-400 truncate max-w-xs mt-1 font-mono">{s.url}</p>
+
+                        <div className="flex items-center gap-2 mt-1.5 text-[10px]">
+                          <span className="text-slate-400">Placements:</span>
+                          {(s.placement || ['community_row']).map((p: string) => (
+                            <span key={p} className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
+                              {p === 'community_row' ? 'Pill Row' : 'Footer'}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => handleToggleSocialLink(s.id, s.isActive)}
+                        className={`px-2 py-1 rounded text-[10px] font-bold transition-all ${
+                          s.isActive
+                            ? 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+                            : 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
+                        }`}
+                      >
+                        {s.isActive ? 'Disable' : 'Enable'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setEditingSocialLink(s)}
+                        className="px-2 py-1 rounded bg-brand-500/20 text-brand-300 hover:bg-brand-500/30 text-[10px] font-bold"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteSocialLink(s.id)}
+                        className="px-2 py-1 rounded bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 text-[10px] font-bold"
+                      >
+                        Delete
+                      </button>
+                    </div>
+>>>>>>> Stashed changes
                   </div>
                 ))}
               </div>

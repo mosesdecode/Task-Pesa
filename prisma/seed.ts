@@ -357,7 +357,95 @@ async function main() {
     await prisma.whatsappCampaign.create({ data: campaign });
   }
 
+<<<<<<< Updated upstream
   console.log('✅ TaskMint Database Seeding Complete!');
+=======
+  // 9. Default Social Links
+  const defaultSocialLinks = [
+    {
+      platform: 'whatsapp',
+      label: 'WhatsApp Community',
+      url: 'https://chat.whatsapp.com/sample',
+      icon_key: 'whatsapp',
+      placement: ['community_row'],
+      sort_order: 1,
+      isActive: true,
+    },
+    {
+      platform: 'facebook',
+      label: 'Facebook Page',
+      url: 'https://facebook.com/taskpesa',
+      icon_key: 'facebook',
+      placement: ['community_row'],
+      sort_order: 2,
+      isActive: true,
+    },
+    {
+      platform: 'telegram',
+      label: 'Telegram Channel',
+      url: 'https://t.me/taskpesa',
+      icon_key: 'telegram',
+      placement: ['community_row'],
+      sort_order: 3,
+      isActive: true,
+    },
+    {
+      platform: 'instagram',
+      label: 'Instagram',
+      url: 'https://instagram.com/taskpesa',
+      icon_key: 'instagram',
+      placement: ['community_row'],
+      sort_order: 4,
+      isActive: true,
+    },
+  ];
+
+  for (const link of defaultSocialLinks) {
+    const existing = await prisma.socialLink.findFirst({
+      where: { platform: link.platform, label: link.label },
+    });
+    if (!existing) {
+      await prisma.socialLink.create({ data: link });
+    }
+  }
+
+  // 10. Default Banners
+  const defaultBanners = [
+    {
+      title: '🎉 Earn KES 500+ Daily with Instant M-Pesa Payouts',
+      subtitle: 'Join over 15,000+ active Kenyans completing daily digital micro-tasks & data annotation.',
+      imageUrl: '',
+      linkUrl: '/register',
+      ctaLabel: 'Create Account',
+      ctaUrl: '/register',
+      placement: 'landing',
+      sortOrder: 1,
+      isActive: true,
+    },
+    {
+      title: '⚡ Instant M-Pesa Withdrawals Every Friday & Daily Task Rewards',
+      subtitle: 'Direct STK Push activations and automated M-Pesa disbursements straight to your phone.',
+      imageUrl: '',
+      linkUrl: '/dashboard',
+      ctaLabel: 'View Dashboard',
+      ctaUrl: '/dashboard',
+      placement: 'landing',
+      sortOrder: 2,
+      isActive: true,
+    },
+  ];
+
+  for (const banner of defaultBanners) {
+    const existing = await prisma.banner.findFirst({
+      where: { title: banner.title },
+    });
+    if (!existing) {
+      await prisma.banner.create({ data: banner });
+    }
+  }
+
+  console.log('✅ TaskPesa Database Seeding Complete!');
+>>>>>>> Stashed changes
 }
 
 main()

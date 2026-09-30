@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ShieldCheck, Smartphone } from 'lucide-react';
+import FooterSocialLinks from './FooterSocialLinks';
 
 export default function Footer() {
   const pathname = usePathname();
@@ -11,9 +12,9 @@ export default function Footer() {
   return (
     <footer className="bg-dark-900 border-t border-slate-800/80 pt-12 pb-24 md:pb-12 mt-20 text-gray-400">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-12">
           {/* Brand Col */}
-          <div className="space-y-4">
+          <div className="space-y-4 md:col-span-1">
             <Link href="/" className="flex items-center gap-2">
               <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-white text-sm">
                 TM
@@ -89,11 +90,19 @@ export default function Footer() {
               </p>
             </div>
           </div>
+
+          {/* Footer Social Links */}
+          <FooterSocialLinks />
         </div>
 
         <div className="border-t border-slate-800/80 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+<<<<<<< Updated upstream
           <p>© {new Date().getFullYear()} TaskMint Platform. All rights reserved.</p>
           <p className="text-gray-500">Secure Task &amp; Payout Platform</p>
+=======
+          <p>© {new Date().getFullYear()} Task Mint Platform (Kenya). All rights reserved.</p>
+          <p className="text-gray-500">Built with Next.js, Prisma &amp; Powered by Paystack</p>
+>>>>>>> Stashed changes
         </div>
       </div>
     </footer>

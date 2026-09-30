@@ -18,6 +18,7 @@ import {
   PlaySquare,
   Share2,
 } from 'lucide-react';
+import TopBannerCarousel from '@/components/TopBannerCarousel';
 
 export default function UserDashboard() {
   const router = useRouter();
@@ -72,6 +73,9 @@ export default function UserDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Top Banner Carousel for Home/Dashboard */}
+      <TopBannerCarousel placement="home" className="w-full" />
+
       {/* Welcome Banner */}
       <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="space-y-2 relative z-10">

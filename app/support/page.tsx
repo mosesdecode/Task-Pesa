@@ -208,9 +208,9 @@ export default function SupportPage() {
           </div>
 
           <div className="p-5 rounded-2xl glass-card space-y-2 md:col-span-2">
-            <h4 className="font-bold text-white text-sm">5. How do users and administrators change their login password?</h4>
+            <h4 className="font-bold text-white text-sm">5. How do users change their login password?</h4>
             <p className="text-xs text-gray-300 leading-relaxed">
-              Click your avatar/name in the navigation menu, select "Account & Verification" (or go to /profile), and fill in your current and new password. Admins can also change password inside /admin under "Admin Security & Password".
+              Click your avatar/name in the navigation menu, select "Account & Verification" (or go to /profile), and fill in your current and new password.".
             </p>
           </div>
         </div>
