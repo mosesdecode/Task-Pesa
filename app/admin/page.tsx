@@ -25,7 +25,6 @@ import {
   Trash2,
   Lock,
   Key,
-<<<<<<< Updated upstream
   TrendingUp,
   RotateCcw,
   CheckCircle2,
@@ -46,16 +45,12 @@ import {
   Tag,
   Radio,
   Loader2,
-=======
   ArrowUp,
   ArrowDown,
   Edit,
-  Calendar,
-  ExternalLink,
   ToggleLeft,
   ToggleRight,
   Plus,
->>>>>>> Stashed changes
 } from 'lucide-react';
 import { formatKenyanPhoneDisplay } from '@/lib/phone';
 
@@ -72,7 +67,6 @@ type AdminTab =
   | 'banners-social'
   | 'admin-settings';
 
-<<<<<<< Updated upstream
 const ErrorBanner = ({ error, onRetry, onDismiss }: { error: string, onRetry?: () => void, onDismiss: () => void }) => {
   if (!error) return null;
   return (
@@ -103,7 +97,6 @@ function AdminDashboardInner() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Core Data States
-=======
   // Banner form state
   const [bannerPlacementFilter, setBannerPlacementFilter] = useState<'landing' | 'home'>('landing');
   const [bannerForm, setBannerForm] = useState({
@@ -134,7 +127,6 @@ function AdminDashboardInner() {
     isActive: true,
   });
   const [editingSocialLink, setEditingSocialLink] = useState<any | null>(null);
->>>>>>> Stashed changes
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -583,8 +575,6 @@ function AdminDashboardInner() {
     }
   };
 
-<<<<<<< Updated upstream
-=======
   // Banners Handlers
   const handleCreateBanner = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -617,7 +607,7 @@ function AdminDashboardInner() {
         startsAt: '',
         endsAt: '',
       });
-      fetchBanners();
+      fetchBannersAndSocial();
     } catch (err: any) {
       setError(err.message);
     }
@@ -641,7 +631,7 @@ function AdminDashboardInner() {
       if (!res.ok) throw new Error(data.error || 'Failed to update banner');
       setSuccessMsg('Banner updated successfully!');
       setEditingBanner(null);
-      fetchBanners();
+      fetchBannersAndSocial();
     } catch (err: any) {
       setError(err.message);
     }
@@ -657,7 +647,7 @@ function AdminDashboardInner() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to toggle banner');
-      fetchBanners();
+      fetchBannersAndSocial();
     } catch (err: any) {
       setError(err.message);
     }
@@ -686,7 +676,7 @@ function AdminDashboardInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: payloadItems }),
       });
-      fetchBanners();
+      fetchBannersAndSocial();
     } catch (e) {}
   };
 
@@ -694,7 +684,7 @@ function AdminDashboardInner() {
     if (!confirm('Delete banner?')) return;
     try {
       await fetch(`/api/admin/banners?id=${id}`, { method: 'DELETE' });
-      fetchBanners();
+      fetchBannersAndSocial();
     } catch (e) {}
   };
 
@@ -724,7 +714,7 @@ function AdminDashboardInner() {
         sort_order: 0,
         isActive: true,
       });
-      fetchSocialLinks();
+      fetchBannersAndSocial();
     } catch (err: any) {
       setError(err.message);
     }
@@ -748,7 +738,7 @@ function AdminDashboardInner() {
       if (!res.ok) throw new Error(data.error || 'Failed to update social link');
       setSuccessMsg('Social link updated successfully!');
       setEditingSocialLink(null);
-      fetchSocialLinks();
+      fetchBannersAndSocial();
     } catch (err: any) {
       setError(err.message);
     }
@@ -764,7 +754,7 @@ function AdminDashboardInner() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to toggle social link');
-      fetchSocialLinks();
+      fetchBannersAndSocial();
     } catch (err: any) {
       setError(err.message);
     }
@@ -787,7 +777,7 @@ function AdminDashboardInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ items: payloadItems }),
       });
-      fetchSocialLinks();
+      fetchBannersAndSocial();
     } catch (e) {}
   };
 
@@ -795,11 +785,10 @@ function AdminDashboardInner() {
     if (!confirm('Delete social link?')) return;
     try {
       await fetch(`/api/admin/social-links?id=${id}`, { method: 'DELETE' });
-      fetchSocialLinks();
+      fetchBannersAndSocial();
     } catch (e) {}
   };
 
->>>>>>> Stashed changes
   useEffect(() => {
     checkAdminAuth();
   }, []);
@@ -2590,7 +2579,6 @@ function AdminDashboardInner() {
               />
             </div>
 
-<<<<<<< Updated upstream
             <div className="space-y-3">
               {usersList
                 .filter(
@@ -2642,113 +2630,6 @@ function AdminDashboardInner() {
                     </div>
                   </div>
                 ))}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 9: BANNERS & SOCIAL */}
-        {activeTab === 'banners-social' && (
-          <div className="space-y-6 animate-in fade-in duration-200">
-            <ErrorBanner error={bannersSocialError} onRetry={fetchBannersAndSocial} onDismiss={() => setBannersSocialError('')} />
-            <div className="border-b border-dark-800 pb-4">
-              <h1 className="text-2xl font-black text-white">Banners &amp; Social Communities</h1>
-              <p className="text-xs text-slate-400 mt-0.5">Manage homepage banner carousels and official social links.</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* Banners List */}
-              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
-                <h3 className="text-sm font-bold text-white">Active Promotional Banners</h3>
-                {bannersList.length === 0 ? (
-                  <p className="text-xs text-slate-400">No active banners.</p>
-                ) : (
-                  bannersList.map((b) => (
-                    <div key={b.id} className="p-3 rounded-xl bg-dark-950 border border-dark-800 flex items-center justify-between">
-                      <span className="text-xs font-bold text-white">{b.title}</span>
-                      <span className="text-[10px] text-emerald-400 font-bold">Active</span>
-                    </div>
-                  ))
-                )}
-              </div>
-
-              {/* Social Links List */}
-              <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
-                <h3 className="text-sm font-bold text-white">Community Channels</h3>
-                {socialLinksList.map((s) => (
-                  <div key={s.id} className="p-3 rounded-xl bg-dark-950 border border-dark-800 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-white block">{s.label}</span>
-                      <span className="text-[10px] text-slate-400 font-mono">{s.url}</span>
-                    </div>
-                    <span className="text-[10px] text-brand-400 font-bold uppercase">{s.platform}</span>
-=======
-            <div className="overflow-x-auto bg-slate-900/80 border border-slate-800 rounded-2xl">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950 text-slate-400 uppercase border-b border-slate-800">
-                  <tr>
-                    <th className="px-4 py-3">User</th>
-                    <th className="px-4 py-3">Phone / M-Pesa</th>
-                    <th className="px-4 py-3">Status / Flags</th>
-                    <th className="px-4 py-3">Package Tier</th>
-                    <th className="px-4 py-3 text-right">Available Balance</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60">
-                  {filteredUsers.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="px-4 py-3 font-medium text-white">
-                        <div className="flex items-center gap-1.5">
-                          <span>{u.fullName}</span>
-                          {u.isFlagged && (
-                            <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/40" title={u.flagReason}>
-                              ⚠️ Flagged
-                            </span>
-                          )}
-                          {u.isBanned && (
-                            <span className="px-1.5 py-0.5 rounded bg-rose-500/20 text-rose-400 text-[10px] font-bold border border-rose-500/40" title={u.banReason}>
-                              🚫 Banned
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-[10px] text-slate-400">@{u.username} • {u.email}</div>
-                      </td>
-                      <td className="px-4 py-3 text-slate-300 font-mono">{u.phone}</td>
-                      <td className="px-4 py-3">
-                        <span className={`px-2 py-0.5 rounded font-bold ${u.isBanned ? 'bg-rose-500/20 text-rose-400' : u.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>
-                          {u.isBanned ? 'BANNED' : u.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 font-semibold text-brand-300">{u.package?.name || 'BRONZE'}</td>
-                      <td className="px-4 py-3 text-right font-extrabold text-white">
-                        KES {(u.wallet?.availableBalance || 0).toLocaleString('en-KE')}
-                      </td>
-                      <td className="px-4 py-3 text-right space-x-1">
-                        <button
-                          onClick={() => handleUserAction(u.id, u.isBanned ? 'UNBAN' : 'BAN')}
-                          className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-                            u.isBanned
-                              ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30'
-                              : 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30'
-                          }`}
-                        >
-                          {u.isBanned ? 'Unban User' : 'Ban User'}
-                        </button>
-                        <button
-                          onClick={() => handleUserAction(u.id, u.isFlagged ? 'UNFLAG' : 'FLAG')}
-                          className={`px-2.5 py-1 rounded text-[11px] font-bold transition-all ${
-                            u.isFlagged
-                              ? 'bg-slate-800 text-slate-300'
-                              : 'bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30'
-                          }`}
-                        >
-                          {u.isFlagged ? 'Unflag' : 'Flag Suspect'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
         )}
@@ -3447,7 +3328,6 @@ function AdminDashboardInner() {
                         Delete
                       </button>
                     </div>
->>>>>>> Stashed changes
                   </div>
                 ))}
               </div>
