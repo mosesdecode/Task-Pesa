@@ -1273,14 +1273,14 @@ function AdminDashboardInner() {
               {/* Card 6: All User Wallets (from /api/admin/stats) */}
               <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
                 <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  User Wallets
+                  Active Members
                   <Wallet className="w-4 h-4 text-purple-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-white font-mono truncate">
-                  {stats ? `KES ${(stats.wallets?.totalUserBalanceKES ?? 0).toLocaleString()}` : '—'}
+                  {stats ? (stats.wallets?.activeWallets ?? 0).toLocaleString() : '—'}
                 </p>
                 <span className="text-[11px] text-slate-400 block truncate">
-                  {stats ? `KES ${(stats.wallets?.pendingBalanceKES ?? 0).toLocaleString()} pending` : '—'}
+                  {stats ? `${(stats.wallets?.totalWallets ?? 0).toLocaleString()} total registered` : '—'}
                 </span>
               </div>
 
