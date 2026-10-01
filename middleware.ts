@@ -22,11 +22,14 @@ export async function middleware(request: NextRequest) {
     if (token) {
       try {
         const payload = await verifyToken(token);
+        // Already logged in as admin — no need to re-authenticate
         if (payload?.role === 'ADMIN') {
           return NextResponse.redirect(new URL('/admin', request.url));
         }
-        if (payload) return NextResponse.redirect(new URL('/dashboard', request.url));
+        // Regular user visiting /admin/login — allow through so they can
+        // authenticate as admin (the login form will overwrite the session cookie)
       } catch (error) {
+        // Invalid token — let them through to log in fresh
       }
     }
     return NextResponse.next();
