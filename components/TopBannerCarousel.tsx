@@ -31,25 +31,6 @@ export default function TopBannerCarousel({ placement = 'landing', className }: 
       .then((data) => {
         if (data.banners && Array.isArray(data.banners)) {
           setBanners(data.banners);
-<<<<<<< Updated upstream
-        } else {
-          // Fallback default promotional banner if none configured yet
-          setBanners([
-            {
-              id: 'def-1',
-              title: '🔥 Welcome to TaskMint: Earn up to KES 500 Daily completing simple verified digital tasks!',
-              imageUrl: '',
-              linkUrl: '/tasks',
-            },
-            {
-              id: 'def-2',
-              title: '💰 Invite Friends & Get Instant Referral Rewards direct to your wallet!',
-              imageUrl: '',
-              linkUrl: '/referrals',
-            },
-          ]);
-=======
->>>>>>> Stashed changes
         }
       })
       .catch(() => {})

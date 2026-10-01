@@ -96,13 +96,8 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-slate-800/80 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
-<<<<<<< Updated upstream
-          <p>© {new Date().getFullYear()} TaskMint Platform. All rights reserved.</p>
-          <p className="text-gray-500">Secure Task &amp; Payout Platform</p>
-=======
           <p>© {new Date().getFullYear()} Task Mint Platform (Kenya). All rights reserved.</p>
-          <p className="text-gray-500">Built with Next.js, Prisma &amp; Powered by Paystack</p>
->>>>>>> Stashed changes
+          <p className="text-gray-500">Secure Task &amp; Payout Platform</p>
         </div>
       </div>
     </footer>

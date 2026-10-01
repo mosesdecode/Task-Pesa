@@ -357,9 +357,6 @@ async function main() {
     await prisma.whatsappCampaign.create({ data: campaign });
   }
 
-<<<<<<< Updated upstream
-  console.log('✅ TaskMint Database Seeding Complete!');
-=======
   // 9. Default Social Links
   const defaultSocialLinks = [
     {
@@ -444,8 +441,7 @@ async function main() {
     }
   }
 
-  console.log('✅ TaskPesa Database Seeding Complete!');
->>>>>>> Stashed changes
+  console.log('✅ TaskMint Database Seeding Complete!');
 }
 
 main()
