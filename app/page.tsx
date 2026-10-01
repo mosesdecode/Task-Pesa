@@ -47,7 +47,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-8">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs font-semibold text-brand-300 shadow-xl backdrop-blur-md">
             <Sparkles className="w-4 h-4 text-brand-400 animate-pulse" />
-            <span>Kenya’s #1 Verified Digital Task & Micro-Work Marketplace</span>
+            <span>Kenya’s #1 Verified Global Work Space</span>
           </div>
 
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight max-w-4xl mx-auto leading-[1.1]">

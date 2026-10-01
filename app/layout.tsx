@@ -4,7 +4,7 @@ import ConditionalPublicChrome from './ConditionalPublicChrome';
 
 export const metadata: Metadata = {
 
-  title: 'Task Mint — Global Micro-Work and Opportunity Marketplace',
+  title: 'Task Mint — Global Work Space',
   
   description:
     'Earn money by completing legitimate digital tasks, data annotation, sponsored campaigns, and microtasks in Kenya. Fast payouts.',

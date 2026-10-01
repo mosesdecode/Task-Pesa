@@ -86,7 +86,7 @@ function RegisterForm() {
           </div>
         </Link>
         <h1 className="text-2xl sm:text-3xl font-black text-white">Create Your TaskMint Account</h1>
-        <p className="text-xs text-gray-400">Join Kenya’s premier digital task and micro-work marketplace</p>
+        <p className="text-xs text-gray-400">Join Kenya’s premier global work space</p>
       </div>
 
       {error && (

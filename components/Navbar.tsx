@@ -107,7 +107,7 @@ export default function Navbar() {
                 </span>
               </span>
               <span className="text-[10px] text-gray-400 -mt-1 font-medium tracking-wide">
-                Digital Micro-Work
+                Global Work Space
               </span>
             </div>
           </Link>

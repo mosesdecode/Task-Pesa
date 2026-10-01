@@ -86,7 +86,7 @@ export default function PrivacyPolicyPage() {
               Introduction & Legal Scope
             </h2>
             <p>
-              This Privacy Policy explains how <strong>TaskMint Digital Solutions</strong> (“TaskMint”, “we”, “our”, or “us”) collects, uses, stores, and protects your personal data when you access or use our web application, micro-work marketplace, Safaricom M-Pesa payment portal, and related services.
+              This Privacy Policy explains how <strong>TaskMint Digital Solutions</strong> (“TaskMint”, “we”, “our”, or “us”) collects, uses, stores, and protects your personal data when you access or use our web application, global work space, Safaricom M-Pesa payment portal, and related services.
             </p>
             <p>
               By creating an account, paying the activation fee, or participating in tasks on TaskMint, you explicitly consent to the data practices described in this policy, formulated in adherence to the <strong>Kenya Data Protection Act, 2019</strong> and international data safety guidelines.
