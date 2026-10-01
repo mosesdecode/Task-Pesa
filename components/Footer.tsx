@@ -24,7 +24,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-gray-400 leading-relaxed">
-              Kenya's premier digital task and micro-work platform. Complete legitimate data annotation, surveys, and content verification securely.
+              Kenya's premier digital task and global work space. Complete legitimate data annotation, surveys, and content verification securely.
             </p>
           </div>
 

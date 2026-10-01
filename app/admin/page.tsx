@@ -305,10 +305,8 @@ function AdminDashboardInner() {
   };
 
   const handleApiError = (res: Response, setErrorState: (msg: string) => void, fallbackMsg: string) => {
-    if (res.status === 401) {
+    if (res.status === 401 || res.status === 403) {
       handle401Expired();
-    } else if (res.status === 403) {
-      setErrorState('Access denied.');
     } else {
       setErrorState(fallbackMsg);
     }

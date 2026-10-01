@@ -103,7 +103,7 @@ export default function UserDashboard() {
             Jambo, {user.fullName}! 👋
           </h1>
           <p className="text-xs sm:text-sm text-gray-300">
-            Welcome back to your TaskMint dashboard. Manage earnings, complete data annotation tasks, and track M-Pesa payouts.
+            Welcome back to TaskMint Global — complete tasks, earn rewards, and track your growth.
           </p>
         </div>
 
@@ -176,7 +176,7 @@ export default function UserDashboard() {
             </div>
           </div>
           <p className="text-xl font-black text-white">
-            {user.phoneVerified ? 'Fully Verified' : 'Standard Member'}
+            {user.phoneVerified ? 'Verified' : 'Unverified'}
           </p>
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-gray-400">Payouts: Enabled</span>

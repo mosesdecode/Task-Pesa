@@ -154,18 +154,6 @@ export default function Navbar() {
           <div className="flex items-center gap-3">
             {user ? (
               <>
-                {/* Balance Pill - For Regular Users */}
-                {user.role !== 'ADMIN' && (
-                  <Link
-                    href="/wallet"
-                    className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700/60 text-xs font-semibold hover:border-brand-500/40 transition-colors"
-                  >
-                    <Wallet className="w-4 h-4 text-brand-400" />
-                    <span className="text-gray-200">
-                      KES {(user.wallet?.availableBalance || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
-                    </span>
-                  </Link>
-                )}
 
                 {/* Notifications Bell */}
                 <Link

@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import path from 'path';
-import fs from 'fs/promises';
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,38 +22,35 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate size (max 5MB)
-    const MAX_SIZE = 5 * 1024 * 1024;
+    // Validate size (max 2MB to keep DB rows manageable)
+    const MAX_SIZE = 2 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: 'File size exceeds 5MB limit. Please choose a smaller image.' },
+        { error: 'File size exceeds 2MB limit. Please choose a smaller image.' },
         { status: 400 }
       );
     }
 
-    // Determine extension
-    let ext = 'jpg';
-    if (file.type.includes('png')) ext = 'png';
-    else if (file.type.includes('webp')) ext = 'webp';
+    const { searchParams } = new URL(req.url);
+    const isProof = searchParams.get('type') === 'proof';
 
-    const filename = `avatar-${user.id}-${Date.now()}.${ext}`;
-    const uploadDir = path.join(process.cwd(), 'public', 'uploads', 'avatars');
-
-    // Ensure directory exists
-    await fs.mkdir(uploadDir, { recursive: true });
-
-    // Write file
     const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const filePath = path.join(uploadDir, filename);
-    await fs.writeFile(filePath, buffer);
+    const base64 = Buffer.from(bytes).toString('base64');
+    const dataUrl = `data:${file.type};base64,${base64}`;
 
-    const publicUrl = `/uploads/avatars/${filename}`;
+    if (isProof) {
+      // Just return the base64 string for the frontend to submit with the task
+      return NextResponse.json({
+        success: true,
+        message: 'Image processed successfully!',
+        profilePhoto: dataUrl, // Re-using field name so frontend works without changes
+      });
+    }
 
     // Update user profile in database
     const updatedUser = await prisma.user.update({
       where: { id: user.id },
-      data: { profilePhoto: publicUrl },
+      data: { profilePhoto: dataUrl },
       select: {
         id: true,
         fullName: true,
@@ -70,7 +65,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       message: 'Profile photo updated successfully!',
-      profilePhoto: publicUrl,
+      profilePhoto: dataUrl,
       user: updatedUser,
     });
   } catch (error: any) {

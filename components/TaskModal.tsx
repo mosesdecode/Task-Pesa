@@ -104,7 +104,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
       const formData = new FormData();
       formData.append('avatar', file); // reuses clean avatar/image storage endpoint
 
-      const res = await fetch('/api/profile/avatar', {
+      const res = await fetch('/api/profile/avatar?type=proof', {
         method: 'POST',
         body: formData,
       });
