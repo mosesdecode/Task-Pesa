@@ -12,7 +12,7 @@ import {
 type AdminTab =
   | 'overview' | 'earnings' | 'tasks' | 'add-task' | 'categories'
   | 'submissions' | 'users' | 'wallets' | 'adverts' | 'banners-social'
-  | 'admin-settings';
+  | 'admin-settings' | 'audit-logs';
 
 // navItems defined here — icon components cannot cross the server→client boundary
 const navItems: { id: AdminTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -27,6 +27,7 @@ const navItems: { id: AdminTab; label: string; icon: React.ComponentType<{ class
   { id: 'adverts',        label: 'Advert Campaigns',      icon: PlaySquare },
   { id: 'banners-social', label: 'Banners & Social',      icon: Sparkles   },
   { id: 'admin-settings', label: 'Security & Password',   icon: Lock       },
+  { id: 'audit-logs',     label: 'System Audit Logs',     icon: Shield     },
 ];
 
 export default function AdminSidebarClient({ adminEmail }: { adminEmail: string }) {

@@ -67,7 +67,8 @@ type AdminTab =
   | 'wallets'
   | 'adverts'
   | 'banners-social'
-  | 'admin-settings';
+  | 'admin-settings'
+  | 'audit-logs';
 
 const ErrorBanner = ({ error, onRetry, onDismiss }: { error: string, onRetry?: () => void, onDismiss: () => void }) => {
   if (!error) return null;
@@ -135,15 +136,16 @@ function AdminDashboardInner() {
   const [successMsg, setSuccessMsg] = useState('');
 
   // Lists State
-  const [tasksList, setTasksList] = useState<any[]>([]);
-  const [categoriesList, setCategoriesList] = useState<any[]>([]);
+  const [tasksList, setTasksList] = useState<any[] | null>(null);
+  const [categoriesList, setCategoriesList] = useState<any[] | null>(null);
   const [submissionsList, setSubmissionsList] = useState<any[]>([]);
   const [submissionCounts, setSubmissionCounts] = useState({ pendingReview: 0, approved: 0, rejected: 0, total: 0 });
-  const [advertsList, setAdvertsList] = useState<any[]>([]);
-  const [bannersList, setBannersList] = useState<any[]>([]);
-  const [socialLinksList, setSocialLinksList] = useState<any[]>([]);
-  const [withdrawalsList, setWithdrawalsList] = useState<any[]>([]);
-  const [usersList, setUsersList] = useState<any[]>([]);
+  const [advertsList, setAdvertsList] = useState<any[] | null>(null);
+  const [bannersList, setBannersList] = useState<any[] | null>(null);
+  const [socialLinksList, setSocialLinksList] = useState<any[] | null>(null);
+  const [withdrawalsList, setWithdrawalsList] = useState<any[] | null>(null);
+  const [usersList, setUsersList] = useState<any[] | null>(null);
+  const [auditLogsList, setAuditLogsList] = useState<any[] | null>(null);
 
   // Earnings & Financial Ledger States (Requirements 4, 5, 6, 21, 23)
   const [earningsData, setEarningsData] = useState<any>(null);
@@ -278,6 +280,7 @@ function AdminDashboardInner() {
   const [advertsError, setAdvertsError] = useState('');
   const [bannersSocialError, setBannersSocialError] = useState('');
   const [earningsError, setEarningsError] = useState('');
+  const [auditLogsError, setAuditLogsError] = useState('');
 
   const sessionExpiredHandled = useRef(false);
 
@@ -416,6 +419,22 @@ function AdminDashboardInner() {
     }
   };
 
+  const fetchAuditLogs = async () => {
+    setAuditLogsError('');
+    try {
+      const res = await fetch('/api/admin/audit-logs');
+      if (res.ok) {
+        const data = await res.json();
+        setAuditLogsList(data.auditLogs || []);
+      } else {
+        handleApiError(res, setAuditLogsError, "Couldn't load audit logs. Retry");
+      }
+    } catch (e) {
+      console.error("Failed to load audit logs:", e);
+      setAuditLogsError("Couldn't load audit logs. Retry");
+    }
+  };
+
   const fetchAdverts = async () => {
     setAdvertsError('');
     try {
@@ -526,6 +545,7 @@ function AdminDashboardInner() {
       fetchSubmissions(),
       fetchWithdrawals(),
       fetchUsers(),
+      fetchAuditLogs(),
       fetchAdverts(),
       fetchBannersAndSocial(),
       fetchEarnings(),
@@ -765,6 +785,7 @@ function AdminDashboardInner() {
   };
 
   const handleReorderSocialLink = async (id: string, direction: 'up' | 'down') => {
+    if (!socialLinksList) return;
     const idx = socialLinksList.findIndex((s) => s.id === id);
     if (idx === -1) return;
     const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
@@ -830,7 +851,7 @@ function AdminDashboardInner() {
       setTaskForm({
         title: '',
         description: '',
-        categoryId: categoriesList[0]?.id || '',
+        categoryId: categoriesList?.[0]?.id || '',
         reward: '75',
         instructions: '',
         rules: '',
@@ -1672,7 +1693,7 @@ function AdminDashboardInner() {
 
             {/* Task Management Table / Cards */}
             <div className="space-y-4">
-              {loading ? (
+              {tasksList === null ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
                     <div className="flex items-center justify-between pb-3 border-b border-dark-800">
@@ -1812,7 +1833,7 @@ function AdminDashboardInner() {
                     className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
                   >
                     <option value="">Select a Category</option>
-                    {categoriesList.map((cat) => (
+                    {(categoriesList || []).map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.name}
                       </option>
@@ -1973,7 +1994,7 @@ function AdminDashboardInner() {
 
             {/* Categories List */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {loading ? (
+              {categoriesList === null ? (
                 Array.from({ length: 6 }).map((_, i) => (
                   <div key={i} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex items-center justify-between">
                     <div className="space-y-2">
@@ -2376,7 +2397,7 @@ function AdminDashboardInner() {
 
             {/* Mobile-First Cards List */}
             <div className="space-y-3">
-              {loading ? (
+              {withdrawalsList === null ? (
                 Array.from({ length: 4 }).map((_, i) => (
                   <div key={i} className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3">
                     <div className="flex items-start justify-between gap-3">
@@ -2612,7 +2633,7 @@ function AdminDashboardInner() {
 
             {/* Adverts Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {loading ? (
+              {advertsList === null ? (
                 Array.from({ length: 3 }).map((_, i) => (
                   <div key={i} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3">
                     <Skeleton className="aspect-video w-full" />
@@ -2693,7 +2714,7 @@ function AdminDashboardInner() {
             </div>
 
             <div className="space-y-3">
-              {loading ? (
+              {usersList === null ? (
                 Array.from({ length: 5 }).map((_, i) => (
                   <div key={i} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
                     <div className="space-y-2">
@@ -3043,10 +3064,10 @@ function AdminDashboardInner() {
               <div className="space-y-3">
                 <h3 className="text-xs font-bold text-slate-400 uppercase">
                   {bannerPlacementFilter === 'landing' ? 'Landing Page' : 'Dashboard'} Banners (
-                  {bannersList.filter((b) => (b.placement || 'landing') === bannerPlacementFilter).length})
+                  {(bannersList || []).filter((b) => (b.placement || 'landing') === bannerPlacementFilter).length})
                 </h3>
 
-                {bannersList
+                {(bannersList || [])
                   .filter((b) => (b.placement || 'landing') === bannerPlacementFilter)
                   .map((b, idx, list) => {
                     const now = new Date();
@@ -3380,9 +3401,9 @@ function AdminDashboardInner() {
 
               {/* Social Links List */}
               <div className="space-y-3">
-                <h3 className="text-xs font-bold text-slate-400 uppercase">Configured Links ({socialLinksList.length})</h3>
+                <h3 className="text-xs font-bold text-slate-400 uppercase">Configured Links ({(socialLinksList || []).length})</h3>
 
-                {socialLinksList.map((s, idx) => (
+                {(socialLinksList || []).map((s, idx) => (
                   <div
                     key={s.id}
                     className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 text-xs"
@@ -3401,7 +3422,7 @@ function AdminDashboardInner() {
                         <button
                           type="button"
                           onClick={() => handleReorderSocialLink(s.id, 'down')}
-                          disabled={idx === socialLinksList.length - 1}
+                          disabled={idx === (socialLinksList || []).length - 1}
                           className="p-1 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white disabled:opacity-30"
                           title="Move Down"
                         >
@@ -3467,6 +3488,80 @@ function AdminDashboardInner() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 11: SYSTEM AUDIT LOGS */}
+        {activeTab === 'audit-logs' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <ErrorBanner error={auditLogsError} onRetry={fetchAuditLogs} onDismiss={() => setAuditLogsError('')} />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
+              <div>
+                <h1 className="text-2xl font-black text-white">System Audit Logs</h1>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Chronological record of administrative actions taken on the platform.
+                </p>
+              </div>
+
+              <button
+                onClick={fetchAuditLogs}
+                disabled={loading}
+                className="px-4 py-2 rounded-xl bg-dark-900 border border-dark-800 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 self-start cursor-pointer disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+                <span>Refresh Logs</span>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {auditLogsList === null ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="w-28 h-4" />
+                        <Skeleton className="w-16 h-4" />
+                      </div>
+                      <Skeleton className="w-64 h-3" />
+                    </div>
+                    <Skeleton className="w-16 h-6" />
+                  </div>
+                ))
+              ) : auditLogsList.length === 0 ? (
+                <EmptyState
+                  icon="file"
+                  title="No audit logs recorded"
+                  description="Administrative actions will appear here."
+                />
+              ) : (
+                auditLogsList.map((log) => (
+                  <div
+                    key={log.id}
+                    className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex flex-col md:flex-row md:items-start justify-between gap-3"
+                  >
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-white text-sm">{log.action}</span>
+                        <span className="text-xs text-brand-400 font-mono bg-brand-500/10 px-2 py-0.5 rounded-full">{log.adminEmail}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 mt-1">
+                        Target: <strong className="text-slate-300 font-mono">{log.targetUserEmail || log.targetEntityId || 'System'}</strong>
+                      </p>
+                      {log.details && (
+                        <p className="text-[11px] text-slate-500 mt-1 line-clamp-2">
+                          {log.details}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2 text-xs text-slate-500 font-mono whitespace-nowrap">
+                      <Clock className="w-3.5 h-3.5" />
+                      {new Date(log.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
