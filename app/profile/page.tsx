@@ -22,6 +22,7 @@ import {
   Check
 } from 'lucide-react';
 import { normalizeKenyanPhone, isSafaricomNumber, formatKenyanPhoneDisplay } from '@/lib/phone';
+import { Skeleton } from '@/components/Skeleton';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -334,8 +335,30 @@ export default function ProfilePage() {
           <div className="lg:col-span-1 space-y-6">
             <div className="bg-dark-900/80 border border-dark-800 rounded-3xl p-6 relative backdrop-blur-md shadow-xl">
               {loading ? (
-                <div className="py-12 text-center text-slate-400 text-sm animate-pulse">
-                  Loading account details...
+                <div className="flex flex-col items-center text-center pb-6 border-b border-dark-800 space-y-4 pt-4">
+                  {/* Avatar skeleton */}
+                  <Skeleton className="w-24 h-24 rounded-2xl" />
+                  {/* Name + username */}
+                  <div className="space-y-2 w-full flex flex-col items-center">
+                    <Skeleton className="w-36 h-5" />
+                    <Skeleton className="w-24 h-3" />
+                  </div>
+                  {/* Role + status badges */}
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="w-24 h-5 rounded-full" />
+                    <Skeleton className="w-28 h-5 rounded-full" />
+                  </div>
+                  {/* Upload button */}
+                  <Skeleton className="w-36 h-8 rounded-xl mt-2" />
+                  {/* Info rows */}
+                  <div className="w-full pt-4 space-y-3 border-t border-dark-800">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                      <div key={i} className="flex items-center justify-between">
+                        <Skeleton className="w-24 h-3" />
+                        <Skeleton className="w-32 h-3" />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : user ? (
                 <div>
