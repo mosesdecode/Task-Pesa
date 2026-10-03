@@ -1335,6 +1335,9 @@ function AdminDashboardInner() {
                 <span className="text-[11px] text-slate-400 block truncate">
                   {loading ? <Skeleton className="w-32 h-4" /> : stats ? `${(stats.wallets?.totalWallets ?? 0).toLocaleString()} total registered` : '—'}
                 </span>
+                <p className="text-[10px] text-slate-500 italic mt-0.5 truncate">
+                  Note: includes platform admin wallet
+                </p>
               </div>
 
               {/* Card 7: Pending Withdrawals (from /api/admin/stats) */}
@@ -2272,6 +2275,9 @@ function AdminDashboardInner() {
                 <h1 className="text-2xl font-black text-white">User Wallets & Withdrawals</h1>
                 <p className="text-xs text-slate-400 mt-0.5">
                   Manage worker withdrawal requests, review M-Pesa payout queues, and inspect user balances.
+                </p>
+                <p className="text-[10px] text-amber-500/70 italic mt-1">
+                  Note: Platform aggregate stats include the admin wallet balance.
                 </p>
               </div>
               <button
