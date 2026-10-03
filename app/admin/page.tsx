@@ -223,6 +223,7 @@ function AdminDashboardInner() {
 
   // Filter & Search States
   const [userSearch, setUserSearch] = useState('');
+  const [userStatusFilter, setUserStatusFilter] = useState<'ALL' | 'ACTIVE' | 'INACTIVE'>('ALL');
   const [withdrawalFilter, setWithdrawalFilter] = useState<'ALL' | 'COMPLETED' | 'REJECTED' | 'PENDING'>('ALL');
   const [withdrawalSearch, setWithdrawalSearch] = useState('');
   const [withdrawalStartDate, setWithdrawalStartDate] = useState('');
@@ -2736,14 +2737,38 @@ function AdminDashboardInner() {
                 </p>
               </div>
 
-              <input
-                type="text"
-                placeholder="Search users..."
-                value={userSearch}
-                onChange={(e) => setUserSearch(e.target.value)}
-                className="px-4 py-2 rounded-xl bg-dark-900 border border-dark-800 text-white text-xs w-full sm:w-64 focus:outline-none focus:border-brand-500"
-              />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                {/* Active / Inactive sub-tabs */}
+                <div className="flex items-center gap-1 bg-dark-950 p-1 rounded-xl border border-dark-800 text-xs">
+                  {(['ALL', 'ACTIVE', 'INACTIVE'] as const).map((f) => (
+                    <button
+                      key={f}
+                      type="button"
+                      onClick={() => setUserStatusFilter(f)}
+                      className={`px-3 py-1.5 rounded-lg font-bold transition-all ${
+                        userStatusFilter === f
+                          ? 'bg-brand-600 text-white shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {f === 'INACTIVE' ? 'Inactive' : f === 'ALL' ? 'All' : 'Active'}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  placeholder="Search users..."
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
+                  className="px-4 py-2 rounded-xl bg-dark-900 border border-dark-800 text-white text-xs w-full sm:w-48 focus:outline-none focus:border-brand-500"
+                />
+              </div>
             </div>
+            {userStatusFilter === 'INACTIVE' && (
+              <p className="text-[10px] text-amber-400/70 italic -mt-2">
+                Inactive = not yet activated. Definition pending confirmation.
+              </p>
+            )}
 
             <div className="space-y-3">
               {usersList === null ? (
@@ -2760,7 +2785,12 @@ function AdminDashboardInner() {
                   </div>
                 ))
               ) : (() => {
-                const filtered = usersList.filter(
+                const statusFiltered = userStatusFilter === 'ALL'
+                  ? usersList
+                  : userStatusFilter === 'INACTIVE'
+                    ? usersList.filter(u => u.status === 'PENDING_ACTIVATION')
+                    : usersList.filter(u => u.status === 'ACTIVE');
+                const filtered = statusFiltered.filter(
                   (u) =>
                     !userSearch ||
                     u.username?.toLowerCase().includes(userSearch.toLowerCase()) ||
@@ -2771,8 +2801,8 @@ function AdminDashboardInner() {
                   return (
                     <EmptyState
                       icon="users"
-                      title={userSearch ? 'No users match your search' : 'No users registered yet'}
-                      description={userSearch ? 'Try a different name, email, or phone number.' : 'Users will appear here once they register.'}
+                      title={userSearch ? 'No users match your search' : userStatusFilter === 'INACTIVE' ? 'No inactive users found' : 'No users registered yet'}
+                      description={userSearch ? 'Try a different name, email, or phone number.' : userStatusFilter === 'INACTIVE' ? 'All registered users have completed activation.' : 'Users will appear here once they register.'}
                     />
                   );
                 }
