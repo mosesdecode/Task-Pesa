@@ -6,12 +6,12 @@ import { useSearchParams } from 'next/navigation';
 import {
   Shield, Menu, X, LogOut, ChevronRight, Loader2,
   BarChart3, TrendingUp, CheckSquare, PlusCircle, Tag,
-  FileText, Wallet, Users, PlaySquare, Sparkles, Lock,
+  FileText, Wallet, Users, PlaySquare, Sparkles, Lock, Package
 } from 'lucide-react';
 
 type AdminTab =
   | 'overview' | 'earnings' | 'tasks' | 'add-task' | 'categories'
-  | 'submissions' | 'users' | 'wallets' | 'adverts' | 'banners-social'
+  | 'submissions' | 'users' | 'wallets' | 'packages' | 'adverts' | 'banners-social'
   | 'admin-settings' | 'audit-logs';
 
 // navItems defined here — icon components cannot cross the server→client boundary
@@ -24,6 +24,7 @@ const navItems: { id: AdminTab; label: string; icon: React.ComponentType<{ class
   { id: 'submissions',    label: 'Submissions Review',    icon: FileText   },
   { id: 'wallets',        label: 'Wallets & Withdrawals', icon: Wallet     },
   { id: 'users',          label: 'User Directory',        icon: Users      },
+  { id: 'packages',       label: 'Membership Packages',   icon: Package    },
   { id: 'adverts',        label: 'Advert Campaigns',      icon: PlaySquare },
   { id: 'banners-social', label: 'Banners & Social',      icon: Sparkles   },
   { id: 'admin-settings', label: 'Security & Password',   icon: Lock       },

@@ -64,6 +64,7 @@ type AdminTab =
   | 'categories'
   | 'submissions'
   | 'users'
+  | 'packages'
   | 'wallets'
   | 'adverts'
   | 'banners-social'
@@ -145,6 +146,8 @@ function AdminDashboardInner() {
   const [socialLinksList, setSocialLinksList] = useState<any[] | null>(null);
   const [withdrawalsList, setWithdrawalsList] = useState<any[] | null>(null);
   const [usersList, setUsersList] = useState<any[] | null>(null);
+  const [packagesList, setPackagesList] = useState<any[] | null>(null);
+  const [editingPackage, setEditingPackage] = useState<any | null>(null);
   const [auditLogsList, setAuditLogsList] = useState<any[] | null>(null);
 
   // Earnings & Financial Ledger States (Requirements 4, 5, 6, 21, 23)
@@ -278,6 +281,7 @@ function AdminDashboardInner() {
   const [submissionsError, setSubmissionsError] = useState('');
   const [withdrawalsError, setWithdrawalsError] = useState('');
   const [usersError, setUsersError] = useState('');
+  const [packagesError, setPackagesError] = useState('');
   const [advertsError, setAdvertsError] = useState('');
   const [bannersSocialError, setBannersSocialError] = useState('');
   const [earningsError, setEarningsError] = useState('');
@@ -401,6 +405,22 @@ function AdminDashboardInner() {
     } catch (e) {
       console.error("Failed to load withdrawals:", e);
       setWithdrawalsError("Couldn't load withdrawals. Retry");
+    }
+  };
+
+  const fetchPackages = async () => {
+    setPackagesError('');
+    try {
+      const res = await fetch('/api/admin/packages');
+      if (res.ok) {
+        const data = await res.json();
+        setPackagesList(data.packages || []);
+      } else {
+        handleApiError(res, setPackagesError, "Couldn't load packages. Retry");
+      }
+    } catch (e) {
+      console.error("Failed to load packages:", e);
+      setPackagesError("Couldn't load packages. Retry");
     }
   };
 
@@ -545,6 +565,7 @@ function AdminDashboardInner() {
       fetchCategories(),
       fetchSubmissions(),
       fetchWithdrawals(),
+      fetchPackages(),
       fetchUsers(),
       fetchAuditLogs(),
       fetchAdverts(),
@@ -717,6 +738,38 @@ function AdminDashboardInner() {
       await fetch(`/api/admin/banners?id=${id}`, { method: 'DELETE' });
       fetchBannersAndSocial();
     } catch (e) {}
+  };
+
+  // Packages Handlers
+  const handleUpdatePackage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingPackage) return;
+    setError('');
+    setSuccessMsg('');
+    if (!confirm(`Update configuration for ${editingPackage.name}? This takes effect immediately.`)) return;
+    
+    try {
+      const res = await fetch('/api/admin/packages', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...editingPackage,
+          price: parseFloat(editingPackage.price) || 0,
+          taskLimitDaily: parseInt(editingPackage.taskLimitDaily) || 0,
+          watchAdsLimit: parseInt(editingPackage.watchAdsLimit) || 0,
+          whatsappTasksLimit: parseInt(editingPackage.whatsappTasksLimit) || 0,
+          referralBonus: parseFloat(editingPackage.referralBonus) || 0,
+          durationDays: parseInt(editingPackage.durationDays) || 30,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update package');
+      setSuccessMsg(`Package ${data.package?.name || editingPackage.name} updated successfully!`);
+      setEditingPackage(null);
+      fetchPackages();
+    } catch (err: any) {
+      setError(err.message);
+    }
   };
 
   // Social Links Handlers
@@ -2876,7 +2929,210 @@ function AdminDashboardInner() {
           </div>
         )}
 
-        {/* TAB 7: BANNERS & SOCIAL LINKS */}
+        {/* TAB 8: MEMBERSHIP PACKAGES */}
+        {activeTab === 'packages' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <ErrorBanner error={packagesError} onRetry={fetchPackages} onDismiss={() => setPackagesError('')} />
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-4">
+              <div>
+                <h1 className="text-2xl font-black text-white">Membership Packages</h1>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Configure package prices, limits, and rewards. Changes take effect immediately for new purchases.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4">
+              {packagesList === null ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="p-6 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
+                    <Skeleton className="w-32 h-6" />
+                    <Skeleton className="w-full h-12" />
+                  </div>
+                ))
+              ) : packagesList.length === 0 ? (
+                <EmptyState
+                  icon="folder"
+                  title="No packages found"
+                  description="Membership packages have not been initialized in the database."
+                />
+              ) : (
+                packagesList.map((pkg) => {
+                  const isEditing = editingPackage?.id === pkg.id;
+                  
+                  return (
+                    <div key={pkg.id} className="p-5 sm:p-6 rounded-2xl bg-dark-900/80 border border-dark-800 relative overflow-hidden transition-all hover:border-brand-500/30">
+                      {isEditing ? (
+                        <form onSubmit={handleUpdatePackage} className="space-y-4">
+                          <div className="flex items-center justify-between border-b border-dark-800 pb-3">
+                            <h3 className="font-bold text-white flex items-center gap-2">
+                              <Package className="w-4 h-4 text-brand-400" />
+                              Edit {pkg.name} Package
+                            </h3>
+                            <button
+                              type="button"
+                              onClick={() => setEditingPackage(null)}
+                              className="text-xs text-slate-400 hover:text-white px-2 py-1 rounded-md hover:bg-dark-800 transition-colors"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Package Name</label>
+                              <input
+                                type="text"
+                                value={editingPackage.name}
+                                onChange={(e) => setEditingPackage({ ...editingPackage, name: e.target.value })}
+                                className="w-full px-3 py-2 bg-dark-950 border border-dark-800 rounded-lg text-sm text-white focus:border-brand-500 outline-none"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Price (KES)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={editingPackage.price}
+                                onChange={(e) => setEditingPackage({ ...editingPackage, price: e.target.value })}
+                                className="w-full px-3 py-2 bg-dark-950 border border-dark-800 rounded-lg text-sm text-white focus:border-brand-500 outline-none"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Duration (Days)</label>
+                              <input
+                                type="number"
+                                min="1"
+                                value={editingPackage.durationDays}
+                                onChange={(e) => setEditingPackage({ ...editingPackage, durationDays: e.target.value })}
+                                className="w-full px-3 py-2 bg-dark-950 border border-dark-800 rounded-lg text-sm text-white focus:border-brand-500 outline-none"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Daily Tasks Limit</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={editingPackage.taskLimitDaily}
+                                onChange={(e) => setEditingPackage({ ...editingPackage, taskLimitDaily: e.target.value })}
+                                className="w-full px-3 py-2 bg-dark-950 border border-dark-800 rounded-lg text-sm text-white focus:border-brand-500 outline-none"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Watch Ads Limit</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={editingPackage.watchAdsLimit}
+                                onChange={(e) => setEditingPackage({ ...editingPackage, watchAdsLimit: e.target.value })}
+                                className="w-full px-3 py-2 bg-dark-950 border border-dark-800 rounded-lg text-sm text-white focus:border-brand-500 outline-none"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">WhatsApp Tasks Limit</label>
+                              <input
+                                type="number"
+                                min="0"
+                                value={editingPackage.whatsappTasksLimit}
+                                onChange={(e) => setEditingPackage({ ...editingPackage, whatsappTasksLimit: e.target.value })}
+                                className="w-full px-3 py-2 bg-dark-950 border border-dark-800 rounded-lg text-sm text-white focus:border-brand-500 outline-none"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Referral Bonus (KES)</label>
+                              <input
+                                type="number"
+                                min="0"
+                                step="1"
+                                value={editingPackage.referralBonus}
+                                onChange={(e) => setEditingPackage({ ...editingPackage, referralBonus: e.target.value })}
+                                className="w-full px-3 py-2 bg-dark-950 border border-dark-800 rounded-lg text-sm text-white focus:border-brand-500 outline-none"
+                                required
+                              />
+                            </div>
+                            <div className="space-y-1 flex items-end">
+                              <label className="flex items-center gap-2 cursor-pointer pb-2">
+                                <input
+                                  type="checkbox"
+                                  checked={editingPackage.isActive}
+                                  onChange={(e) => setEditingPackage({ ...editingPackage, isActive: e.target.checked })}
+                                  className="w-4 h-4 rounded border-dark-700 bg-dark-900 text-brand-500 focus:ring-brand-500/20"
+                                />
+                                <span className="text-sm text-white font-medium">Package is Active</span>
+                              </label>
+                            </div>
+                          </div>
+                          
+                          <div className="flex justify-end pt-2">
+                            <button
+                              type="submit"
+                              className="px-6 py-2 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-black text-sm transition-colors shadow-lg shadow-brand-500/20"
+                            >
+                              Save Configuration
+                            </button>
+                          </div>
+                        </form>
+                      ) : (
+                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+                          <div className="space-y-4 flex-1">
+                            <div>
+                              <div className="flex items-center gap-3">
+                                <h3 className="text-xl font-black text-white tracking-tight">{pkg.name}</h3>
+                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${pkg.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                                  {pkg.isActive ? 'Active' : 'Disabled'}
+                                </span>
+                              </div>
+                              <div className="text-2xl font-mono font-bold text-brand-400 mt-1">
+                                KES {pkg.price.toLocaleString()} <span className="text-sm text-slate-400 font-sans font-medium">/ {pkg.durationDays} days</span>
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-dark-950 p-3 rounded-xl border border-dark-800/50">
+                              <div>
+                                <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Standard Tasks</div>
+                                <div className="text-sm font-bold text-white">{pkg.taskLimitDaily} / day</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Watch Ads</div>
+                                <div className="text-sm font-bold text-white">{pkg.watchAdsLimit} / day</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">WhatsApp Tasks</div>
+                                <div className="text-sm font-bold text-white">{pkg.whatsappTasksLimit} / day</div>
+                              </div>
+                              <div>
+                                <div className="text-[10px] uppercase text-slate-500 font-bold mb-1">Referral Bonus</div>
+                                <div className="text-sm font-bold text-emerald-400 font-mono">KES {pkg.referralBonus.toLocaleString()}</div>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="shrink-0 pt-1">
+                            <button
+                              onClick={() => setEditingPackage({ ...pkg })}
+                              className="w-full sm:w-auto px-4 py-2 rounded-xl border border-dark-700 bg-dark-800 hover:bg-dark-700 text-white text-xs font-bold transition-colors"
+                            >
+                              Edit Package
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TAB 9: BANNERS & SOCIAL LINKS */}
         {activeTab === 'banners-social' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             {/* Top Banners Management */}
