@@ -1086,6 +1086,32 @@ function AdminDashboardInner() {
     }
   };
 
+  // User Ban/Unban Action
+  const handleUserBanToggle = async (userId: string, currentStatus: string) => {
+    const isBanning = currentStatus !== 'SUSPENDED';
+    const action = isBanning ? 'BAN' : 'UNBAN';
+    const confirmMessage = isBanning 
+      ? "Ban this user? They will be unable to log in."
+      : "Unban this user?";
+    
+    if (!window.confirm(confirmMessage)) return;
+
+    try {
+      const res = await fetch('/api/admin/users', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, action }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update user status');
+
+      setSuccessMsg(`User successfully ${isBanning ? 'banned' : 'unbanned'}.`);
+      fetchUsers();
+    } catch (err: any) {
+      setUsersError(err.message);
+    }
+  };
+
   // Admin Change Password
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2783,6 +2809,17 @@ function AdminDashboardInner() {
                       >
                         {u.status}
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => handleUserBanToggle(u.id, u.status)}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold transition-colors ${
+                          u.status === 'SUSPENDED'
+                            ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/30'
+                            : 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30 border border-rose-500/30'
+                        }`}
+                      >
+                        {u.status === 'SUSPENDED' ? 'Unban' : 'Ban'}
+                      </button>
                     </div>
                   </div>
                 ));
