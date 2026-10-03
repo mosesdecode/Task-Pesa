@@ -1172,7 +1172,7 @@ function AdminDashboardInner() {
 
   // SIDEBAR NAVIGATION ITEMS MOVED TO LAYOUT
   return (
-      <main className="flex-1 lg:pl-64 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl pt-20 lg:pt-8">
+      <main className="flex-1 min-w-0 overflow-x-hidden lg:pl-64 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl pt-20 lg:pt-8">
         {/* Global Notifications */}
         {error && (
           <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center justify-between gap-3 animate-in fade-in duration-200 shadow-lg shadow-rose-900/20">
@@ -1403,12 +1403,12 @@ function AdminDashboardInner() {
             </div>
 
             {/* Financial Overview Metrics (Requirements 5 & 24) */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               {/* 1. Total Activation Revenue */}
               <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
-                <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  Activation Revenue
-                  <Coins className="w-4 h-4 text-brand-400" />
+                <span className="text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between gap-1 min-w-0">
+                  <span className="truncate" title="Activation Revenue">Activation Revenue</span>
+                  <Coins className="w-4 h-4 text-brand-400 shrink-0" />
                 </span>
                 <p className="text-2xl font-black text-white font-mono">
                   {earningsLoading ? <Skeleton className="w-32 h-8" /> : `KES ${(earningsData?.stats?.totalActivationRevenue || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`}
@@ -1425,9 +1425,9 @@ function AdminDashboardInner() {
 
               {/* 2. Admin Activation Earnings (KES 100/activation) */}
               <div className="p-5 rounded-2xl bg-dark-900/80 border border-emerald-500/20 glow-emerald space-y-2">
-                <span className="text-[11px] text-emerald-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  Admin Activation Earnings
-                  <TrendingUp className="w-4 h-4 text-emerald-400" />
+                <span className="text-[11px] text-emerald-400 uppercase font-bold tracking-wider flex items-center justify-between gap-1 min-w-0">
+                  <span className="truncate" title="Admin Activation Earnings">Admin Activation Earnings</span>
+                  <TrendingUp className="w-4 h-4 text-emerald-400 shrink-0" />
                 </span>
                 <p className="text-2xl font-black text-emerald-400 font-mono">
                   {earningsLoading ? <Skeleton className="w-32 h-8" /> : `KES ${(earningsData?.stats?.totalAdminEarnings || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`}
@@ -1444,9 +1444,9 @@ function AdminDashboardInner() {
 
               {/* 3. Referral Rewards Disbursed (KES 100/referral) */}
               <div className="p-5 rounded-2xl bg-dark-900/80 border border-cyan-500/20 space-y-2">
-                <span className="text-[11px] text-cyan-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  Referral Rewards Paid
-                  <Users className="w-4 h-4 text-cyan-400" />
+                <span className="text-[11px] text-cyan-400 uppercase font-bold tracking-wider flex items-center justify-between gap-1 min-w-0">
+                  <span className="truncate" title="Referral Rewards Paid">Referral Rewards Paid</span>
+                  <Users className="w-4 h-4 text-cyan-400 shrink-0" />
                 </span>
                 <p className="text-2xl font-black text-cyan-300 font-mono">
                   {earningsLoading ? <Skeleton className="w-32 h-8" /> : `KES ${(earningsData?.stats?.totalReferralRewardsPaid || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`}
@@ -1458,9 +1458,9 @@ function AdminDashboardInner() {
 
               {/* 4. Platform Retained Reserve */}
               <div className="p-5 rounded-2xl bg-dark-900/80 border border-purple-500/20 space-y-2">
-                <span className="text-[11px] text-purple-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  Platform Retained Reserve
-                  <Shield className="w-4 h-4 text-purple-400" />
+                <span className="text-[11px] text-purple-400 uppercase font-bold tracking-wider flex items-center justify-between gap-1 min-w-0">
+                  <span className="truncate" title="Platform Retained Reserve">Platform Retained Reserve</span>
+                  <Shield className="w-4 h-4 text-purple-400 shrink-0" />
                 </span>
                 <p className="text-2xl font-black text-purple-300 font-mono">
                   {earningsLoading ? <Skeleton className="w-32 h-8" /> : `KES ${(earningsData?.stats?.totalPlatformRetained || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`}
