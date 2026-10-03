@@ -19,6 +19,7 @@ import {
   Share2,
 } from 'lucide-react';
 import TopBannerCarousel from '@/components/TopBannerCarousel';
+import { Skeleton } from '@/components/Skeleton';
 
 export default function UserDashboard() {
   const router = useRouter();
@@ -61,11 +62,51 @@ export default function UserDashboard() {
 
   if (loading || !user) {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="w-8 h-8 rounded-full border-2 border-brand-500 border-t-transparent animate-spin" />
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+        {/* Banner skeleton */}
+        <Skeleton className="w-full h-36 rounded-3xl" />
+
+        {/* Welcome card skeleton */}
+        <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-700/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="space-y-3 flex-1">
+            <Skeleton className="w-28 h-5 rounded-full" />
+            <Skeleton className="w-64 h-9" />
+            <Skeleton className="w-80 h-4" />
+          </div>
+          <Skeleton className="w-36 h-12 rounded-2xl shrink-0" />
+        </div>
+
+        {/* 4 metric cards skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
+              <div className="flex items-center justify-between">
+                <Skeleton className="w-24 h-3" />
+                <Skeleton className="w-9 h-9 rounded-xl" />
+              </div>
+              <Skeleton className="w-36 h-8" />
+              <Skeleton className="w-40 h-3" />
+            </div>
+          ))}
+        </div>
+
+        {/* Tasks list skeleton */}
+        <div className="space-y-4">
+          <Skeleton className="w-40 h-6" />
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between gap-4">
+              <div className="space-y-2 flex-1">
+                <Skeleton className="w-48 h-4" />
+                <Skeleton className="w-64 h-3" />
+              </div>
+              <Skeleton className="w-20 h-8 rounded-xl shrink-0" />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
+
 
   const availableBalance = wallet?.availableBalance || 0;
   const pendingBalance = wallet?.pendingBalance || 0;
