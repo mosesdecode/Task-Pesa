@@ -1216,12 +1216,32 @@ function AdminDashboardInner() {
 
   if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-dark-950 flex items-center justify-center text-slate-400">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-2 border-brand-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-sm font-bold tracking-wider uppercase text-slate-300">Verifying Admin Privileges...</p>
+      <main className="flex-1 min-w-0 overflow-x-hidden lg:pl-64 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl pt-20 lg:pt-8">
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
+            <div className="space-y-2">
+              <Skeleton className="w-64 h-8" />
+              <Skeleton className="w-96 h-4" />
+            </div>
+            <Skeleton className="w-32 h-9 rounded-xl" />
+          </div>
+          
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+                <Skeleton className="w-24 h-4" />
+                <Skeleton className="w-32 h-8" />
+                <Skeleton className="w-40 h-4" />
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <Skeleton className="w-full h-[300px] rounded-3xl" />
+            <Skeleton className="w-full h-[300px] rounded-3xl" />
+          </div>
         </div>
-      </div>
+      </main>
     );
   }
 

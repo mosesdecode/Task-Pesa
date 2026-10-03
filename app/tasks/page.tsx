@@ -18,6 +18,7 @@ import {
   ExternalLink,
   Layers,
 } from 'lucide-react';
+import { Skeleton } from '@/components/Skeleton';
 import TaskModal from '@/components/TaskModal';
 
 export default function TasksPage() {
@@ -203,8 +204,29 @@ export default function TasksPage() {
       </div>
 
       {loading ? (
-        <div className="py-20 text-center text-slate-400 text-sm animate-pulse">
-          Loading available tasks...
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-5 shadow-lg">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <Skeleton className="w-20 h-5 rounded-full" />
+                  <Skeleton className="w-16 h-4" />
+                </div>
+                <div>
+                  <Skeleton className="w-3/4 h-5 mb-2" />
+                  <Skeleton className="w-full h-3 mb-1" />
+                  <Skeleton className="w-5/6 h-3" />
+                </div>
+              </div>
+              <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+                <div className="space-y-1">
+                  <Skeleton className="w-12 h-3" />
+                  <Skeleton className="w-20 h-6" />
+                </div>
+                <Skeleton className="w-28 h-9 rounded-xl" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : (
         <>
