@@ -644,16 +644,22 @@ function AdminDashboardInner() {
     setError('');
     setSuccessMsg('');
     try {
+      // 1. Create new entry first to ensure safety
+      const { id: oldId, ...payload } = editingBanner;
       const res = await fetch('/api/admin/banners', {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...editingBanner,
+          ...payload,
           sortOrder: parseInt(String(editingBanner.sortOrder)) || 0,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update banner');
+
+      // 2. Delete the old entry
+      await fetch(`/api/admin/banners?id=${oldId}`, { method: 'DELETE' });
+
       setSuccessMsg('Banner updated successfully!');
       setEditingBanner(null);
       fetchBannersAndSocial();
@@ -751,16 +757,22 @@ function AdminDashboardInner() {
     setError('');
     setSuccessMsg('');
     try {
+      // 1. Create new entry first to ensure safety
+      const { id: oldId, ...payload } = editingSocialLink;
       const res = await fetch('/api/admin/social-links', {
-        method: 'PUT',
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ...editingSocialLink,
+          ...payload,
           sort_order: parseInt(String(editingSocialLink.sort_order)) || 0,
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update social link');
+
+      // 2. Delete the old entry
+      await fetch(`/api/admin/social-links?id=${oldId}`, { method: 'DELETE' });
+
       setSuccessMsg('Social link updated successfully!');
       setEditingSocialLink(null);
       fetchBannersAndSocial();
