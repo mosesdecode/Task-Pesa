@@ -53,6 +53,8 @@ import {
   Plus,
 } from 'lucide-react';
 import { formatKenyanPhoneDisplay } from '@/lib/phone';
+import { Skeleton } from '@/components/Skeleton';
+import { EmptyState } from '@/components/EmptyState';
 
 type AdminTab =
   | 'overview'
@@ -158,6 +160,7 @@ function AdminDashboardInner() {
 
   // Submissions sub-filter
   const [submissionFilter, setSubmissionFilter] = useState<'ALL' | 'UNDER_REVIEW' | 'APPROVED' | 'REJECTED'>('UNDER_REVIEW');
+  const [submissionsFilterLoading, setSubmissionsFilterLoading] = useState(false);
   const [rejectModalSub, setRejectModalSub] = useState<any | null>(null);
   const [rejectionReasonInput, setRejectionReasonInput] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -363,6 +366,7 @@ function AdminDashboardInner() {
 
   const fetchSubmissions = async () => {
     setSubmissionsError('');
+    setSubmissionsFilterLoading(true);
     try {
       const res = await fetch(`/api/admin/submissions?status=${submissionFilter}`);
       if (res.ok) {
@@ -375,6 +379,8 @@ function AdminDashboardInner() {
     } catch (e) {
       console.error("Failed to load submissions:", e);
       setSubmissionsError("Couldn't load submissions. Retry");
+    } finally {
+      setSubmissionsFilterLoading(false);
     }
   };
 
@@ -1207,10 +1213,10 @@ function AdminDashboardInner() {
                   <Users className="w-4 h-4 text-blue-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-white font-mono">
-                  {stats ? (stats.users?.total ?? 0).toLocaleString() : '—'}
+                  {loading ? <Skeleton className="w-20 h-8" /> : stats ? (stats.users?.total ?? 0).toLocaleString() : '—'}
                 </p>
                 <span className="text-[11px] text-slate-400 block truncate">
-                  {stats ? `${(stats.users?.verified ?? 0)} phone verified` : '—'}
+                  {loading ? <Skeleton className="w-32 h-4" /> : stats ? `${(stats.users?.verified ?? 0)} phone verified` : '—'}
                 </span>
               </div>
 
@@ -1221,10 +1227,10 @@ function AdminDashboardInner() {
                   <Users className="w-4 h-4 text-emerald-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-white font-mono">
-                  {stats ? (stats.users?.active ?? 0).toLocaleString() : '—'}
+                  {loading ? <Skeleton className="w-20 h-8" /> : stats ? (stats.users?.active ?? 0).toLocaleString() : '—'}
                 </p>
                 <span className="text-[11px] text-slate-400 block truncate">
-                  {stats ? `${(stats.users?.suspended ?? 0)} suspended` : '—'}
+                  {loading ? <Skeleton className="w-32 h-4" /> : stats ? `${(stats.users?.suspended ?? 0)} suspended` : '—'}
                 </span>
               </div>
 
@@ -1235,10 +1241,10 @@ function AdminDashboardInner() {
                   <Coins className="w-4 h-4 text-brand-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-white font-mono truncate">
-                  {earningsData?.stats ? `KES ${(earningsData.stats.totalActivationRevenue ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
+                  {loading ? <Skeleton className="w-24 h-8" /> : earningsData?.stats ? `KES ${(earningsData.stats.totalActivationRevenue ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
                 </p>
                 <span className="text-[11px] text-slate-400 block truncate">
-                  {earningsData?.stats ? `${(earningsData.stats.totalActivationPayments ?? 0)} paid activations` : '—'}
+                  {loading ? <Skeleton className="w-32 h-4" /> : earningsData?.stats ? `${(earningsData.stats.totalActivationPayments ?? 0)} paid activations` : '—'}
                 </span>
               </div>
 
@@ -1249,10 +1255,10 @@ function AdminDashboardInner() {
                   <TrendingUp className="w-4 h-4 text-emerald-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-emerald-400 font-mono truncate">
-                  {earningsData?.stats ? `KES ${(earningsData.stats.totalAdminEarnings ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
+                  {loading ? <Skeleton className="w-24 h-8" /> : earningsData?.stats ? `KES ${(earningsData.stats.totalAdminEarnings ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
                 </p>
                 <span className="text-[11px] text-slate-400 block truncate">
-                  {earningsData?.stats ? `Today: KES ${(earningsData.stats.todayAdminEarnings ?? 0).toLocaleString()}` : '—'}
+                  {loading ? <Skeleton className="w-32 h-4" /> : earningsData?.stats ? `Today: KES ${(earningsData.stats.todayAdminEarnings ?? 0).toLocaleString()}` : '—'}
                 </span>
               </div>
 
@@ -1263,10 +1269,10 @@ function AdminDashboardInner() {
                   <Users className="w-4 h-4 text-cyan-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-cyan-300 font-mono truncate">
-                  {earningsData?.stats ? `KES ${(earningsData.stats.totalReferralRewardsPaid ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
+                  {loading ? <Skeleton className="w-24 h-8" /> : earningsData?.stats ? `KES ${(earningsData.stats.totalReferralRewardsPaid ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
                 </p>
                 <span className="text-[11px] text-slate-400 block truncate">
-                  Referral rewards paid to users
+                  {loading ? <Skeleton className="w-32 h-4" /> : 'Referral rewards paid to users'}
                 </span>
               </div>
 
@@ -1277,10 +1283,10 @@ function AdminDashboardInner() {
                   <Wallet className="w-4 h-4 text-purple-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-white font-mono truncate">
-                  {stats ? (stats.wallets?.activeWallets ?? 0).toLocaleString() : '—'}
+                  {loading ? <Skeleton className="w-20 h-8" /> : stats ? (stats.wallets?.activeWallets ?? 0).toLocaleString() : '—'}
                 </p>
                 <span className="text-[11px] text-slate-400 block truncate">
-                  {stats ? `${(stats.wallets?.totalWallets ?? 0).toLocaleString()} total registered` : '—'}
+                  {loading ? <Skeleton className="w-32 h-4" /> : stats ? `${(stats.wallets?.totalWallets ?? 0).toLocaleString()} total registered` : '—'}
                 </span>
               </div>
 
@@ -1291,10 +1297,10 @@ function AdminDashboardInner() {
                   <Wallet className="w-4 h-4 text-amber-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-white font-mono truncate">
-                  {stats ? `KES ${(stats.wallets?.pendingWithdrawalsKES ?? 0).toLocaleString()}` : '—'}
+                  {loading ? <Skeleton className="w-24 h-8" /> : stats ? `KES ${(stats.wallets?.pendingWithdrawalsKES ?? 0).toLocaleString()}` : '—'}
                 </p>
                 <span className="text-[11px] text-slate-400 block truncate">
-                  {stats ? `${(stats.wallets?.pendingWithdrawalsCount ?? 0)} awaiting review` : '—'}
+                  {loading ? <Skeleton className="w-32 h-4" /> : stats ? `${(stats.wallets?.pendingWithdrawalsCount ?? 0)} awaiting review` : '—'}
                 </span>
               </div>
 
@@ -1305,14 +1311,16 @@ function AdminDashboardInner() {
                   <FileText className="w-4 h-4 text-amber-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-white font-mono">
-                  {stats ? (stats.submissions?.pendingReview ?? 0).toLocaleString() : '—'}
+                  {loading ? <Skeleton className="w-20 h-8" /> : stats ? (stats.submissions?.pendingReview ?? 0).toLocaleString() : '—'}
                 </p>
-                <button
-                  onClick={() => router.push('/admin?tab=submissions')}
-                  className="text-[11px] text-brand-400 font-bold hover:underline flex items-center gap-1 cursor-pointer pt-0.5 truncate"
-                >
-                  {stats ? `${(stats.submissions?.pendingTasks ?? 0)} task • ${(stats.submissions?.pendingWhatsapp ?? 0)} WA` : '—'} <ChevronRight className="w-3 h-3" />
-                </button>
+                {loading ? <Skeleton className="w-32 h-4 mt-0.5" /> : (
+                  <button
+                    onClick={() => router.push('/admin?tab=submissions')}
+                    className="text-[11px] text-brand-400 font-bold hover:underline flex items-center gap-1 cursor-pointer pt-0.5 truncate"
+                  >
+                    {stats ? `${(stats.submissions?.pendingTasks ?? 0)} task • ${(stats.submissions?.pendingWhatsapp ?? 0)} WA` : '—'} <ChevronRight className="w-3 h-3" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -1382,11 +1390,15 @@ function AdminDashboardInner() {
                   <Coins className="w-4 h-4 text-brand-400" />
                 </span>
                 <p className="text-2xl font-black text-white font-mono">
-                  KES {(earningsData?.stats?.totalActivationRevenue || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                  {earningsLoading ? <Skeleton className="w-32 h-8" /> : `KES ${(earningsData?.stats?.totalActivationRevenue || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`}
                 </p>
                 <div className="flex items-center justify-between text-xs text-slate-400 pt-1 border-t border-dark-800/80">
-                  <span>{earningsData?.stats?.totalActivationPayments || 0} Paid Activations</span>
-                  <span className="text-amber-400 font-bold">{earningsData?.stats?.pendingDepositsCount || 0} Pending</span>
+                  {earningsLoading ? <Skeleton className="w-full h-4 mt-1" /> : (
+                    <>
+                      <span>{earningsData?.stats?.totalActivationPayments || 0} Paid Activations</span>
+                      <span className="text-amber-400 font-bold">{earningsData?.stats?.pendingDepositsCount || 0} Pending</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1397,11 +1409,15 @@ function AdminDashboardInner() {
                   <TrendingUp className="w-4 h-4 text-emerald-400" />
                 </span>
                 <p className="text-2xl font-black text-emerald-400 font-mono">
-                  KES {(earningsData?.stats?.totalAdminEarnings || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                  {earningsLoading ? <Skeleton className="w-32 h-8" /> : `KES ${(earningsData?.stats?.totalAdminEarnings || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`}
                 </p>
                 <div className="text-[11px] text-slate-300 pt-1 border-t border-dark-800/80 flex items-center justify-between">
-                  <span>Today: KES {(earningsData?.stats?.todayAdminEarnings || 0).toLocaleString()}</span>
-                  <span>Month: KES {(earningsData?.stats?.thisMonthAdminEarnings || 0).toLocaleString()}</span>
+                  {earningsLoading ? <Skeleton className="w-full h-4 mt-1" /> : (
+                    <>
+                      <span>Today: KES {(earningsData?.stats?.todayAdminEarnings || 0).toLocaleString()}</span>
+                      <span>Month: KES {(earningsData?.stats?.thisMonthAdminEarnings || 0).toLocaleString()}</span>
+                    </>
+                  )}
                 </div>
               </div>
 
@@ -1412,10 +1428,10 @@ function AdminDashboardInner() {
                   <Users className="w-4 h-4 text-cyan-400" />
                 </span>
                 <p className="text-2xl font-black text-cyan-300 font-mono">
-                  KES {(earningsData?.stats?.totalReferralRewardsPaid || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                  {earningsLoading ? <Skeleton className="w-32 h-8" /> : `KES ${(earningsData?.stats?.totalReferralRewardsPaid || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`}
                 </p>
                 <p className="text-[11px] text-slate-400 pt-1 border-t border-dark-800/80">
-                  KES 100 credited to referring user wallets
+                  {earningsLoading ? <Skeleton className="w-full h-4 mt-1" /> : 'KES 100 credited to referring user wallets'}
                 </p>
               </div>
 
@@ -1426,10 +1442,10 @@ function AdminDashboardInner() {
                   <Shield className="w-4 h-4 text-purple-400" />
                 </span>
                 <p className="text-2xl font-black text-purple-300 font-mono">
-                  KES {(earningsData?.stats?.totalPlatformRetained || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
+                  {earningsLoading ? <Skeleton className="w-32 h-8" /> : `KES ${(earningsData?.stats?.totalPlatformRetained || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}`}
                 </p>
                 <p className="text-[11px] text-slate-400 pt-1 border-t border-dark-800/80">
-                  Unreferred activations (100% balanced ledger)
+                  {earningsLoading ? <Skeleton className="w-full h-4 mt-1" /> : 'Unreferred activations (100% balanced ledger)'}
                 </p>
               </div>
             </div>
@@ -1656,10 +1672,27 @@ function AdminDashboardInner() {
 
             {/* Task Management Table / Cards */}
             <div className="space-y-4">
-              {tasksList.length === 0 ? (
-                <div className="p-12 text-center text-slate-400 bg-dark-900 rounded-3xl border border-dark-800">
-                  No tasks created yet. Click "Add New Task" to create one.
-                </div>
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-dark-800">
+                      <div className="space-y-2">
+                        <Skeleton className="w-24 h-4" />
+                        <Skeleton className="w-48 h-5" />
+                      </div>
+                      <Skeleton className="w-20 h-8" />
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      {Array.from({ length: 7 }).map((_, j) => <Skeleton key={j} className="h-12" />)}
+                    </div>
+                  </div>
+                ))
+              ) : tasksList.length === 0 ? (
+                <EmptyState
+                  icon="clipboard"
+                  title="No tasks yet"
+                  description='Click "Add New Task" to create your first task.'
+                />
               ) : (
                 tasksList.map((task) => (
                   <div
@@ -1940,27 +1973,48 @@ function AdminDashboardInner() {
 
             {/* Categories List */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {categoriesList.map((cat) => (
-                <div key={cat.id} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex items-center justify-between">
-                  <div>
-                    <span className="text-xs font-bold text-white block">{cat.name}</span>
-                    <span className="text-[11px] text-slate-400 block">{cat.description}</span>
-                    <span className="text-[10px] text-brand-400 font-mono mt-1 block">
-                      {cat._count?.tasks || 0} associated tasks
-                    </span>
+              {loading ? (
+                Array.from({ length: 6 }).map((_, i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex items-center justify-between">
+                    <div className="space-y-2">
+                      <Skeleton className="w-28 h-4" />
+                      <Skeleton className="w-40 h-3" />
+                      <Skeleton className="w-20 h-3" />
+                    </div>
+                    <Skeleton className="w-16 h-8" />
                   </div>
-                  <button
-                    onClick={() => handleToggleCategory(cat)}
-                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer transition-colors ${
-                      cat.isActive
-                        ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
-                        : 'bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30'
-                    }`}
-                  >
-                    {cat.isActive ? 'Active' : 'Disabled'}
-                  </button>
+                ))
+              ) : categoriesList.length === 0 ? (
+                <div className="col-span-3">
+                  <EmptyState
+                    icon="folder"
+                    title="No categories yet"
+                    description="Add your first task category using the form above."
+                  />
                 </div>
-              ))}
+              ) : (
+                categoriesList.map((cat) => (
+                  <div key={cat.id} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-white block">{cat.name}</span>
+                      <span className="text-[11px] text-slate-400 block">{cat.description}</span>
+                      <span className="text-[10px] text-brand-400 font-mono mt-1 block">
+                        {cat._count?.tasks || 0} associated tasks
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleToggleCategory(cat)}
+                      className={`px-3 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer transition-colors ${
+                        cat.isActive
+                          ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
+                          : 'bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30'
+                      }`}
+                    >
+                      {cat.isActive ? 'Active' : 'Disabled'}
+                    </button>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -2012,10 +2066,30 @@ function AdminDashboardInner() {
 
             {/* Submissions List */}
             <div className="space-y-4">
-              {submissionsList.length === 0 ? (
-                <div className="p-12 text-center text-slate-400 bg-dark-900 rounded-3xl border border-dark-800">
-                  No submissions in this queue.
-                </div>
+              {submissionsFilterLoading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
+                    <div className="flex items-start justify-between pb-3 border-b border-dark-800">
+                      <div className="space-y-2">
+                        <Skeleton className="w-20 h-3" />
+                        <Skeleton className="w-56 h-5" />
+                        <Skeleton className="w-64 h-3" />
+                      </div>
+                      <Skeleton className="w-20 h-6" />
+                    </div>
+                    <Skeleton className="w-full h-16" />
+                    <div className="flex gap-3">
+                      <Skeleton className="w-40 h-9" />
+                      <Skeleton className="w-28 h-9" />
+                    </div>
+                  </div>
+                ))
+              ) : submissionsList.length === 0 ? (
+                <EmptyState
+                  icon="inbox"
+                  title="Queue is clear"
+                  description={`No ${submissionFilter === 'UNDER_REVIEW' ? 'pending' : submissionFilter.toLowerCase()} submissions at the moment.`}
+                />
               ) : (
                 submissionsList.map((sub) => (
                   <div key={sub.id} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4 shadow-lg">
@@ -2302,12 +2376,28 @@ function AdminDashboardInner() {
 
             {/* Mobile-First Cards List */}
             <div className="space-y-3">
-              {filteredWithdrawals.length === 0 ? (
-                <div className="p-12 text-center text-slate-400 bg-dark-900 rounded-3xl border border-dark-800 space-y-2">
-                  <Wallet className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                  <p className="text-sm font-bold text-slate-300">No withdrawal requests found</p>
-                  <p className="text-xs text-slate-500">Try adjusting your filters or search terms.</p>
-                </div>
+              {loading ? (
+                Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-2">
+                        <Skeleton className="w-40 h-5" />
+                        <Skeleton className="w-32 h-3" />
+                      </div>
+                      <Skeleton className="w-20 h-6" />
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <Skeleton className="w-24 h-8" />
+                      <Skeleton className="w-28 h-3" />
+                    </div>
+                  </div>
+                ))
+              ) : filteredWithdrawals.length === 0 ? (
+                <EmptyState
+                  icon="wallet"
+                  title="No withdrawal requests found"
+                  description="Try adjusting your filters or search terms."
+                />
               ) : (
                 filteredWithdrawals.map((w) => (
                   <div
@@ -2522,36 +2612,61 @@ function AdminDashboardInner() {
 
             {/* Adverts Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {advertsList.map((ad) => (
-                <div key={ad.id} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3">
-                  <div className="aspect-video rounded-xl overflow-hidden bg-dark-950 border border-dark-800">
-                    <img src={ad.mediaUrl} alt={ad.title} className="w-full h-full object-cover" />
+              {loading ? (
+                Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3">
+                    <Skeleton className="aspect-video w-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="w-20 h-3" />
+                      <Skeleton className="w-36 h-5" />
+                      <Skeleton className="w-24 h-3" />
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-dark-800">
+                      <Skeleton className="w-16 h-8" />
+                      <Skeleton className="w-8 h-8" />
+                    </div>
                   </div>
-                  <div>
-                    <span className="text-[10px] text-brand-400 font-bold uppercase">{ad.advertiser}</span>
-                    <h4 className="text-sm font-bold text-white">{ad.title}</h4>
-                    <span className="text-xs text-slate-400 block font-mono">
-                      KES {ad.reward?.toFixed(2)} • {ad.durationSeconds}s
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between pt-2 border-t border-dark-800">
-                    <button
-                      onClick={() => handleToggleAdvertStatus(ad)}
-                      className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
-                        ad.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
-                      }`}
-                    >
-                      {ad.status === 'ACTIVE' ? 'Pause' : 'Resume'}
-                    </button>
-                    <button
-                      onClick={() => handleDeleteAdvert(ad.id)}
-                      className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 cursor-pointer"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
+                ))
+              ) : advertsList.length === 0 ? (
+                <div className="col-span-3">
+                  <EmptyState
+                    icon="video"
+                    title="No adverts published"
+                    description="Create your first advert using the form above."
+                  />
                 </div>
-              ))}
+              ) : (
+                advertsList.map((ad) => (
+                  <div key={ad.id} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3">
+                    <div className="aspect-video rounded-xl overflow-hidden bg-dark-950 border border-dark-800">
+                      <img src={ad.mediaUrl} alt={ad.title} className="w-full h-full object-cover" />
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-brand-400 font-bold uppercase">{ad.advertiser}</span>
+                      <h4 className="text-sm font-bold text-white">{ad.title}</h4>
+                      <span className="text-xs text-slate-400 block font-mono">
+                        KES {ad.reward?.toFixed(2)} • {ad.durationSeconds}s
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-dark-800">
+                      <button
+                        onClick={() => handleToggleAdvertStatus(ad)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer ${
+                          ad.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                        }`}
+                      >
+                        {ad.status === 'ACTIVE' ? 'Pause' : 'Resume'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteAdvert(ad.id)}
+                        className="p-1.5 rounded-lg text-rose-400 hover:bg-rose-500/10 cursor-pointer"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -2578,15 +2693,37 @@ function AdminDashboardInner() {
             </div>
 
             <div className="space-y-3">
-              {usersList
-                .filter(
+              {loading ? (
+                Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="w-28 h-4" />
+                        <Skeleton className="w-16 h-4" />
+                      </div>
+                      <Skeleton className="w-64 h-3" />
+                    </div>
+                    <Skeleton className="w-16 h-6" />
+                  </div>
+                ))
+              ) : (() => {
+                const filtered = usersList.filter(
                   (u) =>
                     !userSearch ||
                     u.username?.toLowerCase().includes(userSearch.toLowerCase()) ||
                     u.email?.toLowerCase().includes(userSearch.toLowerCase()) ||
                     u.phone?.includes(userSearch)
-                )
-                .map((u) => (
+                );
+                if (filtered.length === 0) {
+                  return (
+                    <EmptyState
+                      icon="users"
+                      title={userSearch ? 'No users match your search' : 'No users registered yet'}
+                      description={userSearch ? 'Try a different name, email, or phone number.' : 'Users will appear here once they register.'}
+                    />
+                  );
+                }
+                return filtered.map((u) => (
                   <div
                     key={u.id}
                     className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex flex-col md:flex-row md:items-center justify-between gap-3"
@@ -2627,7 +2764,8 @@ function AdminDashboardInner() {
                       </span>
                     </div>
                   </div>
-                ))}
+                ));
+              })()}
             </div>
           </div>
         )}
