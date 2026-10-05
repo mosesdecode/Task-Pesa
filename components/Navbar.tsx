@@ -14,12 +14,14 @@ import {
   LayoutDashboard,
   Target,
   ShieldAlert,
+  Users,
 } from 'lucide-react';
 import InactivityTimeout from '@/components/InactivityTimeout';
 
 const navLinks = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Tasks', href: '/tasks', icon: Target },
+  { name: 'Referrals', href: '/referrals', icon: Users },
   { name: 'Wallet', href: '/wallet', icon: Wallet },
   { name: 'Profile', href: '/profile', icon: UserIcon },
 ];
@@ -79,6 +81,7 @@ export default function Navbar() {
         throw new Error('Server error during logout');
       }
       // Clear local state before navigating
+      sessionStorage.removeItem('taskmint_tab_active');
       setUser(null);
       // replace() removes the page from history so Back cannot restore it
       window.location.replace('/login');

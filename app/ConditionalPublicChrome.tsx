@@ -5,6 +5,8 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import MobileNav from '@/components/MobileNav';
 
+import TabSessionGuard from '@/components/TabSessionGuard';
+
 /**
  * Single shared pathname check (after all hooks — rules-of-hooks compliant).
  * Renders the public site chrome (Navbar / main wrapper / Footer / MobileNav)
@@ -22,17 +24,19 @@ export default function ConditionalPublicChrome({
   // not part of pathname so ?tab= variants match the /admin base path).
   const isAdmin = pathname === '/admin' || pathname.startsWith('/admin/');
 
-  if (isAdmin) {
-    // Admin layout owns the page — no public chrome at all.
-    return <>{children}</>;
-  }
-
   return (
     <>
-      <Navbar />
-      <main className="flex-grow">{children}</main>
-      <Footer />
-      <MobileNav />
+      <TabSessionGuard />
+      {isAdmin ? (
+        children
+      ) : (
+        <>
+          <Navbar />
+          <main className="flex-grow">{children}</main>
+          <Footer />
+          <MobileNav />
+        </>
+      )}
     </>
   );
 }

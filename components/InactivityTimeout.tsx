@@ -26,6 +26,7 @@ export default function InactivityTimeout({
 
   const handleLogout = useCallback(async () => {
     try {
+      sessionStorage.removeItem('taskmint_tab_active');
       await fetch('/api/auth/logout', { method: 'POST' });
     } catch (e) {
       // Ignore errors, force redirect anyway

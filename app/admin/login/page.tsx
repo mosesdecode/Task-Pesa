@@ -78,6 +78,9 @@ function AdminLoginForm() {
         !rawRedirect.includes('\\') &&
         !rawRedirect.includes('://');
 
+      // Mark this tab as an active session so TabSessionGuard allows access
+      sessionStorage.setItem('taskmint_tab_active', '1');
+
       const target = isValidRedirect ? rawRedirect : '/admin';
       window.location.replace(target);
     } catch (err: any) {

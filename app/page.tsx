@@ -8,31 +8,18 @@ import {
   PlaySquare,
   Share2,
   Users,
-  ShieldCheck,
   Zap,
   ArrowRight,
-  Sparkles,
-  CheckCircle2,
-  ChevronRight,
   ChevronDown,
   HelpCircle,
+  Sparkles,
 } from 'lucide-react';
 
 import TopBannerCarousel from '@/components/TopBannerCarousel';
 import SocialLinks from '@/components/SocialLinks';
 
 export default function LandingPage() {
-  const [packages, setPackages] = useState<any[]>([]);
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-
-  useEffect(() => {
-    fetch('/api/packages')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.packages) setPackages(data.packages);
-      })
-      .catch(() => {});
-  }, []);
 
   return (
     <div className="space-y-16 pb-12 overflow-x-hidden">
@@ -157,57 +144,6 @@ export default function LandingPage() {
               </div>
             );
           })}
-        </div>
-      </section>
-
-      {/* 4. PACKAGES */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        <div className="text-center space-y-3">
-          <h2 className="text-xs font-extrabold uppercase tracking-widest text-brand-400">Platform Tiers</h2>
-          <h3 className="text-3xl sm:text-4xl font-black text-white">Membership Packages</h3>
-          <p className="text-xs text-amber-400 bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-full inline-block font-medium">
-            ⚠️ Packages provide different task capacities and access levels. Packages are NOT investments and do NOT offer guaranteed returns.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {packages.map((pkg) => (
-            <div
-              key={pkg.id}
-              className={`p-6 rounded-3xl glass-card flex flex-col justify-between space-y-6 relative ${
-                pkg.name === 'GOLD' ? 'border-brand-500/50 glow-emerald' : ''
-              }`}
-            >
-              {pkg.name === 'GOLD' && (
-                <span className="absolute -top-3 right-6 px-3 py-1 rounded-full bg-brand-500 text-dark-900 text-[10px] font-black uppercase tracking-wider">
-                  Popular Choice
-                </span>
-              )}
-              <div className="space-y-4">
-                <h4 className="text-xl font-extrabold text-white">{pkg.name}</h4>
-                <div>
-                  <span className="text-3xl font-black text-white">KES {pkg.price}</span>
-                  <span className="text-xs text-gray-400"> / {pkg.durationDays} days</span>
-                </div>
-                <p className="text-xs text-gray-400 leading-relaxed">{pkg.description}</p>
-                <ul className="space-y-2 pt-4 border-t border-slate-800 text-xs text-gray-300">
-                  {pkg.features?.map((feat: string, i: number) => (
-                    <li key={i} className="flex items-center gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-brand-400 shrink-0" />
-                      <span>{feat}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-              <button
-                disabled
-                className="w-full py-3.5 rounded-xl font-extrabold text-xs transition-all text-center flex items-center justify-center gap-2 bg-slate-800/80 text-amber-400/90 border border-amber-500/30 cursor-not-allowed opacity-90 shadow-inner"
-              >
-                <Sparkles className="w-4 h-4 text-amber-400" />
-                Coming Soon
-              </button>
-            </div>
-          ))}
         </div>
       </section>
 

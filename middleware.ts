@@ -69,6 +69,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/notifications') ||
     pathname.startsWith('/packages') ||
     pathname.startsWith('/referrals') ||
+    pathname.startsWith('/activate') ||
     pathname.startsWith('/support');
 
   if (isProtectedPath) {

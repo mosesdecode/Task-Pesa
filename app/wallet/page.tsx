@@ -162,6 +162,18 @@ export default function WalletPage() {
           ))}
         </div>
 
+        {/* Withdrawal Progress Skeleton */}
+        <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
+          <Skeleton className="w-64 h-5" />
+          <div className="space-y-2">
+            <div className="flex justify-between">
+              <Skeleton className="w-24 h-3" />
+              <Skeleton className="w-8 h-3" />
+            </div>
+            <Skeleton className="w-full h-3 rounded-full" />
+          </div>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
             <Skeleton className="w-full h-80 rounded-3xl" />
@@ -225,6 +237,25 @@ export default function WalletPage() {
             KES {(walletData?.pendingEarnings || wallet.pendingBalance || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
           </p>
           <p className="text-[11px] text-gray-400">Pending admin payout review</p>
+        </div>
+      </div>
+
+      {/* Withdrawal Progress Bar */}
+      <div className="p-6 sm:p-8 rounded-3xl glass-card space-y-4">
+        <h4 className="text-sm font-bold text-white">Withdrawal Progress (KES 500 Min)</h4>
+        <div className="space-y-1.5">
+          <div className="flex justify-between text-xs font-semibold">
+            <span className="text-gray-400">Current Balance</span>
+            <span className="text-brand-400">
+              {Math.min(100, Math.round((availableBalance / 500) * 100))}%
+            </span>
+          </div>
+          <div className="w-full h-3 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
+            <div
+              className="h-full bg-gradient-to-r from-brand-500 to-emerald-400 rounded-full transition-all duration-500"
+              style={{ width: `${Math.min(100, (availableBalance / 500) * 100)}%` }}
+            />
+          </div>
         </div>
       </div>
 

@@ -55,6 +55,7 @@ export default function AdminSidebarClient({ adminEmail }: { adminEmail: string 
       if (!res.ok) {
         throw new Error('Server error during logout');
       }
+      sessionStorage.removeItem('taskmint_tab_active');
       window.location.replace('/admin/login');
     } catch (e: any) {
       clearTimeout(timeoutId);

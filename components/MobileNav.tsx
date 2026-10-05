@@ -3,11 +3,12 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Target, Wallet, User, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Target, Wallet, User, ShieldCheck, Users } from 'lucide-react';
 
 const navItems = [
   { label: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { label: 'Tasks', href: '/tasks', icon: Target },
+  { label: 'Referrals', href: '/referrals', icon: Users },
   { label: 'Wallet', href: '/wallet', icon: Wallet },
   { label: 'Profile', href: '/profile', icon: User },
   { label: 'Admin', href: '/admin', icon: ShieldCheck },

@@ -69,6 +69,9 @@ function RegisterForm() {
         throw new Error(data.error || 'Registration failed');
       }
 
+      // Mark this tab as an active session so TabSessionGuard allows access
+      sessionStorage.setItem('taskmint_tab_active', '1');
+
       // Success: Immediately transition into authenticated dashboard
       window.location.href = '/dashboard';
     } catch (err: any) {

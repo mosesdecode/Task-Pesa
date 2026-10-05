@@ -8,15 +8,10 @@ import {
   Clock,
   TrendingUp,
   Users,
-  CheckSquare,
-  Sparkles,
-  Zap,
-  ArrowUpRight,
-  ShieldCheck,
   CheckCircle2,
   AlertCircle,
-  PlaySquare,
-  Share2,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 import TopBannerCarousel from '@/components/TopBannerCarousel';
 import { Skeleton } from '@/components/Skeleton';
@@ -26,7 +21,6 @@ export default function UserDashboard() {
   const [user, setUser] = useState<any>(null);
   const [wallet, setWallet] = useState<any>(null);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
-  const [tasks, setTasks] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,13 +39,6 @@ export default function UserDashboard() {
           .then((wData) => {
             setWallet(wData.wallet);
             setRecentTransactions(wData.transactions || []);
-          });
-
-        // Fetch sample available tasks
-        fetch('/api/tasks')
-          .then((res) => res.json())
-          .then((tData) => {
-            if (tData.tasks) setTasks(tData.tasks.slice(0, 3));
           })
           .finally(() => setLoading(false));
       })
@@ -90,19 +77,6 @@ export default function UserDashboard() {
           ))}
         </div>
 
-        {/* Tasks list skeleton */}
-        <div className="space-y-4">
-          <Skeleton className="w-40 h-6" />
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="p-5 rounded-2xl bg-slate-900/60 border border-slate-800 flex items-center justify-between gap-4">
-              <div className="space-y-2 flex-1">
-                <Skeleton className="w-48 h-4" />
-                <Skeleton className="w-64 h-3" />
-              </div>
-              <Skeleton className="w-20 h-8 rounded-xl shrink-0" />
-            </div>
-          ))}
-        </div>
       </div>
     );
   }
@@ -228,92 +202,7 @@ export default function UserDashboard() {
         </div>
       </div>
 
-      {/* Main Content Grid: Quick Tasks & Activity Ledger */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Recommended Tasks */}
-        <div className="lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-extrabold text-white">Available Tasks For You</h3>
-            <Link href="/tasks" className="text-xs text-brand-400 font-bold hover:underline flex items-center gap-1">
-              View All Tasks
-              <ArrowUpRight className="w-4 h-4" />
-            </Link>
-          </div>
 
-          <div className="space-y-3">
-            {tasks.map((task) => (
-              <div key={task.id} className="p-5 rounded-2xl glass-card glass-card-hover flex items-center justify-between gap-4">
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-800 text-brand-400 border border-slate-700">
-                      {task.category?.name || 'Task'}
-                    </span>
-                    <span className="text-[10px] text-gray-400">{task.remainingSlots} slots remaining</span>
-                  </div>
-                  <h4 className="font-bold text-white text-sm">{task.title}</h4>
-                  <p className="text-xs text-gray-400 line-clamp-1">{task.instructions}</p>
-                </div>
-                <div className="text-right shrink-0 space-y-1">
-                  <p className="text-base font-black text-brand-400">KES {task.reward.toFixed(2)}</p>
-                  <Link
-                    href="/tasks"
-                    className="inline-block px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-brand-500 hover:text-dark-900 text-white font-bold text-xs transition-colors border border-slate-700"
-                  >
-                    Start Task
-                  </Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Wallet & Referral Shortcuts */}
-        <div className="space-y-6">
-          {/* Withdrawal Progress Bar */}
-          <div className="p-6 rounded-3xl glass-card space-y-4">
-            <h4 className="text-sm font-bold text-white">Withdrawal Progress (KES 500 Min)</h4>
-            <div className="space-y-1.5">
-              <div className="flex justify-between text-xs font-semibold">
-                <span className="text-gray-400">Current Balance</span>
-                <span className="text-brand-400">
-                  {Math.min(100, Math.round((availableBalance / 500) * 100))}%
-                </span>
-              </div>
-              <div className="w-full h-3 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
-                <div
-                  className="h-full bg-gradient-to-r from-brand-500 to-emerald-400 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, (availableBalance / 500) * 100)}%` }}
-                />
-              </div>
-            </div>
-            <Link
-              href="/wallet"
-              className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors flex items-center justify-center gap-2 border border-slate-700"
-            >
-              <Wallet className="w-4 h-4 text-brand-400" />
-              Manage Wallet & Withdraw
-            </Link>
-          </div>
-
-          {/* Referral Banner */}
-          <div className="p-6 rounded-3xl bg-gradient-to-br from-brand-950/80 to-slate-900 border border-brand-500/30 space-y-3">
-            <div className="flex items-center gap-2 text-brand-400 text-xs font-bold uppercase tracking-wider">
-              <Users className="w-4 h-4" />
-              Referral Program
-            </div>
-            <h4 className="text-base font-extrabold text-white">Invite Friends & Earn Rewards</h4>
-            <p className="text-xs text-gray-300">
-              Share your referral code <code className="text-brand-300 font-mono font-bold px-1.5 py-0.5 rounded bg-slate-900">{user.referralCode}</code> and earn bonuses whenever a friend activates their account!
-            </p>
-            <Link
-              href="/referrals"
-              className="inline-block w-full py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-900 font-extrabold text-xs text-center shadow-lg shadow-brand-500/20 transition-transform hover:scale-105"
-            >
-              Copy Referral Link
-            </Link>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
