@@ -1782,21 +1782,47 @@ function AdminDashboardInner() {
                   {loading ? <Skeleton className="w-32 h-4" /> : earningsData?.stats ? `Today: KES ${(earningsData.stats.todayAdminEarnings ?? 0).toLocaleString()}` : '—'}
                 </span>
               </div>
-
-              {/* Card 5: Total Referral Earnings / Commissions (from /api/admin/earnings) */}
+              {/* Card 5: Users Referral Earnings (from /api/admin/earnings) */}
               <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-cyan-500/20 space-y-2">
                 <span className="text-[10px] sm:text-[11px] text-cyan-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  Total Commissions
+                  Users Referral Earnings
                   <Users className="w-4 h-4 text-cyan-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-cyan-300 font-mono truncate">
                   {loading ? <Skeleton className="w-24 h-8" /> : earningsData?.stats ? `KES ${(earningsData.stats.totalReferralRewardsPaid ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
                 </p>
                 <span className="text-[11px] text-slate-400 block truncate">
-                  {loading ? <Skeleton className="w-32 h-4" /> : 'Referral rewards paid to users'}
+                  {loading ? <Skeleton className="w-32 h-4" /> : 'Total referral rewards paid'}
                 </span>
               </div>
 
+              {/* Card 6: Users Tasks Earnings (from /api/admin/earnings) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-purple-500/20 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-purple-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Users Tasks Earnings
+                  <CheckSquare className="w-4 h-4 text-purple-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-purple-300 font-mono truncate">
+                  {loading ? <Skeleton className="w-24 h-8" /> : earningsData?.stats ? `KES ${(earningsData.stats.totalTaskRewardsPaid ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {loading ? <Skeleton className="w-32 h-4" /> : 'Total task rewards paid'}
+                </span>
+              </div>
+
+              {/* Card 6b: Total Payouts Paid (from /api/admin/stats) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-emerald-500/20 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-emerald-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Total Payouts Paid
+                  <Wallet className="w-4 h-4 text-emerald-400" />
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-emerald-400 font-mono truncate">
+                  {loading ? <Skeleton className="w-24 h-8" /> : stats ? `KES ${(stats.wallets?.completedWithdrawalsKES ?? 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}` : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {loading ? <Skeleton className="w-32 h-4" /> : stats ? `${(stats.wallets?.completedWithdrawalsCount ?? 0)} successful payouts` : '—'}
+                </span>
+              </div>
 
 
               {/* Card 7: Pending Withdrawals (from /api/admin/stats) */}

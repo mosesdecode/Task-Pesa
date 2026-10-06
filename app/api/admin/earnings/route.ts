@@ -30,6 +30,7 @@ export async function GET(req: NextRequest) {
       totalReferralRewardsAgg,
       totalPlatformRetainedAgg,
       pendingDepositsAgg,
+      totalTaskRewardsAgg,
       ledgerEntries,
     ] = await Promise.all([
       getFinancialConfig(),
@@ -90,6 +91,12 @@ export async function GET(req: NextRequest) {
         _sum: { amount: true },
       }),
 
+      // Total Task Rewards Paid (Users Tasks Earnings)
+      prisma.financialLedger.aggregate({
+        where: { type: 'TASK_REWARD', status: 'COMPLETED' },
+        _sum: { amount: true },
+      }),
+
       // Ledger entries query with optional type & search filters
       prisma.financialLedger.findMany({
         where: {
@@ -127,6 +134,7 @@ export async function GET(req: NextRequest) {
     const totalPlatformRetained = totalPlatformRetainedAgg._sum.amount || 0;
     const pendingDepositsCount = pendingDepositsAgg._count || 0;
     const pendingDepositsAmount = pendingDepositsAgg._sum.amount || 0;
+    const totalTaskRewardsPaid = totalTaskRewardsAgg._sum.amount || 0;
 
     return NextResponse.json({
       success: true,
@@ -138,6 +146,7 @@ export async function GET(req: NextRequest) {
         todayAdminEarnings,
         thisMonthAdminEarnings,
         totalReferralRewardsPaid,
+        totalTaskRewardsPaid,
         totalPlatformRetained,
         pendingDepositsCount,
         pendingDepositsAmount,

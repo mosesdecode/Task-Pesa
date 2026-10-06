@@ -23,7 +23,6 @@ const navItems: { id: AdminTab; label: string; icon: React.ComponentType<{ class
   { id: 'add-task',       label: 'Add New Task',          icon: PlusCircle },
   { id: 'categories',     label: 'Task Categories',       icon: Tag        },
   { id: 'submissions',    label: 'Submissions Review',    icon: FileText   },
-  { id: 'wallets',        label: 'Wallets & Withdrawals', icon: Wallet     },
   { id: 'users',          label: 'User Directory',        icon: Users      },
   { id: 'packages',       label: 'Membership Packages',   icon: Package    },
   { id: 'adverts',        label: 'Advert Campaigns',      icon: PlaySquare },
