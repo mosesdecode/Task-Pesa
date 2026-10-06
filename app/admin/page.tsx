@@ -194,9 +194,10 @@ function AdminDashboardInner() {
     durationSeconds: '120',
     totalSlots: '100',
     externalUrl: '',
-    status: 'PUBLISHED',
+    status: 'DRAFT',
   });
   const [taskSubmitting, setTaskSubmitting] = useState(false);
+  const [editingTask, setEditingTask] = useState<any | null>(null);
 
   // Category Creation State
   const [categoryForm, setCategoryForm] = useState({ name: '', slug: '', description: '', icon: 'CheckCircle' });
@@ -898,6 +899,23 @@ function AdminDashboardInner() {
   }, [ledgerFilterType, activeTab, isAdminAuthed]);
 
   // Task Actions (Create, Pause/Resume, Delete)
+  const resetTaskForm = () => {
+    setTaskForm({
+      title: '',
+      description: '',
+      categoryId: categoriesList?.[0]?.id || '',
+      reward: '75',
+      instructions: '',
+      rules: '',
+      proofRequired: 'Submit text response, completion link, or screenshot proof',
+      durationSeconds: '120',
+      totalSlots: '100',
+      externalUrl: '',
+      status: 'DRAFT',
+    });
+    setEditingTask(null);
+  };
+
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -914,20 +932,52 @@ function AdminDashboardInner() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create task');
 
-      setSuccessMsg(data.message || 'Task published successfully!');
-      setTaskForm({
-        title: '',
-        description: '',
-        categoryId: categoriesList?.[0]?.id || '',
-        reward: '75',
-        instructions: '',
-        rules: '',
-        proofRequired: 'Submit text response, completion link, or screenshot proof',
-        durationSeconds: '120',
-        totalSlots: '100',
-        externalUrl: '',
-        status: 'PUBLISHED',
+      const isDraft = taskForm.status === 'DRAFT';
+      setSuccessMsg(isDraft ? 'Task saved as draft. Publish it from Task Management when ready.' : 'Task published to marketplace!');
+      resetTaskForm();
+      fetchTasks();
+      router.push('/admin?tab=tasks');
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setTaskSubmitting(false);
+    }
+  };
+
+  const handleEditTask = (task: any) => {
+    setEditingTask(task);
+    setTaskForm({
+      title: task.title || '',
+      description: task.description || '',
+      categoryId: task.categoryId || '',
+      reward: String(task.reward ?? '75'),
+      instructions: task.instructions || '',
+      rules: task.rules || '',
+      proofRequired: task.proofRequired || 'Submit text response, completion link, or screenshot proof',
+      durationSeconds: String(task.durationSeconds ?? '120'),
+      totalSlots: String(task.totalSlots ?? '100'),
+      externalUrl: task.externalUrl || '',
+      status: task.status || 'DRAFT',
+    });
+    router.push('/admin?tab=add-task');
+  };
+
+  const handleUpdateTask = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTask) return;
+    setError('');
+    setSuccessMsg('');
+    setTaskSubmitting(true);
+    try {
+      const res = await fetch('/api/admin/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: editingTask.id, ...taskForm }),
       });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to update task');
+      setSuccessMsg('Task updated successfully!');
+      resetTaskForm();
       fetchTasks();
       router.push('/admin?tab=tasks');
     } catch (err: any) {
@@ -938,6 +988,7 @@ function AdminDashboardInner() {
   };
 
   const handleToggleTaskStatus = async (task: any) => {
+    // DRAFT → PUBLISHED, PUBLISHED → PAUSED, PAUSED → PUBLISHED
     const nextStatus = task.status === 'PUBLISHED' ? 'PAUSED' : 'PUBLISHED';
     try {
       const res = await fetch('/api/admin/tasks', {
@@ -946,7 +997,11 @@ function AdminDashboardInner() {
         body: JSON.stringify({ id: task.id, status: nextStatus }),
       });
       if (res.ok) {
-        setSuccessMsg(`Task status updated to ${nextStatus}`);
+        setSuccessMsg(
+          nextStatus === 'PUBLISHED'
+            ? 'Task published to marketplace!'
+            : 'Task paused and hidden from users.'
+        );
         fetchTasks();
       }
     } catch (e) {}
@@ -958,7 +1013,7 @@ function AdminDashboardInner() {
       const res = await fetch(`/api/admin/tasks?id=${taskId}`, { method: 'DELETE' });
       const data = await res.json();
       if (res.ok) {
-        setSuccessMsg(data.message || 'Task updated.');
+        setSuccessMsg(data.message || 'Task removed.');
         fetchTasks();
       }
     } catch (e) {}
@@ -1346,6 +1401,7 @@ function AdminDashboardInner() {
                   <Skeleton className="w-48 h-5" />
                 </div>
                 <div className="flex items-center gap-2">
+                  <Skeleton className="w-20 h-8 rounded-xl" />
                   <Skeleton className="w-24 h-8 rounded-xl" />
                   <Skeleton className="w-8 h-8 rounded-xl" />
                 </div>
@@ -2268,17 +2324,29 @@ function AdminDashboardInner() {
                                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                                 : task.status === 'PAUSED'
                                 ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                : task.status === 'DRAFT'
+                                ? 'bg-slate-700 text-slate-300 border border-slate-600'
                                 : 'bg-slate-800 text-slate-400'
                             }`}
                           >
-                            {task.status}
+                            {task.status === 'DRAFT' ? '✏ DRAFT' : task.status}
                           </span>
                         </div>
                         <h3 className="text-base font-bold text-white mt-1">{task.title}</h3>
                       </div>
 
                       {/* Management Action Buttons */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {/* Edit button — only for DRAFT tasks */}
+                        {task.status === 'DRAFT' && (
+                          <button
+                            onClick={() => handleEditTask(task)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/15 text-blue-300 hover:bg-blue-500/25 border border-blue-500/20 transition-colors cursor-pointer flex items-center gap-1.5"
+                          >
+                            <Edit className="w-3.5 h-3.5" /> Edit
+                          </button>
+                        )}
+                        {/* Publish / Pause toggle */}
                         <button
                           onClick={() => handleToggleTaskStatus(task)}
                           className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
@@ -2292,7 +2360,7 @@ function AdminDashboardInner() {
                         <button
                           onClick={() => handleDeleteTask(task.id)}
                           className="p-2 rounded-xl bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 cursor-pointer"
-                          title="Delete / Close Task"
+                          title="Delete Task"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -2341,13 +2409,34 @@ function AdminDashboardInner() {
         {activeTab === 'add-task' && (
           <div className="space-y-6 max-w-3xl animate-in fade-in duration-200">
             <div className="border-b border-dark-800 pb-4">
-              <h1 className="text-2xl font-black text-white">Create & Publish Task</h1>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Add a new task with complete requirements for users to complete.
-              </p>
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h1 className="text-2xl font-black text-white">
+                    {editingTask ? 'Edit Draft Task' : 'Create New Task'}
+                  </h1>
+                  <p className="text-xs text-slate-400 mt-0.5">
+                    {editingTask
+                      ? `Editing: ${editingTask.title} — changes save to draft until published.`
+                      : 'New tasks are saved as drafts by default. Publish them from the Task Management list.'}
+                  </p>
+                </div>
+                {editingTask && (
+                  <button
+                    onClick={() => { resetTaskForm(); router.push('/admin?tab=tasks'); }}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-dark-800 text-slate-400 hover:text-white border border-dark-700 transition-colors cursor-pointer flex-shrink-0"
+                  >
+                    ✕ Cancel Edit
+                  </button>
+                )}
+              </div>
+              {editingTask && (
+                <div className="mt-3 px-3 py-2 rounded-xl bg-blue-500/10 border border-blue-500/20 text-xs text-blue-300">
+                  ✏ You are editing a draft task. Save your changes, then publish from the Task Management list.
+                </div>
+              )}
             </div>
 
-            <form onSubmit={handleCreateTask} className="space-y-5 bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8">
+            <form onSubmit={editingTask ? handleUpdateTask : handleCreateTask} className="space-y-5 bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8">
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-300 uppercase">Task Title</label>
                 <input
@@ -2417,14 +2506,14 @@ function AdminDashboardInner() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-300 uppercase">Initial Status</label>
+                  <label className="text-xs font-semibold text-slate-300 uppercase">Status</label>
                   <select
                     value={taskForm.status}
                     onChange={(e) => setTaskForm({ ...taskForm, status: e.target.value })}
                     className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
                   >
-                    <option value="PUBLISHED">Published (Visible immediately)</option>
-                    <option value="DRAFT">Draft (Hidden)</option>
+                    <option value="DRAFT">Draft (Hidden from users)</option>
+                    <option value="PUBLISHED">Published (Live immediately)</option>
                   </select>
                 </div>
               </div>
@@ -2476,13 +2565,31 @@ function AdminDashboardInner() {
                 </div>
               </div>
 
-              <button
-                type="submit"
-                disabled={taskSubmitting}
-                className="w-full py-3.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-black text-sm shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
-              >
-                {taskSubmitting ? 'Creating Task...' : 'Publish Task to Marketplace'}
-              </button>
+              <div className="flex gap-3">
+                {editingTask && (
+                  <button
+                    type="button"
+                    onClick={() => { resetTaskForm(); router.push('/admin?tab=tasks'); }}
+                    className="flex-1 py-3.5 rounded-xl bg-dark-800 hover:bg-dark-700 text-slate-300 font-bold text-sm border border-dark-700 transition-all cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                )}
+                <button
+                  type="submit"
+                  disabled={taskSubmitting}
+                  className="flex-1 py-3.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-black text-sm shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                >
+                  {taskSubmitting
+                    ? (editingTask ? 'Saving Changes...' : 'Saving Task...')
+                    : editingTask
+                    ? 'Save Changes'
+                    : taskForm.status === 'DRAFT'
+                    ? 'Save as Draft'
+                    : 'Publish Task to Marketplace'
+                  }
+                </button>
+              </div>
             </form>
           </div>
         )}
