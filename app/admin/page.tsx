@@ -1007,6 +1007,37 @@ function AdminDashboardInner() {
     } catch (e) {}
   };
 
+  const handleRevertToDraft = async (task: any) => {
+    const started = task.stats?.started || 0;
+    const submitted = task.stats?.submitted || 0;
+    const inProgress = started - submitted;
+    const pendingReview = task.stats?.pendingReview || 0;
+    
+    const activeUsers = inProgress + pendingReview;
+    
+    if (activeUsers > 0) {
+      if (!confirm(`Warning: ${activeUsers} users are currently working on or waiting for review on this task. Reverting to draft will hide it from them. Are you sure you want to revert it to Draft?`)) {
+        return;
+      }
+    } else {
+      if (!confirm('Are you sure you want to revert this task to Draft?')) {
+        return;
+      }
+    }
+
+    try {
+      const res = await fetch('/api/admin/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: task.id, status: 'DRAFT' }),
+      });
+      if (res.ok) {
+        setSuccessMsg('Task reverted to Draft.');
+        fetchTasks();
+      }
+    } catch (e) {}
+  };
+
   const handleDeleteTask = async (taskId: string) => {
     if (!confirm('Are you sure you want to remove or close this task?')) return;
     try {
@@ -2337,15 +2368,25 @@ function AdminDashboardInner() {
 
                       {/* Management Action Buttons */}
                       <div className="flex items-center gap-2 flex-wrap">
-                        {/* Edit button — only for DRAFT tasks */}
-                        {task.status === 'DRAFT' && (
+                        {/* Edit button — for all tasks */}
+                        <button
+                          onClick={() => handleEditTask(task)}
+                          className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/15 text-blue-300 hover:bg-blue-500/25 border border-blue-500/20 transition-colors cursor-pointer flex items-center gap-1.5"
+                        >
+                          <Edit className="w-3.5 h-3.5" /> Edit
+                        </button>
+                        
+                        {/* Revert to Draft button — only for non-DRAFT tasks */}
+                        {task.status !== 'DRAFT' && (
                           <button
-                            onClick={() => handleEditTask(task)}
-                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-blue-500/15 text-blue-300 hover:bg-blue-500/25 border border-blue-500/20 transition-colors cursor-pointer flex items-center gap-1.5"
+                            onClick={() => handleRevertToDraft(task)}
+                            className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-700/50 text-slate-300 hover:bg-slate-700 border border-slate-600 transition-colors cursor-pointer flex items-center gap-1.5"
+                            title="Revert to Draft"
                           >
-                            <Edit className="w-3.5 h-3.5" /> Edit
+                            To Draft
                           </button>
                         )}
+
                         {/* Publish / Pause toggle */}
                         <button
                           onClick={() => handleToggleTaskStatus(task)}
