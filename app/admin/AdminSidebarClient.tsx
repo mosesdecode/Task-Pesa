@@ -6,18 +6,19 @@ import { useSearchParams } from 'next/navigation';
 import {
   Shield, Menu, X, LogOut, ChevronRight, Loader2,
   BarChart3, TrendingUp, CheckSquare, PlusCircle, Tag,
-  FileText, Wallet, Users, PlaySquare, Sparkles, Lock, Package
+  FileText, Wallet, Users, PlaySquare, Sparkles, Lock, Package, Zap
 } from 'lucide-react';
 
 type AdminTab =
-  | 'overview' | 'earnings' | 'tasks' | 'add-task' | 'categories'
+  | 'overview' | 'admin-actions' | 'earnings' | 'tasks' | 'add-task' | 'categories'
   | 'submissions' | 'users' | 'wallets' | 'packages' | 'adverts' | 'banners-social'
   | 'admin-settings' | 'audit-logs';
 
 // navItems defined here — icon components cannot cross the server→client boundary
 const navItems: { id: AdminTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  { id: 'overview',       label: 'Dashboard Overview',    icon: BarChart3  },
-  { id: 'earnings',       label: 'Earnings & Ledger',     icon: TrendingUp },
+  { id: 'overview',       label: 'Dashboard Overview',      icon: BarChart3  },
+  { id: 'admin-actions',  label: 'Administrative Actions',  icon: Zap        },
+  { id: 'earnings',       label: 'Earnings & Ledger',       icon: TrendingUp },
   { id: 'tasks',          label: 'Tasks Management',      icon: CheckSquare },
   { id: 'add-task',       label: 'Add New Task',          icon: PlusCircle },
   { id: 'categories',     label: 'Task Categories',       icon: Tag        },

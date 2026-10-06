@@ -58,6 +58,7 @@ import { EmptyState } from '@/components/EmptyState';
 
 type AdminTab =
   | 'overview'
+  | 'admin-actions'
   | 'earnings'
   | 'tasks'
   | 'add-task'
@@ -1215,31 +1216,418 @@ function AdminDashboardInner() {
   };
 
   if (checkingAuth) {
-    return (
-      <main className="flex-1 min-w-0 overflow-x-hidden lg:pl-64 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl pt-20 lg:pt-8">
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
-            <div className="space-y-2">
-              <Skeleton className="w-64 h-8" />
-              <Skeleton className="w-96 h-4" />
-            </div>
-            <Skeleton className="w-32 h-9 rounded-xl" />
+    // Reusable skeleton primitives — no hooks, pure JSX
+    const skMetricCard = (key: number) => (
+      <div key={key} className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+        <div className="flex items-center justify-between">
+          <Skeleton className="w-24 h-3" />
+          <Skeleton className="w-4 h-4" />
+        </div>
+        <Skeleton className="w-32 h-8" />
+        <Skeleton className="w-40 h-3" />
+      </div>
+    );
+
+    const skRowItem = (key: number) => (
+      <div key={key} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Skeleton className="w-28 h-4" />
+            <Skeleton className="w-16 h-4 rounded-full" />
           </div>
-          
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
-                <Skeleton className="w-24 h-4" />
-                <Skeleton className="w-32 h-8" />
-                <Skeleton className="w-40 h-4" />
+          <Skeleton className="w-64 h-3" />
+        </div>
+        <Skeleton className="w-16 h-7 rounded-xl" />
+      </div>
+    );
+
+    const skHeader = (hasButton = true) => (
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
+        <div className="space-y-2">
+          <Skeleton className="w-64 h-8" />
+          <Skeleton className="w-80 h-4" />
+        </div>
+        {hasButton && <Skeleton className="w-32 h-9 rounded-xl" />}
+      </div>
+    );
+
+    let body: React.ReactNode;
+
+    if (activeTab === 'overview') {
+      body = (<>
+        {skHeader(true)}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {Array.from({ length: 8 }).map((_, i) => skMetricCard(i))}
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <Skeleton className="w-full h-[300px] rounded-3xl" />
+          <Skeleton className="w-full h-[300px] rounded-3xl" />
+        </div>
+      </>);
+
+    } else if (activeTab === 'admin-actions') {
+      body = (<>
+        <div className="border-b border-dark-800 pb-5 space-y-2">
+          <Skeleton className="w-64 h-8" />
+          <Skeleton className="w-72 h-4" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="p-6 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3">
+              <Skeleton className="w-10 h-10 rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="w-40 h-5" />
+                <Skeleton className="w-56 h-3" />
+              </div>
+              <Skeleton className="w-4 h-4" />
+            </div>
+          ))}
+        </div>
+      </>);
+
+    } else if (activeTab === 'earnings') {
+      body = (<>
+        {skHeader(true)}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
+              <div className="flex items-center justify-between gap-1">
+                <Skeleton className="w-28 h-3" />
+                <Skeleton className="w-4 h-4" />
+              </div>
+              <Skeleton className="w-36 h-8" />
+              <Skeleton className="w-full h-3 border-t border-dark-800/80 pt-1" />
+            </div>
+          ))}
+        </div>
+        <div className="p-6 rounded-3xl bg-dark-900 border border-dark-800 space-y-4">
+          <Skeleton className="w-48 h-5" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-10 rounded-xl" />)}
+          </div>
+        </div>
+        <div className="p-6 rounded-3xl bg-dark-900 border border-dark-800 space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <Skeleton className="w-48 h-5" />
+            <div className="flex flex-wrap gap-1.5">
+              {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="w-24 h-8 rounded-xl" />)}
+            </div>
+          </div>
+          <Skeleton className="w-full h-9 rounded-xl" />
+          <div className="overflow-x-auto">
+            <div className="flex gap-4 pb-2 border-b border-dark-800">
+              {['w-24','w-32','w-20','w-28','w-20','w-24','w-16'].map((w, i) => (
+                <Skeleton key={i} className={`${w} h-3 shrink-0`} />
+              ))}
+            </div>
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="flex gap-4 py-3 border-b border-dark-800/60">
+                {['w-24','w-32','w-20','w-28','w-20','w-24','w-16'].map((w, j) => (
+                  <Skeleton key={j} className={`${w} h-4 shrink-0`} />
+                ))}
               </div>
             ))}
           </div>
+        </div>
+      </>);
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-            <Skeleton className="w-full h-[300px] rounded-3xl" />
-            <Skeleton className="w-full h-[300px] rounded-3xl" />
+    } else if (activeTab === 'tasks') {
+      body = (<>
+        {skHeader(true)}
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
+              <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="w-20 h-5 rounded-full" />
+                    <Skeleton className="w-16 h-5 rounded-full" />
+                  </div>
+                  <Skeleton className="w-48 h-5" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="w-24 h-8 rounded-xl" />
+                  <Skeleton className="w-8 h-8 rounded-xl" />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+                {Array.from({ length: 7 }).map((_, j) => (
+                  <div key={j} className="p-3 rounded-xl bg-dark-950 border border-dark-800/80 space-y-1">
+                    <Skeleton className="w-10 h-3" />
+                    <Skeleton className="w-16 h-4" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </>);
+
+    } else if (activeTab === 'add-task') {
+      body = (<>
+        <div className="border-b border-dark-800 pb-5 space-y-2">
+          <Skeleton className="w-56 h-8" />
+          <Skeleton className="w-72 h-4" />
+        </div>
+        <div className="p-6 rounded-3xl bg-dark-900/80 border border-dark-800 space-y-5">
+          <Skeleton className="w-32 h-5" />
+          <Skeleton className="w-full h-12 rounded-xl" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Skeleton className="h-12 rounded-xl" />
+            <Skeleton className="h-12 rounded-xl" />
           </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+          </div>
+          <Skeleton className="w-full h-24 rounded-xl" />
+          <Skeleton className="w-full h-12 rounded-xl" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Skeleton className="h-12 rounded-xl" />
+            <Skeleton className="h-12 rounded-xl" />
+          </div>
+          <Skeleton className="w-full h-12 rounded-xl" />
+        </div>
+      </>);
+
+    } else if (activeTab === 'categories') {
+      body = (<>
+        <div className="border-b border-dark-800 pb-5 space-y-2">
+          <Skeleton className="w-48 h-8" />
+          <Skeleton className="w-64 h-4" />
+        </div>
+        <div className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
+          <Skeleton className="w-36 h-5" />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-10 rounded-xl" />)}
+          </div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex items-center justify-between">
+              <div className="space-y-1.5">
+                <Skeleton className="w-28 h-4" />
+                <Skeleton className="w-40 h-3" />
+              </div>
+              <Skeleton className="w-8 h-8 rounded-lg" />
+            </div>
+          ))}
+        </div>
+      </>);
+
+    } else if (activeTab === 'submissions') {
+      body = (<>
+        <div className="border-b border-dark-800 pb-4 space-y-2">
+          <Skeleton className="w-64 h-8" />
+          <Skeleton className="w-80 h-4" />
+        </div>
+        <div className="flex items-center gap-2 border-b border-dark-800 pb-2">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="w-36 h-9 rounded-xl" />)}
+        </div>
+        <div className="space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <Skeleton className="w-20 h-3" />
+                  <Skeleton className="w-56 h-5" />
+                  <Skeleton className="w-64 h-3" />
+                </div>
+                <Skeleton className="w-20 h-6 rounded-full" />
+              </div>
+              <Skeleton className="w-full h-16 rounded-xl" />
+              <div className="flex gap-3">
+                <Skeleton className="w-40 h-9 rounded-xl" />
+                <Skeleton className="w-28 h-9 rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </>);
+
+    } else if (activeTab === 'wallets') {
+      body = (<>
+        {skHeader(true)}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {Array.from({ length: 4 }).map((_, i) => skMetricCard(i))}
+        </div>
+        <div className="space-y-4">
+          <div className="flex flex-wrap gap-1.5">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="w-24 h-8 rounded-xl" />)}
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Skeleton className="h-9 rounded-xl" />
+            <div className="flex gap-2">
+              <Skeleton className="flex-1 h-9 rounded-xl" />
+              <Skeleton className="flex-1 h-9 rounded-xl" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex flex-col md:flex-row md:items-start justify-between gap-3">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="w-28 h-4" />
+                    <Skeleton className="w-16 h-4 rounded-full" />
+                  </div>
+                  <Skeleton className="w-56 h-3" />
+                  <Skeleton className="w-40 h-3" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="w-24 h-8 rounded-xl" />
+                  <Skeleton className="w-24 h-8 rounded-xl" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </>);
+
+    } else if (activeTab === 'adverts') {
+      body = (<>
+        <div className="border-b border-dark-800 pb-4 space-y-2">
+          <Skeleton className="w-56 h-8" />
+          <Skeleton className="w-64 h-4" />
+        </div>
+        <div className="p-6 rounded-3xl bg-dark-900/80 border border-dark-800 space-y-4">
+          <Skeleton className="w-36 h-5" />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-12 rounded-xl" />)}
+          </div>
+          <Skeleton className="w-full h-12 rounded-xl" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3">
+              <Skeleton className="aspect-video w-full rounded-xl" />
+              <div className="space-y-2">
+                <Skeleton className="w-20 h-3" />
+                <Skeleton className="w-36 h-5" />
+                <Skeleton className="w-24 h-3" />
+              </div>
+              <div className="flex justify-between pt-2 border-t border-dark-800">
+                <Skeleton className="w-16 h-8 rounded-xl" />
+                <Skeleton className="w-8 h-8 rounded-xl" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </>);
+
+    } else if (activeTab === 'users') {
+      body = (<>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-4">
+          <div className="space-y-2">
+            <Skeleton className="w-48 h-8" />
+            <Skeleton className="w-72 h-4" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="w-32 h-9 rounded-xl" />
+            <Skeleton className="w-40 h-9 rounded-xl" />
+          </div>
+        </div>
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => skRowItem(i))}
+        </div>
+      </>);
+
+    } else if (activeTab === 'packages') {
+      body = (<>
+        <div className="border-b border-dark-800 pb-4 space-y-2">
+          <Skeleton className="w-48 h-8" />
+          <Skeleton className="w-72 h-4" />
+        </div>
+        <div className="grid grid-cols-1 gap-4">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="p-5 sm:p-6 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
+              <div className="flex items-center justify-between border-b border-dark-800 pb-3">
+                <Skeleton className="w-32 h-6" />
+                <Skeleton className="w-20 h-8 rounded-xl" />
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {Array.from({ length: 6 }).map((_, j) => (
+                  <div key={j} className="space-y-1">
+                    <Skeleton className="w-24 h-3" />
+                    <Skeleton className="w-full h-10 rounded-lg" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </>);
+
+    } else if (activeTab === 'banners-social') {
+      body = (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="bg-dark-900 border border-dark-800 rounded-2xl p-6 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-dark-800">
+                <Skeleton className="w-40 h-6" />
+                <Skeleton className="w-40 h-9 rounded-xl" />
+              </div>
+              <div className="p-4 rounded-xl border border-dark-800 space-y-3">
+                <Skeleton className="w-full h-10 rounded-xl" />
+                <Skeleton className="w-full h-10 rounded-xl" />
+                <Skeleton className="w-full h-20 rounded-xl" />
+                <Skeleton className="w-full h-10 rounded-xl" />
+              </div>
+              <div className="space-y-3">
+                {Array.from({ length: 2 }).map((_, j) => (
+                  <div key={j} className="p-4 rounded-xl bg-dark-900/80 border border-dark-800 flex items-center justify-between gap-3">
+                    <div className="space-y-1.5">
+                      <Skeleton className="w-32 h-4" />
+                      <Skeleton className="w-48 h-3" />
+                    </div>
+                    <Skeleton className="w-16 h-7 rounded-xl" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+
+    } else if (activeTab === 'audit-logs') {
+      body = (<>
+        {skHeader(true)}
+        <div className="space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => skRowItem(i))}
+        </div>
+      </>);
+
+    } else if (activeTab === 'admin-settings') {
+      body = (<>
+        <div className="border-b border-dark-800 pb-4 space-y-2">
+          <Skeleton className="w-64 h-8" />
+          <Skeleton className="w-80 h-4" />
+        </div>
+        <div className="p-6 sm:p-8 rounded-3xl bg-dark-900/80 border border-dark-800 space-y-5 max-w-xl">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="space-y-1.5">
+              <Skeleton className="w-36 h-3" />
+              <Skeleton className="w-full h-12 rounded-xl" />
+            </div>
+          ))}
+          <Skeleton className="w-full h-12 rounded-xl" />
+        </div>
+      </>);
+
+    } else {
+      body = (<>
+        {skHeader(true)}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+          {Array.from({ length: 4 }).map((_, i) => skMetricCard(i))}
+        </div>
+      </>);
+    }
+
+    return (
+      <main className="flex-1 min-w-0 overflow-x-hidden lg:pl-64 p-4 pt-20 sm:p-6 sm:pt-24 lg:p-8 lg:pt-8 space-y-6 max-w-7xl">
+        <div className="space-y-6 animate-in fade-in duration-200">
+          {body}
         </div>
       </main>
     );
@@ -1284,7 +1672,7 @@ function AdminDashboardInner() {
 
   // SIDEBAR NAVIGATION ITEMS MOVED TO LAYOUT
   return (
-      <main className="flex-1 min-w-0 overflow-x-hidden lg:pl-64 p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl pt-20 lg:pt-8">
+      <main className="flex-1 min-w-0 overflow-x-hidden lg:pl-64 p-4 pt-20 sm:p-6 sm:pt-24 lg:p-8 lg:pt-8 space-y-6 max-w-7xl">
         {/* Global Notifications */}
         {error && (
           <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center justify-between gap-3 animate-in fade-in duration-200 shadow-lg shadow-rose-900/20">
@@ -1370,7 +1758,7 @@ function AdminDashboardInner() {
               {/* Card 3: Total Activation Fees (from /api/admin/earnings) */}
               <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
                 <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  Activation Fees
+                  Total Activation Fees
                   <Coins className="w-4 h-4 text-brand-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-white font-mono truncate">
@@ -1409,22 +1797,7 @@ function AdminDashboardInner() {
                 </span>
               </div>
 
-              {/* Card 6: All User Wallets (from /api/admin/stats) */}
-              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
-                <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  Active Members
-                  <Wallet className="w-4 h-4 text-purple-400" />
-                </span>
-                <p className="text-xl sm:text-2xl font-black text-white font-mono truncate">
-                  {loading ? <Skeleton className="w-20 h-8" /> : stats ? (stats.wallets?.activeWallets ?? 0).toLocaleString() : '—'}
-                </p>
-                <span className="text-[11px] text-slate-400 block truncate">
-                  {loading ? <Skeleton className="w-32 h-4" /> : stats ? `${(stats.wallets?.totalWallets ?? 0).toLocaleString()} total registered` : '—'}
-                </span>
-                <p className="text-[10px] text-slate-500 italic mt-0.5 truncate">
-                  Note: includes platform admin wallet
-                </p>
-              </div>
+
 
               {/* Card 7: Pending Withdrawals (from /api/admin/stats) */}
               <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
@@ -1440,10 +1813,10 @@ function AdminDashboardInner() {
                 </span>
               </div>
 
-              {/* Card 8: Pending Submissions (from /api/admin/stats) */}
+              {/* Card 8: Pending Reviews (from /api/admin/stats) */}
               <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-2">
                 <span className="text-[10px] sm:text-[11px] text-slate-400 uppercase font-bold tracking-wider flex items-center justify-between">
-                  Pending Submissions
+                  Pending Reviews
                   <FileText className="w-4 h-4 text-amber-400" />
                 </span>
                 <p className="text-xl sm:text-2xl font-black text-white font-mono">
@@ -1460,37 +1833,59 @@ function AdminDashboardInner() {
               </div>
             </div>
 
-            {/* Quick Actions Card */}
-            <div className="p-6 rounded-3xl bg-dark-900/80 border border-dark-800 space-y-4">
-              <h2 className="text-base font-bold text-white">Administrative Actions</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <button
-                  onClick={() => router.push('/admin?tab=add-task')}
-                  className="p-4 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 border border-brand-500/30 text-left transition-all cursor-pointer"
-                >
-                  <PlusCircle className="w-5 h-5 text-brand-400 mb-2" />
-                  <span className="text-xs font-bold text-white block">Create & Publish Task</span>
-                  <span className="text-[11px] text-slate-400">Add tasks for users to complete</span>
-                </button>
+          </div>
+        )}
 
-                <button
-                  onClick={() => router.push('/admin?tab=submissions')}
-                  className="p-4 rounded-xl bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-left transition-all cursor-pointer"
-                >
-                  <CheckCircle2 className="w-5 h-5 text-amber-400 mb-2" />
-                  <span className="text-xs font-bold text-white block">Review Worker Submissions</span>
-                  <span className="text-[11px] text-slate-400">Approve or reject submitted proof</span>
-                </button>
+        {/* TAB: ADMINISTRATIVE ACTIONS */}
+        {activeTab === 'admin-actions' && (
+          <div className="space-y-6 animate-in fade-in duration-200">
+            <div className="border-b border-dark-800 pb-5">
+              <h1 className="text-2xl font-black text-white tracking-tight">Administrative Actions</h1>
+              <p className="text-xs text-slate-400 mt-0.5">Quick access to core platform management tasks.</p>
+            </div>
 
-                <button
-                  onClick={() => router.push('/admin?tab=wallets')}
-                  className="p-4 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-left transition-all cursor-pointer"
-                >
-                  <Wallet className="w-5 h-5 text-emerald-400 mb-2" />
-                  <span className="text-xs font-bold text-white block">Review M-Pesa Payouts</span>
-                  <span className="text-[11px] text-slate-400">Process pending withdrawals</span>
-                </button>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              <button
+                onClick={() => router.push('/admin?tab=add-task')}
+                className="p-6 rounded-2xl bg-dark-900/80 hover:bg-brand-500/10 border border-dark-800 hover:border-brand-500/30 text-left transition-all cursor-pointer space-y-3 group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center group-hover:bg-brand-500/20 transition-colors">
+                  <PlusCircle className="w-5 h-5 text-brand-400" />
+                </div>
+                <div>
+                  <span className="text-sm font-bold text-white block">Create &amp; Publish Task</span>
+                  <span className="text-xs text-slate-400 mt-0.5 block">Add tasks for users to complete and earn rewards</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-brand-400 transition-colors" />
+              </button>
+
+              <button
+                onClick={() => router.push('/admin?tab=submissions')}
+                className="p-6 rounded-2xl bg-dark-900/80 hover:bg-amber-500/10 border border-dark-800 hover:border-amber-500/30 text-left transition-all cursor-pointer space-y-3 group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center group-hover:bg-amber-500/20 transition-colors">
+                  <CheckCircle2 className="w-5 h-5 text-amber-400" />
+                </div>
+                <div>
+                  <span className="text-sm font-bold text-white block">Review Worker Submissions</span>
+                  <span className="text-xs text-slate-400 mt-0.5 block">Approve or reject submitted task proof from workers</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-amber-400 transition-colors" />
+              </button>
+
+              <button
+                onClick={() => router.push('/admin?tab=wallets')}
+                className="p-6 rounded-2xl bg-dark-900/80 hover:bg-emerald-500/10 border border-dark-800 hover:border-emerald-500/30 text-left transition-all cursor-pointer space-y-3 group"
+              >
+                <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center group-hover:bg-emerald-500/20 transition-colors">
+                  <Wallet className="w-5 h-5 text-emerald-400" />
+                </div>
+                <div>
+                  <span className="text-sm font-bold text-white block">Review M-Pesa Payouts</span>
+                  <span className="text-xs text-slate-400 mt-0.5 block">Process and approve pending M-Pesa withdrawal requests</span>
+                </div>
+                <ChevronRight className="w-4 h-4 text-slate-500 group-hover:text-emerald-400 transition-colors" />
+              </button>
             </div>
           </div>
         )}

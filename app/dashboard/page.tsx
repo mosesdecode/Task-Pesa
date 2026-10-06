@@ -50,31 +50,76 @@ export default function UserDashboard() {
   if (loading || !user) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-        {/* Banner skeleton */}
+
+        {/* Banner carousel skeleton — matches TopBannerCarousel height */}
         <Skeleton className="w-full h-36 rounded-3xl" />
 
-        {/* Welcome card skeleton */}
-        <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-700/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-          <div className="space-y-3 flex-1">
-            <Skeleton className="w-28 h-5 rounded-full" />
-            <Skeleton className="w-64 h-9" />
-            <Skeleton className="w-80 h-4" />
+        {/* Welcome banner skeleton — mirrors gradient card with badge chips, title, desc, button */}
+        <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-700/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
+          <div className="space-y-3 flex-1 relative z-10">
+            {/* Two badge chips side-by-side (Phone Verified + Account Active) */}
+            <div className="flex items-center gap-2">
+              <Skeleton className="w-28 h-6 rounded-full" />
+              <Skeleton className="w-28 h-6 rounded-full" />
+            </div>
+            {/* Large greeting h1 */}
+            <Skeleton className="w-64 h-10" />
+            {/* Sub-description line */}
+            <Skeleton className="w-full max-w-sm h-4" />
           </div>
+          {/* "Explore Tasks" button */}
           <Skeleton className="w-36 h-12 rounded-2xl shrink-0" />
         </div>
 
-        {/* 4 metric cards skeleton */}
+        {/* 4 metric cards — each mirrors its own real bottom-row shape */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <Skeleton className="w-24 h-3" />
-                <Skeleton className="w-9 h-9 rounded-xl" />
-              </div>
-              <Skeleton className="w-36 h-8" />
-              <Skeleton className="w-40 h-3" />
+
+          {/* Card 1: Total Earnings — single sub-text line */}
+          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <Skeleton className="w-24 h-3" />
+              <Skeleton className="w-9 h-9 rounded-xl" />
             </div>
-          ))}
+            <Skeleton className="w-36 h-8" />
+            <Skeleton className="w-44 h-3" />
+          </div>
+
+          {/* Card 2: Available Balance — two-item bottom row (Min Payout + Withdraw link) */}
+          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <Skeleton className="w-28 h-3" />
+              <Skeleton className="w-9 h-9 rounded-xl" />
+            </div>
+            <Skeleton className="w-36 h-8" />
+            <div className="flex items-center justify-between">
+              <Skeleton className="w-28 h-3" />
+              <Skeleton className="w-16 h-3" />
+            </div>
+          </div>
+
+          {/* Card 3: Pending Earnings — single sub-text line */}
+          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <Skeleton className="w-28 h-3" />
+              <Skeleton className="w-9 h-9 rounded-xl" />
+            </div>
+            <Skeleton className="w-36 h-8" />
+            <Skeleton className="w-44 h-3" />
+          </div>
+
+          {/* Card 4: Account Status — two-item bottom row (Payouts: Enabled + View Profile link) */}
+          <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
+            <div className="flex items-center justify-between">
+              <Skeleton className="w-24 h-3" />
+              <Skeleton className="w-9 h-9 rounded-xl" />
+            </div>
+            <Skeleton className="w-24 h-7" />
+            <div className="flex items-center justify-between">
+              <Skeleton className="w-24 h-3" />
+              <Skeleton className="w-20 h-3" />
+            </div>
+          </div>
+
         </div>
 
       </div>
