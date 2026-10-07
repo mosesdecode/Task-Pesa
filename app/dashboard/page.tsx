@@ -140,20 +140,6 @@ export default function UserDashboard() {
       <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 border border-slate-700/80 shadow-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
         <div className="space-y-2 relative z-10">
           <div className="flex items-center gap-2">
-            {user.phoneVerified ? (
-              <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                Phone Verified
-              </span>
-            ) : (
-              <Link
-                href="/profile"
-                className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 hover:bg-amber-500/20 transition-colors flex items-center gap-1"
-              >
-                <AlertCircle className="w-3.5 h-3.5" />
-                Verify Safaricom Phone
-              </Link>
-            )}
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20 flex items-center gap-1">
               <ShieldCheck className="w-3.5 h-3.5" />
               Account Active

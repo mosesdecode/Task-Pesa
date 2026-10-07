@@ -222,23 +222,6 @@ export default function Navbar() {
                         Profile & Security
                       </Link>
 
-                      <Link
-                        href="/wallet"
-                        onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-800/70 rounded-xl transition-colors"
-                      >
-                        <Wallet className="w-4 h-4 text-emerald-400" />
-                        Wallet & Payouts
-                      </Link>
-
-                      <Link
-                        href="/tasks"
-                        onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-800/70 rounded-xl transition-colors"
-                      >
-                        <Target className="w-4 h-4 text-blue-400" />
-                        Tasks
-                      </Link>
 
                       {user.role === 'ADMIN' && (
                         <Link

@@ -228,7 +228,7 @@ export default function WalletPage() {
           <p className="text-3xl font-black text-emerald-400">
             KES {(walletData?.referralEarnings || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
           </p>
-          <p className="text-[11px] text-gray-400">KES 100 per activated referral</p>
+          <p className="text-[11px] text-gray-400">KES 30 per activated referral</p>
         </div>
 
         <div className="p-6 rounded-3xl glass-card space-y-2">
