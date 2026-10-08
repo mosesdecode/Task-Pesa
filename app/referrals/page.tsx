@@ -147,7 +147,7 @@ export default function ReferralsPage() {
               {referrals.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="py-8 text-center text-gray-500">
-                    No referrals yet. Share your referral link to earn KES 100 per activation!
+                    No referrals yet. Share your referral link to earn KES 30 per activation!
                   </td>
                 </tr>
               ) : (
@@ -157,7 +157,7 @@ export default function ReferralsPage() {
                       {ref.referredUser?.fullName || ref.referredUser?.username} (@{ref.referredUser?.username})
                     </td>
                     <td className="py-3 font-mono font-bold text-brand-400">
-                      KES {(ref.rewardAmount || 100).toFixed(2)}
+                      KES {(ref.rewardAmount || 30).toFixed(2)}
                     </td>
                     <td className="py-3 font-medium">
                       <span
