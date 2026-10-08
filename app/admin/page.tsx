@@ -1944,6 +1944,20 @@ function AdminDashboardInner() {
                   </button>
                 )}
               </div>
+
+              {/* Card 9: Users' Coins (from /api/admin/stats) */}
+              <div className="p-4 sm:p-5 rounded-2xl bg-dark-900/80 border border-brand-500/20 space-y-2">
+                <span className="text-[10px] sm:text-[11px] text-brand-400 uppercase font-bold tracking-wider flex items-center justify-between">
+                  Users' Coins
+                  <span className="text-sm">🪙</span>
+                </span>
+                <p className="text-xl sm:text-2xl font-black text-brand-300 font-mono">
+                  {loading ? <Skeleton className="w-20 h-8" /> : stats ? (stats.wallets?.totalCoins ?? 0).toLocaleString() : '—'}
+                </p>
+                <span className="text-[11px] text-slate-400 block truncate">
+                  {loading ? <Skeleton className="w-32 h-4" /> : 'Total unredeemed coins'}
+                </span>
+              </div>
             </div>
 
           </div>
@@ -3418,11 +3432,7 @@ function AdminDashboardInner() {
                 />
               </div>
             </div>
-            {userStatusFilter === 'INACTIVE' && (
-              <p className="text-[10px] text-amber-400/70 italic -mt-2">
-                Inactive = not yet activated. Definition pending confirmation.
-              </p>
-            )}
+
 
             <div className="space-y-3">
               {usersList === null ? (

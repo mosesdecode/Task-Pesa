@@ -258,6 +258,8 @@ model Wallet {
   pendingBalance   Float               @default(0.0)
   totalEarned      Float               @default(0.0)
   totalWithdrawn   Float               @default(0.0)
+  coins            Int                 @default(0)
+  lastCheckIn      DateTime?
   transactions     WalletTransaction[]
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt

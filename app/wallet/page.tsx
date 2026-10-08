@@ -26,6 +26,9 @@ export default function WalletPage() {
   const [requesting, setRequesting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
+  const [redeeming, setRedeeming] = useState(false);
+  const [redeemMessage, setRedeemMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
   // OTP Verification state
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCode, setOtpCode] = useState('');
@@ -144,6 +147,27 @@ export default function WalletPage() {
     }
   };
 
+  const handleRedeemCoins = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setRedeemMessage(null);
+    setRedeeming(true);
+
+    try {
+      const res = await fetch('/api/wallet/redeem-coins', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Redemption failed');
+
+      setRedeemMessage({ type: 'success', text: data.message });
+      fetchWallet();
+    } catch (err: any) {
+      setRedeemMessage({ type: 'error', text: err.message });
+    } finally {
+      setRedeeming(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -206,7 +230,7 @@ export default function WalletPage() {
       </div>
 
       {/* Balance Summary Cards (Requirement 20) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         <div className="p-6 rounded-3xl glass-card space-y-2 border-brand-500/30 glow-emerald">
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Available Balance</span>
           <p className="text-3xl font-black text-brand-400">
@@ -237,6 +261,14 @@ export default function WalletPage() {
             KES {(walletData?.pendingEarnings || wallet.pendingBalance || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
           </p>
           <p className="text-[11px] text-gray-400">Pending admin payout review</p>
+        </div>
+
+        <div className="p-6 rounded-3xl glass-card space-y-2">
+          <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Coin Balance</span>
+          <p className="text-3xl font-black text-amber-400">
+            {wallet.coins || 0} <span className="text-xl">🪙</span>
+          </p>
+          <p className="text-[11px] text-gray-400">Redeemable for KES (50 min)</p>
         </div>
       </div>
 
@@ -357,8 +389,11 @@ export default function WalletPage() {
 
       {/* Main Grid: Withdrawal Form & History */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Withdrawal Form */}
-        <div className="p-6 sm:p-8 rounded-3xl glass-card border-brand-500/30 space-y-6">
+        
+        {/* Left Column: Forms */}
+        <div className="space-y-6">
+          {/* Withdrawal Form */}
+          <div className="p-6 sm:p-8 rounded-3xl glass-card border-brand-500/30 space-y-6">
           <div className="space-y-1">
             <h3 className="text-xl font-black text-white flex items-center gap-2">
               <Smartphone className="w-5 h-5 text-brand-400" />
@@ -431,6 +466,65 @@ export default function WalletPage() {
             </button>
           </form>
         </div>
+
+        {/* Coin Redemption Form */}
+        <div className="p-6 sm:p-8 rounded-3xl glass-card space-y-6">
+          <div className="space-y-1">
+            <h3 className="text-xl font-black text-white flex items-center gap-2">
+              <span className="text-2xl">🪙</span>
+              Redeem Coins
+            </h3>
+            <p className="text-xs text-gray-400">Convert coins to KES instantly. Rate: 5 coins = 1 KES.</p>
+          </div>
+
+          {redeemMessage && (
+            <div
+              className={`p-4 rounded-2xl text-xs flex items-center gap-2 ${
+                redeemMessage.type === 'success'
+                  ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-300'
+                  : 'bg-rose-500/10 border border-rose-500/20 text-rose-300'
+              }`}
+            >
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{redeemMessage.text}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleRedeemCoins} className="space-y-4">
+            <div className="space-y-1">
+              <div className="flex justify-between items-center text-xs pb-1">
+                <label className="font-semibold text-gray-300">Your Coins</label>
+                <span className="text-amber-400 font-bold">{wallet.coins || 0} Available</span>
+              </div>
+              <div className="p-4 rounded-xl bg-slate-900 border border-slate-700 text-center">
+                <span className="text-sm font-bold text-gray-300">
+                  Estimated Value: <span className="text-emerald-400">KES {Math.floor((wallet.coins || 0) / 5)}</span>
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-400 flex justify-between pt-1">
+                <span>Minimum to redeem:</span>
+                <span className="text-brand-400 font-bold">50 Coins</span>
+              </p>
+            </div>
+
+            <button
+              type="submit"
+              disabled={redeeming || (wallet.coins || 0) < 50}
+              className={`w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 ${
+                (wallet.coins || 0) >= 50
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-xl shadow-amber-500/20 hover:scale-[1.02]'
+                  : 'bg-slate-800 text-gray-500 cursor-not-allowed border border-slate-700'
+              }`}
+            >
+              {redeeming
+                ? 'Processing...'
+                : (wallet.coins || 0) >= 50
+                ? 'Redeem All Eligible Coins'
+                : 'Need 50 Coins Min'}
+            </button>
+          </form>
+        </div>
+      </div>
 
         {/* Transaction History & Pending Payout Ledger */}
         <div className="lg:col-span-2 space-y-4">

@@ -14,6 +14,7 @@ export async function GET(req: NextRequest) {
       totalWallets,
       walletsWithBalance,
       walletBalanceSum,
+      coinsAggregate,
       withdrawalsPaid,
       withdrawalsPending,
       pendingTaskSubmissions,
@@ -34,6 +35,9 @@ export async function GET(req: NextRequest) {
       prisma.wallet.count(),
       prisma.wallet.count({ where: { availableBalance: { gt: 0 } } }),
       prisma.wallet.aggregate({ _sum: { availableBalance: true, pendingBalance: true, totalEarned: true } }),
+
+      // Total coins held by all users
+      prisma.wallet.aggregate({ _sum: { coins: true } }),
 
       prisma.withdrawal.aggregate({
         where: { status: { in: ['PAID', 'COMPLETED'] } },
@@ -78,6 +82,7 @@ export async function GET(req: NextRequest) {
         completedWithdrawalsCount: withdrawalsPaid._count || 0,
         pendingWithdrawalsKES: withdrawalsPending._sum.amount || 0,
         pendingWithdrawalsCount: withdrawalsPending._count || 0,
+        totalCoins: coinsAggregate._sum.coins || 0,
       },
       tasks: {
         total: totalTasks,
@@ -97,6 +102,13 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Admin stats error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to fetch admin stats' }, { status: 403 });
+    
+    // If it's our auth error from requireAdmin, it will say "Unauthorized" or "Forbidden"
+    if (error.message === 'Unauthorized' || error.message?.includes('Forbidden')) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    
+    // Otherwise it's a database or server error, so return 500
+    return NextResponse.json({ error: 'Internal Server Error fetching stats' }, { status: 500 });
   }
 }

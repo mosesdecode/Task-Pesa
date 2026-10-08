@@ -22,6 +22,8 @@ export default function UserDashboard() {
   const [wallet, setWallet] = useState<any>(null);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [checkInMessage, setCheckInMessage] = useState('');
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -33,7 +35,6 @@ export default function UserDashboard() {
         }
         setUser(data.user);
 
-        // Fetch wallet details
         fetch('/api/wallet')
           .then((res) => res.json())
           .then((wData) => {
@@ -46,6 +47,38 @@ export default function UserDashboard() {
         window.location.href = '/login?redirect=/dashboard';
       });
   }, [router]);
+
+  const handleCheckIn = async () => {
+    if (checkingIn) return;
+    setCheckingIn(true);
+    setCheckInMessage('');
+
+    try {
+      const res = await fetch('/api/wallet/check-in', { method: 'POST' });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        setCheckInMessage(data.error || 'Check-in failed');
+        // Clear message after 3s
+        setTimeout(() => setCheckInMessage(''), 3000);
+        return;
+      }
+
+      // Success! Update wallet state
+      setWallet((prev: any) => ({
+        ...prev,
+        coins: data.coins,
+        lastCheckIn: data.lastCheckIn,
+      }));
+      setCheckInMessage(data.message);
+      setTimeout(() => setCheckInMessage(''), 3000);
+    } catch (err: any) {
+      setCheckInMessage('Check-in failed');
+      setTimeout(() => setCheckInMessage(''), 3000);
+    } finally {
+      setCheckingIn(false);
+    }
+  };
 
   if (loading || !user) {
     return (
@@ -130,6 +163,12 @@ export default function UserDashboard() {
   const availableBalance = wallet?.availableBalance || 0;
   const pendingBalance = wallet?.pendingBalance || 0;
   const totalEarned = wallet?.totalEarned || 0;
+  const coins = wallet?.coins || 0;
+  const lastCheckIn = wallet?.lastCheckIn ? new Date(wallet.lastCheckIn) : null;
+  
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const canCheckIn = !lastCheckIn || lastCheckIn < todayStart;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -153,10 +192,29 @@ export default function UserDashboard() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0 relative z-10">
+        <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0 relative z-10">
+          {checkInMessage ? (
+            <div className="px-4 py-3 rounded-2xl bg-dark-900/50 border border-dark-800 text-brand-300 text-xs font-bold text-center">
+              {checkInMessage}
+            </div>
+          ) : (
+            <button
+              onClick={handleCheckIn}
+              disabled={!canCheckIn || checkingIn}
+              className={`px-6 py-3 rounded-2xl font-extrabold text-sm shadow-xl transition-all flex items-center gap-2 ${
+                canCheckIn && !checkingIn
+                  ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-amber-500/20 hover:scale-105'
+                  : 'bg-dark-800 text-slate-400 cursor-not-allowed opacity-80'
+              }`}
+            >
+              <span className="text-lg">🪙</span>
+              {checkingIn ? 'Checking in...' : canCheckIn ? 'Daily Check-in' : 'Checked In Today!'}
+            </button>
+          )}
+
           <Link
             href="/tasks"
-            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white font-extrabold text-sm shadow-xl shadow-brand-500/20 transition-all hover:scale-105 flex items-center gap-2"
+            className="px-6 py-3 rounded-2xl bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white font-extrabold text-sm shadow-xl shadow-brand-500/20 transition-all hover:scale-105 flex items-center gap-2 w-full sm:w-auto justify-center"
           >
             <Zap className="w-4 h-4" />
             Explore Tasks
@@ -165,7 +223,7 @@ export default function UserDashboard() {
       </div>
 
       {/* Metric Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
         {/* Total Earnings */}
         <div className="p-6 rounded-3xl glass-card space-y-3">
           <div className="flex items-center justify-between">
@@ -228,6 +286,25 @@ export default function UserDashboard() {
             <span className="text-gray-400">Payouts: Enabled</span>
             <Link href="/profile" className="text-brand-400 font-bold hover:underline">
               {user.phoneVerified ? 'View Profile →' : 'Verify Phone →'}
+            </Link>
+          </div>
+        </div>
+
+        {/* Coins Balance Card */}
+        <div className="p-6 rounded-3xl glass-card space-y-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Coin Balance</span>
+            <div className="w-9 h-9 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center text-xl">
+              🪙
+            </div>
+          </div>
+          <p className="text-2xl sm:text-3xl font-black text-amber-400">
+            {coins.toLocaleString()}
+          </p>
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-gray-400">50 Coins = 10 KES</span>
+            <Link href="/wallet" className="text-brand-400 font-bold hover:underline">
+              Redeem →
             </Link>
           </div>
         </div>
