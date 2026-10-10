@@ -4048,10 +4048,10 @@ function AdminDashboardInner() {
                         key={b.id}
                         className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 space-y-2 text-xs"
                       >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex items-start gap-2.5">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-start gap-2.5 min-w-0 flex-1">
                             {/* Reorder Buttons */}
-                            <div className="flex flex-col gap-1 pt-0.5">
+                            <div className="flex flex-col gap-1 pt-0.5 shrink-0">
                               <button
                                 type="button"
                                 onClick={() => handleReorderBanner(b.id, 'up', list)}
@@ -4072,13 +4072,13 @@ function AdminDashboardInner() {
                               </button>
                             </div>
 
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-bold text-white text-sm">{b.title}</span>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <span className="font-bold text-white text-sm truncate">{b.title}</span>
                                 {statusBadge}
                               </div>
 
-                              {b.subtitle && <p className="text-slate-300 text-xs mt-0.5">{b.subtitle}</p>}
+                              {b.subtitle && <p className="text-slate-300 text-xs mt-0.5 truncate">{b.subtitle}</p>}
                               {b.body && <p className="text-slate-400 text-[11px] mt-0.5 line-clamp-1">{b.body}</p>}
 
                               <div className="flex flex-wrap items-center gap-3 mt-1.5 text-[10px] text-slate-400">
@@ -4087,10 +4087,10 @@ function AdminDashboardInner() {
                                     href={targetUrl}
                                     target="_blank"
                                     rel="noreferrer"
-                                    className="text-brand-400 hover:underline flex items-center gap-1 font-mono"
+                                    className="text-brand-400 hover:underline flex items-center gap-1 font-mono truncate max-w-full"
                                   >
-                                    <ExternalLink className="w-3 h-3" />
-                                    {b.ctaLabel ? `${b.ctaLabel} (${targetUrl})` : targetUrl}
+                                    <ExternalLink className="w-3 h-3 shrink-0" />
+                                    <span className="truncate">{b.ctaLabel ? `${b.ctaLabel} (${targetUrl})` : targetUrl}</span>
                                   </a>
                                 )}
                                 {starts && <span>Starts: {starts.toLocaleString()}</span>}
@@ -4099,7 +4099,7 @@ function AdminDashboardInner() {
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-1.5 shrink-0">
+                          <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
                             <button
                               type="button"
                               onClick={() => handleToggleBanner(b.id, b.isActive)}
@@ -4346,10 +4346,10 @@ function AdminDashboardInner() {
                 {(socialLinksList || []).map((s, idx) => (
                   <div
                     key={s.id}
-                    className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3 text-xs"
+                    className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs"
                   >
-                    <div className="flex items-start gap-2.5">
-                      <div className="flex flex-col gap-1 pt-0.5">
+                    <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                      <div className="flex flex-col gap-1 pt-0.5 shrink-0">
                         <button
                           type="button"
                           onClick={() => handleReorderSocialLink(s.id, 'up')}
@@ -4370,14 +4370,14 @@ function AdminDashboardInner() {
                         </button>
                       </div>
 
-                      <div>
+                      <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
-                          <span className="px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 font-bold uppercase text-[10px]">
+                          <span className="px-2 py-0.5 rounded bg-brand-500/20 text-brand-300 font-bold uppercase text-[10px] shrink-0">
                             {s.platform}
                           </span>
-                          <span className="font-bold text-white text-sm">{s.label}</span>
+                          <span className="font-bold text-white text-sm truncate">{s.label}</span>
                           <span
-                            className={`px-2 py-0.5 rounded font-bold text-[10px] ${
+                            className={`px-2 py-0.5 rounded font-bold text-[10px] shrink-0 ${
                               s.isActive ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-800 text-slate-400'
                             }`}
                           >
@@ -4385,9 +4385,9 @@ function AdminDashboardInner() {
                           </span>
                         </div>
 
-                        <p className="text-[11px] text-slate-400 truncate max-w-xs mt-1 font-mono">{s.url}</p>
+                        <p className="text-[11px] text-slate-400 truncate w-full mt-1 font-mono">{s.url}</p>
 
-                        <div className="flex items-center gap-2 mt-1.5 text-[10px]">
+                        <div className="flex flex-wrap items-center gap-2 mt-1.5 text-[10px]">
                           <span className="text-slate-400">Placements:</span>
                           {(s.placement || ['community_row']).map((p: string) => (
                             <span key={p} className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-medium">
@@ -4398,7 +4398,7 @@ function AdminDashboardInner() {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
                       <button
                         type="button"
                         onClick={() => handleToggleSocialLink(s.id, s.isActive)}
