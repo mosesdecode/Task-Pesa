@@ -1,5 +1,5 @@
 import { prisma } from './prisma';
-import { processActivationSuccess } from './activation';
+import { processActivationSuccess, completePendingRegistration } from './activation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -185,6 +185,18 @@ export async function processPaystackSuccess(
   reference: string,
   paystackId: string
 ) {
+  // Check if it's a PendingRegistration first
+  const pendingReg = await prisma.pendingRegistration.findUnique({
+    where: { checkoutRequestId: reference },
+  });
+
+  if (pendingReg) {
+    if (pendingReg.status === 'COMPLETED') {
+      return { success: false, message: 'Registration already completed' };
+    }
+    return await completePendingRegistration(reference, paystackId);
+  }
+
   const deposit = await prisma.deposit.findUnique({
     where: { checkoutRequestId: reference },
   });

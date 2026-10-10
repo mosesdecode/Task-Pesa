@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { UserPlus, AlertCircle, Eye, EyeOff, Smartphone, CheckCircle2, Loader2, XCircle } from 'lucide-react';
+import { UserPlus, AlertCircle, Eye, EyeOff, Smartphone, CheckCircle2, Loader2, XCircle, CreditCard } from 'lucide-react';
 
 type Step = 'form' | 'waiting' | 'success' | 'failed';
 
@@ -120,8 +120,12 @@ function RegisterForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Registration failed');
 
-      setPendingId(data.pendingId);
-      setStep('waiting');
+      if (data.authorizationUrl) {
+        window.location.href = data.authorizationUrl;
+      } else {
+        setPendingId(data.pendingId);
+        setStep('waiting');
+      }
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -386,8 +390,8 @@ function RegisterForm() {
             <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
-              <Smartphone className="w-4 h-4" />
-              <span>Register & Pay KES 200 via M-Pesa</span>
+              <CreditCard className="w-4 h-4" />
+              <span>Register & Pay KES 200 via Paystack</span>
             </>
           )}
         </button>

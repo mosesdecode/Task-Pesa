@@ -42,9 +42,13 @@ export async function GET(req: NextRequest) {
     // Process success (idempotent — safe to call even if webhook already did it)
     const result = await processPaystackSuccess(reference, reference);
 
-    // If redirected by Paystack in a browser, send user to dashboard
+    // If redirected by Paystack in a browser, send user to dashboard or login
     const acceptHeader = req.headers.get('accept') || '';
     if (acceptHeader.includes('text/html')) {
+      const type = searchParams.get('type');
+      if (type === 'REGISTRATION') {
+        return NextResponse.redirect(new URL('/login?registered=1', req.url));
+      }
       return NextResponse.redirect(new URL('/dashboard?activated=true', req.url));
     }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
 import { getDarajaAccessToken, formatKenyanPhone } from '@/lib/mpesa';
+import { initializePaystackTransaction, generatePaystackReference } from '@/lib/paystack';
 import { validateReferralEligibility } from '@/lib/antifraud';
 
 const ACTIVATION_FEE = 200;
@@ -76,87 +77,53 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Trigger STK Push
-    const formattedPhone = formatKenyanPhone(resolvedMpesa);
-    const shortcode = process.env.MPESA_SHORTCODE || '174379';
-    const passkey = process.env.MPESA_PASSKEY || 'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919';
-    const callbackUrl = process.env.MPESA_CALLBACK_URL || 'http://localhost:3000/api/mpesa/callback';
+    // Generate Paystack reference
+    const reference = generatePaystackReference('REG');
 
-    const timestamp = new Date()
-      .toISOString()
-      .replace(/[^0-9]/g, '')
-      .slice(0, 14);
-
-    const password64 = Buffer.from(`${shortcode}${passkey}${timestamp}`).toString('base64');
-    const checkoutRequestId = `ws_CO_REG_${Date.now()}_${Math.floor(Math.random() * 10000)}`;
-
-    const token = await getDarajaAccessToken();
-
-    // Update pending record with checkoutRequestId
+    // Update pending record with the generated reference (acts as checkoutRequestId)
     await prisma.pendingRegistration.update({
       where: { id: pending.id },
-      data: { checkoutRequestId },
+      data: { checkoutRequestId: reference },
     });
 
-    if (token === 'MOCK_DARAJA_ACCESS_TOKEN') {
-      return NextResponse.json({
-        success: true,
-        pendingId: pending.id,
-        checkoutRequestId,
-        isSimulation: true,
-        message: `STK Push sent to ${formattedPhone}. Enter your M-Pesa PIN to pay KES ${ACTIVATION_FEE} and complete registration.`,
-      });
-    }
+    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
+    const proto = req.headers.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https');
+    const appUrl = process.env.APP_URL && !process.env.APP_URL.includes('localhost')
+      ? process.env.APP_URL
+      : host
+        ? `${proto}://${host}`
+        : 'http://localhost:3000';
+    
+    // We will redirect them back to a verification page, or just status polling
+    const callbackUrl = `${appUrl}/api/paystack/verify?reference=${reference}&type=REGISTRATION`;
 
-    const env = process.env.MPESA_ENVIRONMENT || 'sandbox';
-    const stkUrl =
-      env === 'production'
-        ? 'https://api.safaricom.co.ke/mpesa/stkpush/v1/processrequest'
-        : 'https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest';
-
-    const response = await fetch(stkUrl, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
+    const result = await initializePaystackTransaction({
+      email,
+      amount: ACTIVATION_FEE,
+      reference,
+      callbackUrl,
+      userId: pending.id, // we pass pending id since user id doesn't exist yet
+      type: 'ACTIVATION',
+      phone: resolvedMpesa,
+      metadata: {
+        username,
+        fullName,
+        isRegistration: true,
       },
-      body: JSON.stringify({
-        BusinessShortCode: shortcode,
-        Password: password64,
-        Timestamp: timestamp,
-        TransactionType: 'CustomerPayBillOnline',
-        Amount: ACTIVATION_FEE,
-        PartyA: formattedPhone,
-        PartyB: shortcode,
-        PhoneNumber: formattedPhone,
-        CallBackURL: callbackUrl,
-        AccountReference: `TASKMINT_REG_${username.substring(0, 6).toUpperCase()}`,
-        TransactionDesc: 'TaskMint Account Activation Fee',
-      }),
     });
 
-    const resData = await response.json();
-
-    const realCheckoutId = resData.CheckoutRequestID || checkoutRequestId;
-    await prisma.pendingRegistration.update({
-      where: { id: pending.id },
-      data: { checkoutRequestId: realCheckoutId },
-    });
-
-    if (resData.ResponseCode !== '0') {
+    if (!result.success || !result.authorizationUrl) {
       await prisma.pendingRegistration.delete({ where: { id: pending.id } });
-      return NextResponse.json(
-        { error: resData.errorMessage || 'M-Pesa request failed. Please check your phone number and try again.' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'Failed to initialize payment gateway' }, { status: 400 });
     }
 
     return NextResponse.json({
       success: true,
       pendingId: pending.id,
-      checkoutRequestId: realCheckoutId,
+      checkoutRequestId: reference,
+      authorizationUrl: result.authorizationUrl, // the frontend will redirect here
       isSimulation: false,
-      message: resData.CustomerMessage || `STK Push sent to your phone. Enter your M-Pesa PIN to pay KES ${ACTIVATION_FEE}.`,
+      message: 'Redirecting to payment gateway...',
     });
   } catch (error: any) {
     console.error('Register initiate error:', error);
