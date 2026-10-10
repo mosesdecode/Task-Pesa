@@ -168,12 +168,17 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
     setLoading(true);
     setError(null);
     try {
+      let finalProofUrl = proofUrl.trim() || undefined;
+      if (finalProofUrl && !finalProofUrl.startsWith('http') && !finalProofUrl.startsWith('data:image')) {
+        finalProofUrl = `https://${finalProofUrl}`;
+      }
+
       const res = await fetch(`/api/tasks/${item.id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           proofText: proofText.trim() || undefined,
-          proofUrl: proofUrl.trim() || undefined,
+          proofUrl: finalProofUrl,
           submissionDataJson: Object.keys(annotationAnswers).length > 0 ? annotationAnswers : undefined,
         }),
       });
@@ -199,10 +204,15 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
     setLoading(true);
     setError(null);
     try {
+      let finalWhatsappUrl = whatsappProofUrl.trim();
+      if (finalWhatsappUrl && !finalWhatsappUrl.startsWith('http') && !finalWhatsappUrl.startsWith('data:image')) {
+        finalWhatsappUrl = `https://${finalWhatsappUrl}`;
+      }
+
       const res = await fetch(`/api/whatsapp/${item.id}/submit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proofUrl: whatsappProofUrl }),
+        body: JSON.stringify({ proofUrl: finalWhatsappUrl }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Proof submission failed');

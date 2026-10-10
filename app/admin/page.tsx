@@ -2945,11 +2945,15 @@ function AdminDashboardInner() {
                         <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Submitted Proof of Work:</span>
                         {sub.proofText && <p className="text-slate-200 whitespace-pre-wrap">{sub.proofText}</p>}
                         {sub.proofUrl && (
-                          <div className="pt-2 flex items-center gap-3">
-                            <a href={sub.proofUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-mono">
-                              <span>Open Proof Attachment</span>
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
+                          <div className="pt-2 flex flex-col gap-2">
+                            {sub.proofUrl.startsWith('data:image') ? (
+                              <img src={sub.proofUrl} alt="Proof" className="w-full max-w-sm rounded-xl border border-dark-800 shadow-md" />
+                            ) : (
+                              <a href={sub.proofUrl.startsWith('http') ? sub.proofUrl : `https://${sub.proofUrl}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-mono">
+                                <span>Open Proof Attachment</span>
+                                <ExternalLink className="w-3.5 h-3.5" />
+                              </a>
+                            )}
                           </div>
                         )}
                         {sub.rejectionReason && (
@@ -3017,9 +3021,13 @@ function AdminDashboardInner() {
                       {sub.proofUrl && (
                         <div className="p-4 rounded-xl bg-dark-950 border border-dark-800/80 text-xs">
                           <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider mb-2">Screenshot Proof:</span>
-                          <a href={sub.proofUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-mono">
-                            <span>View Screenshot</span><ExternalLink className="w-3.5 h-3.5" />
-                          </a>
+                          {sub.proofUrl.startsWith('data:image') ? (
+                            <img src={sub.proofUrl} alt="Screenshot Proof" className="w-full max-w-sm rounded-xl border border-dark-800 shadow-md" />
+                          ) : (
+                            <a href={sub.proofUrl.startsWith('http') ? sub.proofUrl : `https://${sub.proofUrl}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-mono">
+                              <span>View Screenshot</span><ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          )}
                         </div>
                       )}
                     </div>
