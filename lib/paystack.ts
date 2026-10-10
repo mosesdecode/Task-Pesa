@@ -55,18 +55,24 @@ export async function initializePaystackTransaction(
 ): Promise<PaystackInitResponse> {
   const secretKey = getPaystackSecretKey();
 
-  // Create a pending Deposit record first
-  const deposit = await prisma.deposit.create({
-    data: {
-      userId: params.userId,
-      amount: params.amount,
-      phone: params.phone || '',
-      status: 'PENDING',
-      checkoutRequestId: params.reference,
-      merchantRequestId: `PSK_${Date.now()}`,
-      type: params.type,
-    },
-  });
+  // Create a pending Deposit record first, ONLY if this is not a new registration
+  // (New registrations don't have a valid User ID yet)
+  const isRegistration = params.metadata?.isRegistration === true;
+  let deposit: any = null;
+
+  if (!isRegistration) {
+    deposit = await prisma.deposit.create({
+      data: {
+        userId: params.userId,
+        amount: params.amount,
+        phone: params.phone || '',
+        status: 'PENDING',
+        checkoutRequestId: params.reference,
+        merchantRequestId: `PSK_${Date.now()}`,
+        type: params.type,
+      },
+    });
+  }
 
   try {
     const res = await fetch('https://api.paystack.co/transaction/initialize', {
@@ -85,7 +91,7 @@ export async function initializePaystackTransaction(
         metadata: {
           userId: params.userId,
           type: params.type,
-          depositId: deposit.id,
+          depositId: deposit?.id || null,
           ...(params.metadata || {}),
         },
       }),
@@ -102,20 +108,22 @@ export async function initializePaystackTransaction(
       authorizationUrl: data.data.authorization_url,
       accessCode: data.data.access_code,
       reference: data.data.reference,
-      depositId: deposit.id,
+      depositId: deposit?.id || null,
     };
   } catch (error: any) {
     // Mark deposit as failed if initialization fails
-    await prisma.deposit.update({
-      where: { id: deposit.id },
-      data: { status: 'FAILED' },
-    }).catch(() => null);
+    if (deposit) {
+      await prisma.deposit.update({
+        where: { id: deposit.id },
+        data: { status: 'FAILED' },
+      }).catch(() => null);
+    }
 
     console.error('Paystack initialization error:', error);
     return {
       success: false,
       reference: params.reference,
-      depositId: deposit.id,
+      depositId: deposit?.id || null,
       error: error.message,
     };
   }
