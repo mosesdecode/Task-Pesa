@@ -141,7 +141,10 @@ function AdminDashboardInner() {
   const [tasksList, setTasksList] = useState<any[] | null>(null);
   const [categoriesList, setCategoriesList] = useState<any[] | null>(null);
   const [submissionsList, setSubmissionsList] = useState<any[]>([]);
-  const [submissionCounts, setSubmissionCounts] = useState({ pendingReview: 0, approved: 0, rejected: 0, total: 0 });
+  const [whatsappSubmissionsList, setWhatsappSubmissionsList] = useState<any[]>([]);
+  const [coinRedemptionsList, setCoinRedemptionsList] = useState<any[]>([]);
+  const [submissionCounts, setSubmissionCounts] = useState({ pendingReview: 0, pendingTasks: 0, pendingWhatsapp: 0, pendingCoins: 0, approved: 0, rejected: 0, total: 0 });
+  const [submissionsSubTab, setSubmissionsSubTab] = useState<'tasks' | 'whatsapp' | 'coins'>('tasks');
   const [advertsList, setAdvertsList] = useState<any[] | null>(null);
   const [bannersList, setBannersList] = useState<any[] | null>(null);
   const [socialLinksList, setSocialLinksList] = useState<any[] | null>(null);
@@ -382,6 +385,8 @@ function AdminDashboardInner() {
       if (res.ok) {
         const data = await res.json();
         setSubmissionsList(data.taskSubmissions || []);
+        setWhatsappSubmissionsList(data.whatsappSubmissions || []);
+        setCoinRedemptionsList(data.coinRedemptions || []);
         if (data.counts) setSubmissionCounts(data.counts);
       } else {
         handleApiError(res, setSubmissionsError, "Couldn't load submissions. Retry");
@@ -1144,6 +1149,61 @@ function AdminDashboardInner() {
       setSuccessMsg('Submission rejected. User notified with feedback.');
       setRejectModalSub(null);
       setRejectionReasonInput('');
+      fetchSubmissions();
+      fetchStats();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  // Coin Redemption Admin Actions
+  const handleApproveCoinRedemption = async (redemption: any) => {
+    setActionLoading(true);
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionType: 'COIN_REDEMPTION',
+          submissionId: redemption.id,
+          action: 'APPROVE',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Approval failed');
+      setSuccessMsg(data.message || `Coin redemption approved! KES ${(redemption.coinsRedeemed / 5).toFixed(2)} credited to wallet.`);
+      fetchSubmissions();
+      fetchStats();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleRejectCoinRedemption = async (redemption: any) => {
+    if (!window.confirm(`Reject this coin redemption? ${redemption.coinsRedeemed} coins will be refunded to @${redemption.user?.username}.`)) return;
+    setActionLoading(true);
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch('/api/admin/submissions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          submissionType: 'COIN_REDEMPTION',
+          submissionId: redemption.id,
+          action: 'REJECT',
+          rejectionReason: 'Rejected by admin',
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Rejection failed');
+      setSuccessMsg(`Redemption rejected. ${redemption.coinsRedeemed} coins refunded to user.`);
       fetchSubmissions();
       fetchStats();
     } catch (err: any) {
@@ -2749,8 +2809,8 @@ function AdminDashboardInner() {
               </p>
             </div>
 
-            {/* Sub-Tabs: Pending Review, Approved, Rejected */}
-            <div className="flex items-center gap-2 border-b border-dark-800 pb-2">
+            {/* Status filter: Pending / Approved / Rejected */}
+            <div className="flex items-center gap-2 border-b border-dark-800 pb-3 flex-wrap">
               <button
                 onClick={() => setSubmissionFilter('UNDER_REVIEW')}
                 className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -2783,121 +2843,294 @@ function AdminDashboardInner() {
               </button>
             </div>
 
-            {/* Submissions List */}
-            <div className="space-y-4">
-              {submissionsFilterLoading ? (
-                Array.from({ length: 3 }).map((_, i) => (
-                  <div key={i} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
-                    <div className="flex items-start justify-between pb-3 border-b border-dark-800">
-                      <div className="space-y-2">
-                        <Skeleton className="w-20 h-3" />
-                        <Skeleton className="w-56 h-5" />
-                        <Skeleton className="w-64 h-3" />
-                      </div>
-                      <Skeleton className="w-20 h-6" />
-                    </div>
-                    <Skeleton className="w-full h-16" />
-                    <div className="flex gap-3">
-                      <Skeleton className="w-40 h-9" />
-                      <Skeleton className="w-28 h-9" />
-                    </div>
-                  </div>
-                ))
-              ) : submissionsList.length === 0 ? (
-                <EmptyState
-                  icon="inbox"
-                  title="Queue is clear"
-                  description={`No ${submissionFilter === 'UNDER_REVIEW' ? 'pending' : submissionFilter.toLowerCase()} submissions at the moment.`}
-                />
-              ) : (
-                submissionsList.map((sub) => (
-                  <div key={sub.id} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4 shadow-lg">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
-                      <div>
-                        <span className="text-[10px] text-slate-500 uppercase font-mono block">
-                          Submission ID: {sub.id.slice(0, 8)}...
-                        </span>
-                        <h3 className="text-base font-bold text-white mt-0.5">{sub.task?.title}</h3>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
-                          <span>Worker: <strong className="text-white">@{sub.user?.username}</strong></span>
-                          <span>•</span>
-                          <span>Phone: <strong className="text-white font-mono">{formatKenyanPhoneDisplay(sub.user?.phone)}</strong></span>
-                          <span>•</span>
-                          <span>Reward: <strong className="text-brand-400 font-mono">KES {sub.task?.reward?.toFixed(2)}</strong></span>
+            {/* Type sub-tabs: Tasks / WhatsApp / Coin Redemptions */}
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setSubmissionsSubTab('tasks')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  submissionsSubTab === 'tasks'
+                    ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
+                    : 'bg-dark-950 text-slate-500 hover:text-slate-300 border border-dark-800'
+                }`}
+              >
+                <CheckSquare className="w-3.5 h-3.5" />
+                Tasks
+                {submissionCounts.pendingTasks > 0 && submissionFilter === 'UNDER_REVIEW' && (
+                  <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-dark-950 text-[10px] font-black">{submissionCounts.pendingTasks}</span>
+                )}
+              </button>
+              <button
+                onClick={() => setSubmissionsSubTab('whatsapp')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  submissionsSubTab === 'whatsapp'
+                    ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
+                    : 'bg-dark-950 text-slate-500 hover:text-slate-300 border border-dark-800'
+                }`}
+              >
+                <Share2 className="w-3.5 h-3.5" />
+                WhatsApp
+                {submissionCounts.pendingWhatsapp > 0 && submissionFilter === 'UNDER_REVIEW' && (
+                  <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-dark-950 text-[10px] font-black">{submissionCounts.pendingWhatsapp}</span>
+                )}
+              </button>
+              <button
+                onClick={() => setSubmissionsSubTab('coins')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  submissionsSubTab === 'coins'
+                    ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
+                    : 'bg-dark-950 text-slate-500 hover:text-slate-300 border border-dark-800'
+                }`}
+              >
+                <Coins className="w-3.5 h-3.5" />
+                Coin Redemptions
+                {submissionCounts.pendingCoins > 0 && submissionFilter === 'UNDER_REVIEW' && (
+                  <span className="ml-0.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-dark-950 text-[10px] font-black">{submissionCounts.pendingCoins}</span>
+                )}
+              </button>
+            </div>
+
+            {/* ── TASK SUBMISSIONS ── */}
+            {submissionsSubTab === 'tasks' && (
+              <div className="space-y-4">
+                {submissionsFilterLoading ? (
+                  Array.from({ length: 3 }).map((_, i) => (
+                    <div key={i} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4">
+                      <div className="flex items-start justify-between pb-3 border-b border-dark-800">
+                        <div className="space-y-2">
+                          <Skeleton className="w-20 h-3" />
+                          <Skeleton className="w-56 h-5" />
+                          <Skeleton className="w-64 h-3" />
                         </div>
+                        <Skeleton className="w-20 h-6" />
                       </div>
-
-                      {/* Status Badge */}
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold self-start ${
-                          sub.status === 'APPROVED'
-                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                            : sub.status === 'REJECTED'
-                            ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                        }`}
-                      >
-                        {sub.status}
-                      </span>
+                      <Skeleton className="w-full h-16" />
+                      <div className="flex gap-3">
+                        <Skeleton className="w-40 h-9" />
+                        <Skeleton className="w-28 h-9" />
+                      </div>
                     </div>
-
-                    {/* Submitted Proof Inspection */}
-                    <div className="p-4 rounded-xl bg-dark-950 border border-dark-800/80 space-y-2 text-xs">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
-                        Submitted Proof of Work:
-                      </span>
-                      {sub.proofText && (
-                        <p className="text-slate-200 whitespace-pre-wrap">{sub.proofText}</p>
-                      )}
-                      {sub.proofUrl && (
-                        <div className="pt-2 flex items-center gap-3">
-                          <a
-                            href={sub.proofUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-mono"
+                  ))
+                ) : submissionsList.length === 0 ? (
+                  <EmptyState
+                    icon="inbox"
+                    title="Queue is clear"
+                    description={`No ${submissionFilter === 'UNDER_REVIEW' ? 'pending' : submissionFilter.toLowerCase()} task submissions.`}
+                  />
+                ) : (
+                  submissionsList.map((sub) => (
+                    <div key={sub.id} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4 shadow-lg">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
+                        <div>
+                          <span className="text-[10px] text-slate-500 uppercase font-mono block">
+                            Submission ID: {sub.id.slice(0, 8)}...
+                          </span>
+                          <h3 className="text-base font-bold text-white mt-0.5">{sub.task?.title}</h3>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                            <span>Worker: <strong className="text-white">@{sub.user?.username}</strong></span>
+                            <span>•</span>
+                            <span>Phone: <strong className="text-white font-mono">{formatKenyanPhoneDisplay(sub.user?.phone)}</strong></span>
+                            <span>•</span>
+                            <span>Reward: <strong className="text-brand-400 font-mono">KES {sub.task?.reward?.toFixed(2)}</strong></span>
+                          </div>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold self-start ${
+                          sub.status === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : sub.status === 'REJECTED' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          {sub.status}
+                        </span>
+                      </div>
+                      <div className="p-4 rounded-xl bg-dark-950 border border-dark-800/80 space-y-2 text-xs">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Submitted Proof of Work:</span>
+                        {sub.proofText && <p className="text-slate-200 whitespace-pre-wrap">{sub.proofText}</p>}
+                        {sub.proofUrl && (
+                          <div className="pt-2 flex items-center gap-3">
+                            <a href={sub.proofUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-mono">
+                              <span>Open Proof Attachment</span>
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </a>
+                          </div>
+                        )}
+                        {sub.rejectionReason && (
+                          <div className="pt-2 text-rose-400 font-medium"><strong>Rejection Reason:</strong> {sub.rejectionReason}</div>
+                        )}
+                      </div>
+                      {sub.status === 'UNDER_REVIEW' && (
+                        <div className="flex items-center gap-3 pt-2">
+                          <button
+                            onClick={() => handleApproveSubmission(sub)}
+                            disabled={actionLoading}
+                            className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/20"
                           >
-                            <span>Open Proof Attachment</span>
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <Check className="w-4 h-4" /> Approve & Credit KES {sub.task?.reward}
+                          </button>
+                          <button
+                            onClick={() => { setRejectModalSub(sub); setRejectionReasonInput(''); }}
+                            disabled={actionLoading}
+                            className="px-4 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 font-bold text-xs transition-colors cursor-pointer"
+                          >
+                            Reject Submission
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* ── WHATSAPP SUBMISSIONS ── */}
+            {submissionsSubTab === 'whatsapp' && (
+              <div className="space-y-4">
+                {submissionsFilterLoading ? (
+                  Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3">
+                      <Skeleton className="w-48 h-5" />
+                      <Skeleton className="w-full h-16 rounded-xl" />
+                      <div className="flex gap-3"><Skeleton className="w-36 h-9" /><Skeleton className="w-28 h-9" /></div>
+                    </div>
+                  ))
+                ) : whatsappSubmissionsList.length === 0 ? (
+                  <EmptyState icon="inbox" title="No WhatsApp submissions" description={`No ${submissionFilter === 'UNDER_REVIEW' ? 'pending' : submissionFilter.toLowerCase()} WhatsApp channel submissions.`} />
+                ) : (
+                  whatsappSubmissionsList.map((sub) => (
+                    <div key={sub.id} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4 shadow-lg">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
+                        <div>
+                          <span className="text-[10px] text-slate-500 font-mono block">WA Submission · {sub.id.slice(0, 8)}...</span>
+                          <h3 className="text-base font-bold text-white mt-0.5">{sub.campaign?.name}</h3>
+                          <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
+                            <span>User: <strong className="text-white">@{sub.user?.username}</strong></span>
+                            <span>•</span>
+                            <span>Phone: <strong className="text-white font-mono">{formatKenyanPhoneDisplay(sub.user?.phone)}</strong></span>
+                          </div>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-bold self-start ${
+                          sub.status === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                          : sub.status === 'REJECTED' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                          : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                        }`}>
+                          {sub.status === 'PENDING' ? 'UNDER REVIEW' : sub.status}
+                        </span>
+                      </div>
+                      {sub.proofUrl && (
+                        <div className="p-4 rounded-xl bg-dark-950 border border-dark-800/80 text-xs">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider mb-2">Screenshot Proof:</span>
+                          <a href={sub.proofUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-mono">
+                            <span>View Screenshot</span><ExternalLink className="w-3.5 h-3.5" />
                           </a>
                         </div>
                       )}
-                      {sub.rejectionReason && (
-                        <div className="pt-2 text-rose-400 font-medium">
-                          <strong>Rejection Reason:</strong> {sub.rejectionReason}
-                        </div>
-                      )}
                     </div>
+                  ))
+                )}
+              </div>
+            )}
 
-                    {/* Actions: Approve / Reject (Only for UNDER_REVIEW) */}
-                    {sub.status === 'UNDER_REVIEW' && (
-                      <div className="flex items-center gap-3 pt-2">
-                        <button
-                          onClick={() => handleApproveSubmission(sub)}
-                          disabled={actionLoading}
-                          className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/20"
-                        >
-                          <Check className="w-4 h-4" /> Approve & Credit KES {sub.task?.reward}
-                        </button>
+            {/* ── COIN REDEMPTION REQUESTS ── */}
+            {submissionsSubTab === 'coins' && (
+              <div className="space-y-4">
+                {submissionsFilterLoading ? (
+                  Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-3">
+                      <Skeleton className="w-48 h-5" />
+                      <Skeleton className="w-full h-16 rounded-xl" />
+                      <div className="flex gap-3"><Skeleton className="w-40 h-9" /><Skeleton className="w-28 h-9" /></div>
+                    </div>
+                  ))
+                ) : coinRedemptionsList.length === 0 ? (
+                  <EmptyState
+                    icon="wallet"
+                    title="No coin redemptions"
+                    description={`No ${submissionFilter === 'UNDER_REVIEW' ? 'pending' : submissionFilter.toLowerCase()} coin redemption requests.`}
+                  />
+                ) : (
+                  coinRedemptionsList.map((redemption) => {
+                    const kesValue = (redemption.coinsRedeemed / 5).toFixed(2);
+                    const isPending = redemption.status === 'PENDING';
+                    return (
+                      <div key={redemption.id} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4 shadow-lg">
+                        {/* Header */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-7 h-7 rounded-lg bg-amber-500/15 border border-amber-500/30 flex items-center justify-center">
+                                <Coins className="w-3.5 h-3.5 text-amber-400" />
+                              </div>
+                              <span className="text-[10px] text-slate-500 font-mono">Redemption · {redemption.id.slice(0, 8)}...</span>
+                            </div>
+                            <h3 className="text-base font-bold text-white mt-1.5">
+                              Coin Redemption Request
+                            </h3>
+                            <div className="flex items-center flex-wrap gap-2 mt-1 text-xs text-slate-400">
+                              <span>User: <strong className="text-white">@{redemption.user?.username}</strong></span>
+                              <span>•</span>
+                              <span>Name: <strong className="text-white">{redemption.user?.fullName || '—'}</strong></span>
+                              <span>•</span>
+                              <span>Phone: <strong className="text-white font-mono">{formatKenyanPhoneDisplay(redemption.user?.phone)}</strong></span>
+                            </div>
+                          </div>
+                          <span className={`px-3 py-1 rounded-full text-xs font-bold self-start ${
+                            redemption.status === 'APPROVED' ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                            : redemption.status === 'REJECTED' ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                            : 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                          }`}>
+                            {redemption.status === 'PENDING' ? 'PENDING REVIEW' : redemption.status}
+                          </span>
+                        </div>
 
-                        <button
-                          onClick={() => {
-                            setRejectModalSub(sub);
-                            setRejectionReasonInput('');
-                          }}
-                          disabled={actionLoading}
-                          className="px-4 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 font-bold text-xs transition-colors cursor-pointer"
-                        >
-                          Reject Submission
-                        </button>
+                        {/* Redemption details */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                          <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
+                            <span className="text-[10px] text-slate-500 uppercase font-bold block">Coins Redeemed</span>
+                            <span className="font-mono font-bold text-amber-400 text-lg">{redemption.coinsRedeemed?.toLocaleString()}</span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
+                            <span className="text-[10px] text-slate-500 uppercase font-bold block">KES Value</span>
+                            <span className="font-mono font-bold text-brand-400 text-lg">KES {kesValue}</span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
+                            <span className="text-[10px] text-slate-500 uppercase font-bold block">Rate</span>
+                            <span className="font-mono font-bold text-slate-300">5 coins = KES 1</span>
+                          </div>
+                          <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
+                            <span className="text-[10px] text-slate-500 uppercase font-bold block">Requested</span>
+                            <span className="font-mono text-slate-300">{new Date(redemption.createdAt).toLocaleDateString('en-KE')}</span>
+                          </div>
+                        </div>
+
+                        {/* Action buttons — only for PENDING */}
+                        {isPending && (
+                          <div className="flex items-center gap-3 pt-2">
+                            <button
+                              onClick={() => handleApproveCoinRedemption(redemption)}
+                              disabled={actionLoading}
+                              className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer shadow-md shadow-emerald-500/20 disabled:opacity-60"
+                            >
+                              <Check className="w-4 h-4" />
+                              Approve & Credit KES {kesValue}
+                            </button>
+                            <button
+                              onClick={() => handleRejectCoinRedemption(redemption)}
+                              disabled={actionLoading}
+                              className="px-4 py-2.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 font-bold text-xs transition-colors cursor-pointer disabled:opacity-60"
+                            >
+                              Reject & Refund Coins
+                            </button>
+                          </div>
+                        )}
+                        {!isPending && redemption.adminNotes && (
+                          <p className="text-xs text-slate-500 italic">Admin note: {redemption.adminNotes}</p>
+                        )}
                       </div>
-                    )}
-                  </div>
-                ))
-              )}
-            </div>
+                    );
+                  })
+                )}
+              </div>
+            )}
 
-            {/* REJECTION REASON MODAL (Requirement 10) */}
+            {/* REJECTION REASON MODAL */}
             {rejectModalSub && (
               <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
                 <div className="w-full max-w-md bg-dark-900 border border-dark-800 rounded-3xl p-6 space-y-4 shadow-2xl">
@@ -2905,7 +3138,6 @@ function AdminDashboardInner() {
                   <p className="text-xs text-slate-400">
                     The user will see this feedback in their Tasks dashboard.
                   </p>
-
                   <textarea
                     rows={3}
                     placeholder="e.g. Screenshot did not match instructions, or incomplete work..."
@@ -2913,7 +3145,6 @@ function AdminDashboardInner() {
                     onChange={(e) => setRejectionReasonInput(e.target.value)}
                     className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-xs focus:outline-none focus:border-rose-500"
                   />
-
                   <div className="flex items-center justify-end gap-2 pt-2">
                     <button
                       onClick={() => setRejectModalSub(null)}

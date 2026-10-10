@@ -23,7 +23,7 @@ export async function GET(req: NextRequest) {
       ];
     }
 
-    const [taskSubmissions, whatsappSubmissions, counts] = await Promise.all([
+    const [taskSubmissions, whatsappSubmissions, coinRedemptions, counts] = await Promise.all([
       prisma.taskSubmission.findMany({
         where: whereClause,
         include: {
@@ -60,21 +60,49 @@ export async function GET(req: NextRequest) {
         },
         orderBy: { submittedAt: 'desc' },
       }),
+      (prisma as any).coinRedemption.findMany({
+        where: statusFilter === 'ALL' ? {} : { status: statusFilter === 'UNDER_REVIEW' ? 'PENDING' : statusFilter },
+        include: {
+          user: {
+            select: {
+              id: true,
+              fullName: true,
+              username: true,
+              phone: true,
+              email: true,
+              profilePhoto: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'desc' },
+      }),
       Promise.all([
         prisma.taskSubmission.count({ where: { status: 'UNDER_REVIEW' } }),
+        prisma.whatsappSubmission.count({ where: { status: 'PENDING' } }),
+        (prisma as any).coinRedemption.count({ where: { status: 'PENDING' } }),
         prisma.taskSubmission.count({ where: { status: 'APPROVED' } }),
+        (prisma as any).coinRedemption.count({ where: { status: 'APPROVED' } }),
         prisma.taskSubmission.count({ where: { status: 'REJECTED' } }),
+        (prisma as any).coinRedemption.count({ where: { status: 'REJECTED' } }),
       ]),
     ]);
+
+    const pendingReviewTotal = (counts[0] || 0) + (counts[1] || 0) + (counts[2] || 0);
+    const approvedTotal = (counts[3] || 0) + (counts[4] || 0);
+    const rejectedTotal = (counts[5] || 0) + (counts[6] || 0);
 
     return NextResponse.json({
       taskSubmissions,
       whatsappSubmissions,
+      coinRedemptions,
       counts: {
-        pendingReview: counts[0],
-        approved: counts[1],
-        rejected: counts[2],
-        total: counts[0] + counts[1] + counts[2],
+        pendingReview: pendingReviewTotal,
+        pendingTasks: counts[0] || 0,
+        pendingWhatsapp: counts[1] || 0,
+        pendingCoins: counts[2] || 0,
+        approved: approvedTotal,
+        rejected: rejectedTotal,
+        total: pendingReviewTotal + approvedTotal + rejectedTotal,
       },
     });
   } catch (error: any) {
@@ -364,6 +392,160 @@ export async function POST(req: NextRequest) {
         });
 
         return NextResponse.json({ success: true, message: 'WhatsApp submission rejected.' });
+      }
+    }
+
+    // COIN REDEMPTION REVIEW
+    if (submissionType === 'COIN_REDEMPTION') {
+      const redemption = await (prisma as any).coinRedemption.findUnique({
+        where: { id: submissionId },
+        include: { user: true },
+      });
+
+      if (!redemption) {
+        return NextResponse.json({ error: 'Coin redemption request not found' }, { status: 404 });
+      }
+
+      if (action === 'APPROVE') {
+        if (redemption.status === 'APPROVED') {
+          return NextResponse.json({ success: true, message: 'Already approved' });
+        }
+
+        const kesAmount = redemption.kesAmount;
+
+        await prisma.$transaction(async (tx) => {
+          // 1. Update status to APPROVED
+          await (tx as any).coinRedemption.update({
+            where: { id: redemption.id },
+            data: {
+              status: 'APPROVED',
+              adminNotes: adminNotes || 'Approved by admin',
+              reviewedBy: admin.id,
+              reviewedAt: new Date(),
+            },
+          });
+
+          // 2. Ensure wallet and credit available balance
+          let wallet = await tx.wallet.findUnique({ where: { userId: redemption.userId } });
+          if (!wallet) {
+            wallet = await tx.wallet.create({
+              data: { userId: redemption.userId, availableBalance: 0, totalEarned: 0 },
+            });
+          }
+
+          await tx.wallet.update({
+            where: { id: wallet.id },
+            data: {
+              availableBalance: { increment: kesAmount },
+              totalEarned: { increment: kesAmount },
+            },
+          });
+
+          // 3. Create wallet transaction
+          await tx.walletTransaction.create({
+            data: {
+              walletId: wallet.id,
+              userId: redemption.userId,
+              amount: kesAmount,
+              type: 'COIN_REDEMPTION',
+              status: 'COMPLETED',
+              description: `Redeemed ${redemption.coins} coins for KES ${kesAmount.toFixed(2)}`,
+              referenceId: redemption.id,
+            },
+          });
+
+          // 4. Send notification
+          await tx.notification.create({
+            data: {
+              userId: redemption.userId,
+              title: 'Coin Redemption Approved! 🪙💵',
+              message: `Your request to redeem ${redemption.coins} coins was approved! KES ${kesAmount.toFixed(2)} has been credited to your available balance.`,
+              type: 'SUCCESS',
+            },
+          });
+
+          // 5. Admin Audit Log
+          await tx.adminAuditLog.create({
+            data: {
+              adminId: admin.id,
+              action: 'APPROVE_COIN_REDEMPTION',
+              targetType: 'COIN_REDEMPTION',
+              targetId: redemption.id,
+              detailsJson: JSON.stringify({
+                userId: redemption.userId,
+                coins: redemption.coins,
+                kesAmount,
+              }),
+            },
+          });
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: `Coin redemption approved! KES ${kesAmount.toFixed(2)} credited to @${redemption.user?.username || 'user'}'s wallet.`,
+        });
+      }
+
+      if (action === 'REJECT') {
+        const reason = (rejectionReason || adminNotes || '').trim();
+        if (!reason) {
+          return NextResponse.json(
+            { error: 'A rejection reason is required so the user understands why their redemption was declined.' },
+            { status: 400 }
+          );
+        }
+
+        await prisma.$transaction(async (tx) => {
+          // 1. Update status to REJECTED
+          await (tx as any).coinRedemption.update({
+            where: { id: redemption.id },
+            data: {
+              status: 'REJECTED',
+              rejectionReason: reason,
+              adminNotes: reason,
+              reviewedBy: admin.id,
+              reviewedAt: new Date(),
+            },
+          });
+
+          // 2. Refund coins back to user wallet
+          await tx.wallet.update({
+            where: { userId: redemption.userId },
+            data: {
+              coins: { increment: redemption.coins },
+            },
+          });
+
+          // 3. Send notification
+          await tx.notification.create({
+            data: {
+              userId: redemption.userId,
+              title: 'Coin Redemption Declined ❌',
+              message: `Your request to redeem ${redemption.coins} coins was declined. Reason: "${reason}". Your ${redemption.coins} coins have been refunded back to your coin balance.`,
+              type: 'WARNING',
+            },
+          });
+
+          // 4. Admin Audit Log
+          await tx.adminAuditLog.create({
+            data: {
+              adminId: admin.id,
+              action: 'REJECT_COIN_REDEMPTION',
+              targetType: 'COIN_REDEMPTION',
+              targetId: redemption.id,
+              detailsJson: JSON.stringify({
+                userId: redemption.userId,
+                coins: redemption.coins,
+                rejectionReason: reason,
+              }),
+            },
+          });
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: `Coin redemption rejected. ${redemption.coins} coins refunded to user.`,
+        });
       }
     }
 

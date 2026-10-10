@@ -21,6 +21,7 @@ export async function GET(req: NextRequest) {
       approvedTaskSubmissions,
       rejectedTaskSubmissions,
       pendingWhatsappSubmissions,
+      pendingCoinRedemptions,
       publishedTasks,
       totalTasks,
       activeAds,
@@ -55,6 +56,7 @@ export async function GET(req: NextRequest) {
       prisma.taskSubmission.count({ where: { status: 'APPROVED' } }),
       prisma.taskSubmission.count({ where: { status: 'REJECTED' } }),
       prisma.whatsappSubmission.count({ where: { status: 'PENDING' } }),
+      (prisma as any).coinRedemption.count({ where: { status: 'PENDING' } }),
 
       // Task Counts
       prisma.task.count({ where: { status: { in: ['PUBLISHED', 'ACTIVE'] } } }),
@@ -90,9 +92,10 @@ export async function GET(req: NextRequest) {
         categoriesCount,
       },
       submissions: {
-        pendingReview: pendingTaskSubmissions + pendingWhatsappSubmissions,
+        pendingReview: pendingTaskSubmissions + pendingWhatsappSubmissions + (pendingCoinRedemptions || 0),
         pendingTasks: pendingTaskSubmissions,
         pendingWhatsapp: pendingWhatsappSubmissions,
+        pendingCoins: pendingCoinRedemptions || 0,
         approved: approvedTaskSubmissions,
         rejected: rejectedTaskSubmissions,
       },
