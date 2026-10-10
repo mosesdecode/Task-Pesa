@@ -3047,7 +3047,7 @@ function AdminDashboardInner() {
                   />
                 ) : (
                   coinRedemptionsList.map((redemption) => {
-                    const kesValue = (redemption.coinsRedeemed / 5).toFixed(2);
+                    const kesValue = (redemption.coins / 5).toFixed(2);
                     const isPending = redemption.status === 'PENDING';
                     return (
                       <div key={redemption.id} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4 shadow-lg">
@@ -3084,7 +3084,7 @@ function AdminDashboardInner() {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                           <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
                             <span className="text-[10px] text-slate-500 uppercase font-bold block">Coins Redeemed</span>
-                            <span className="font-mono font-bold text-amber-400 text-lg">{redemption.coinsRedeemed?.toLocaleString()}</span>
+                            <span className="font-mono font-bold text-amber-400 text-lg">{redemption.coins?.toLocaleString()}</span>
                           </div>
                           <div className="p-3 rounded-xl bg-dark-950 border border-dark-800/80">
                             <span className="text-[10px] text-slate-500 uppercase font-bold block">KES Value</span>

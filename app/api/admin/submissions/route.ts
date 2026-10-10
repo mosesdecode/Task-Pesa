@@ -107,7 +107,10 @@ export async function GET(req: NextRequest) {
     });
   } catch (error: any) {
     console.error('Admin submissions fetch error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to fetch submissions' }, { status: 403 });
+    if (error.message === 'Unauthorized' || error.message?.includes('Forbidden')) {
+      return NextResponse.json({ error: error.message }, { status: 403 });
+    }
+    return NextResponse.json({ error: 'Internal Server Error fetching submissions' }, { status: 500 });
   }
 }
 
