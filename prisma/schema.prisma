@@ -466,3 +466,17 @@ model CoinRedemption {
   @@index([status])
 }
 
+model PendingRegistration {
+  id                String   @id @default(uuid())
+  fullName          String
+  username          String   @unique
+  email             String   @unique
+  phone             String   @unique
+  mpesaNumber       String
+  passwordHash      String
+  referralCode      String?
+  checkoutRequestId String?  @unique
+  status            String   @default("PENDING_PAYMENT") // PENDING_PAYMENT, COMPLETED, FAILED
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}

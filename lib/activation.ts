@@ -357,3 +357,224 @@ export async function processActivationSuccess(
     }
   );
 }
+
+/**
+ * Completes registration from a PendingRegistration record when M-Pesa payment arrives.
+ * Called from the M-Pesa callback when checkoutRequestId matches a PendingRegistration.
+ */
+export async function completePendingRegistration(
+  checkoutRequestId: string,
+  mpesaReceipt: string
+): Promise<{ success: boolean; userId?: string; message?: string }> {
+  const pending = await prisma.pendingRegistration.findUnique({
+    where: { checkoutRequestId },
+  });
+
+  if (!pending) return { success: false, message: 'No pending registration found for this payment.' };
+  if (pending.status === 'COMPLETED') return { success: false, message: 'Registration already completed.' };
+
+  const config = await getFinancialConfig();
+  const paymentAmount = config.activationFeeKES;
+  const adminEarningAmount = config.adminActivationEarningKES;
+  const referralRewardAmount = config.referralRewardKES;
+
+  // Duplicate safety check
+  const duplicate = await prisma.user.findFirst({
+    where: { OR: [{ email: pending.email }, { phone: pending.phone }, { username: pending.username }] },
+  });
+  if (duplicate) {
+    await prisma.pendingRegistration.update({ where: { id: pending.id }, data: { status: 'COMPLETED' } });
+    return { success: false, message: 'An account with these details already exists.' };
+  }
+
+  const randomSuffix = Math.random().toString(36).substring(2, 7).toUpperCase();
+  const userReferralCode = `TM-${pending.username.substring(0, 4).toUpperCase()}${randomSuffix}`;
+
+  const defaultPackage = await prisma.membershipPackage.findFirst({
+    where: { isActive: true },
+    orderBy: { price: 'asc' },
+  });
+
+  let referrerId: string | null = null;
+  if (pending.referralCode) {
+    const referrer = await prisma.user.findUnique({ where: { referralCode: pending.referralCode } });
+    if (referrer && !referrer.isBanned && referrer.status !== 'SUSPENDED') {
+      referrerId = referrer.id;
+    }
+  }
+
+  return await prisma.$transaction(
+    async (tx) => {
+      const user = await tx.user.create({
+        data: {
+          fullName: pending.fullName,
+          username: pending.username,
+          email: pending.email,
+          phone: pending.phone,
+          mpesaNumber: pending.mpesaNumber,
+          passwordHash: pending.passwordHash,
+          referralCode: userReferralCode,
+          referredById: referrerId,
+          packageId: defaultPackage?.id,
+          status: 'ACTIVE',
+          isVerified: true,
+          wallet: {
+            create: { availableBalance: 0.0, pendingBalance: 0.0, totalEarned: 0.0, totalWithdrawn: 0.0 },
+          },
+        },
+        include: { wallet: true },
+      });
+
+      const userWalletId = user.wallet!.id;
+
+      const deposit = await tx.deposit.create({
+        data: {
+          userId: user.id,
+          amount: paymentAmount,
+          phone: pending.mpesaNumber,
+          status: 'COMPLETED',
+          checkoutRequestId,
+          mpesaReceipt,
+          type: 'ACTIVATION',
+        },
+      });
+
+      await tx.walletTransaction.create({
+        data: {
+          walletId: userWalletId,
+          userId: user.id,
+          amount: paymentAmount,
+          type: 'ACTIVATION_FEE',
+          status: 'COMPLETED',
+          description: `Account activation payment (Receipt: ${mpesaReceipt})`,
+          referenceId: mpesaReceipt,
+        },
+      });
+
+      await tx.financialLedger.create({
+        data: {
+          userId: user.id,
+          type: 'ACTIVATION_PAYMENT',
+          amount: paymentAmount,
+          currency: 'KES',
+          status: 'COMPLETED',
+          reference: mpesaReceipt,
+          source: 'MPESA_STK',
+          paymentId: deposit.id,
+          metadataJson: JSON.stringify({ username: user.username, phone: user.phone }),
+        },
+      });
+
+      await tx.financialLedger.create({
+        data: {
+          userId: user.id,
+          type: 'ACTIVATION_ADMIN_EARNING',
+          amount: adminEarningAmount,
+          currency: 'KES',
+          status: 'COMPLETED',
+          reference: mpesaReceipt,
+          source: 'ACTIVATION_PAYMENT',
+          paymentId: deposit.id,
+          metadataJson: JSON.stringify({ activatingUserId: user.id, activatingUsername: user.username }),
+        },
+      });
+
+      let referralRewarded = false;
+      if (referrerId) {
+        const referrer = await tx.user.findUnique({ where: { id: referrerId }, include: { wallet: true } });
+        if (referrer && !referrer.isBanned) {
+          let referrerWallet = referrer.wallet;
+          if (!referrerWallet) {
+            referrerWallet = await tx.wallet.create({
+              data: { userId: referrer.id, availableBalance: 0, pendingBalance: 0, totalEarned: 0, totalWithdrawn: 0 },
+            });
+          }
+          const refRecord = await tx.referral.create({
+            data: {
+              referrerId,
+              referredUserId: user.id,
+              rewardAmount: referralRewardAmount,
+              status: 'REWARDED',
+              qualifiedAt: new Date(),
+              rewardedAt: new Date(),
+            },
+          });
+          await tx.wallet.update({
+            where: { id: referrerWallet.id },
+            data: { availableBalance: { increment: referralRewardAmount }, totalEarned: { increment: referralRewardAmount } },
+          });
+          await tx.walletTransaction.create({
+            data: {
+              walletId: referrerWallet.id,
+              userId: referrer.id,
+              amount: referralRewardAmount,
+              type: 'REFERRAL_REWARD',
+              status: 'COMPLETED',
+              description: `Referral reward for ${user.username}'s activation`,
+              referenceId: refRecord.id,
+            },
+          });
+          await tx.financialLedger.create({
+            data: {
+              userId: referrer.id,
+              type: 'REFERRAL_REWARD',
+              amount: referralRewardAmount,
+              currency: 'KES',
+              status: 'COMPLETED',
+              reference: mpesaReceipt,
+              source: 'ACTIVATION_PAYMENT',
+              paymentId: deposit.id,
+              referralId: refRecord.id,
+              metadataJson: JSON.stringify({ referrerId: referrer.id, referredUserId: user.id }),
+            },
+          });
+          await tx.notification.create({
+            data: {
+              userId: referrer.id,
+              title: 'Referral Reward Credited! 💰',
+              message: `You received KES ${referralRewardAmount} because ${user.fullName || user.username} activated their account!`,
+              type: 'SUCCESS',
+            },
+          });
+          referralRewarded = true;
+        }
+      }
+
+      if (!referralRewarded) {
+        const platformRetained = paymentAmount - adminEarningAmount;
+        if (platformRetained > 0) {
+          await tx.financialLedger.create({
+            data: {
+              userId: user.id,
+              type: 'PLATFORM_RETAINED_AMOUNT',
+              amount: platformRetained,
+              currency: 'KES',
+              status: 'COMPLETED',
+              reference: mpesaReceipt,
+              source: 'ACTIVATION_PAYMENT',
+              paymentId: deposit.id,
+              metadataJson: JSON.stringify({ reason: 'Unreferred activation' }),
+            },
+          });
+        }
+      }
+
+      await tx.notification.create({
+        data: {
+          userId: user.id,
+          title: 'Account Activated! 🎉',
+          message: `Your KES ${paymentAmount} activation fee has been confirmed (${mpesaReceipt}). Welcome to TaskMint — start earning today!`,
+          type: 'SUCCESS',
+        },
+      });
+
+      await tx.pendingRegistration.update({
+        where: { id: pending.id },
+        data: { status: 'COMPLETED' },
+      });
+
+      return { success: true, userId: user.id, message: 'Registration completed. Account is now active.' };
+    },
+    { maxWait: 15000, timeout: 30000 }
+  );
+}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { processPaymentSuccess } from '@/lib/mpesa';
+import { completePendingRegistration } from '@/lib/activation';
 
 export async function POST(req: NextRequest) {
   try {
@@ -29,20 +30,34 @@ export async function POST(req: NextRequest) {
     }).catch(() => null);
 
     if (resultCode === 0) {
-      // Payment Successful
+      // Payment Successful — extract receipt
       const callbackItems = stkCallback.CallbackMetadata?.Item || [];
       let mpesaReceipt = `NL${Date.now()}`;
-      
       for (const item of callbackItems) {
         if (item.Name === 'MpesaReceiptNumber') {
           mpesaReceipt = item.Value;
         }
       }
 
-      await processPaymentSuccess(checkoutRequestId, mpesaReceipt);
+      // Check if this is a PENDING REGISTRATION payment first
+      const pendingReg = await prisma.pendingRegistration.findUnique({
+        where: { checkoutRequestId },
+      });
+
+      if (pendingReg && pendingReg.status === 'PENDING_PAYMENT') {
+        console.log('🆕 Completing pending registration for:', pendingReg.username);
+        await completePendingRegistration(checkoutRequestId, mpesaReceipt);
+      } else {
+        // Regular deposit (activation or package for existing user)
+        await processPaymentSuccess(checkoutRequestId, mpesaReceipt);
+      }
     } else {
-      // Mark deposit failed
+      // Payment failed — mark deposit or pending reg as failed
       await prisma.deposit.updateMany({
+        where: { checkoutRequestId },
+        data: { status: 'FAILED' },
+      });
+      await prisma.pendingRegistration.updateMany({
         where: { checkoutRequestId },
         data: { status: 'FAILED' },
       });

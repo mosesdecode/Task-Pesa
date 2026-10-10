@@ -3,7 +3,8 @@
 import React, { useState, Suspense } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { LogIn, AlertCircle, Eye, EyeOff } from 'lucide-react';
+import { LogIn, AlertCircle, Eye, EyeOff, CheckCircle2 } from 'lucide-react';
+
 
 function LoginForm() {
   const router = useRouter();
@@ -15,6 +16,8 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const justRegistered = searchParams.get('registered') === '1';
+
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,6 +62,14 @@ function LoginForm() {
         <h1 className="text-2xl font-black text-white">Welcome Back to TaskMint</h1>
         <p className="text-xs text-gray-400">Log in to manage tasks, track earnings, and request withdrawals</p>
       </div>
+
+      {justRegistered && (
+        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+          <span>Account created successfully! Your account is now active. Please log in to start earning.</span>
+        </div>
+      )}
+
 
       {error && (
         <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
