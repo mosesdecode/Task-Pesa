@@ -22,11 +22,11 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate size (max 2MB to keep DB rows manageable)
-    const MAX_SIZE = 2 * 1024 * 1024;
+    // Validate size (max 5MB for screenshots and avatars)
+    const MAX_SIZE = 5 * 1024 * 1024;
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: 'File size exceeds 2MB limit. Please choose a smaller image.' },
+        { error: 'File size exceeds 5MB limit. Please choose a smaller image.' },
         { status: 400 }
       );
     }

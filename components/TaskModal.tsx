@@ -17,6 +17,8 @@ import {
   Link as LinkIcon,
   Camera,
   Check,
+  Image as ImageIcon,
+  Trash2,
 } from 'lucide-react';
 
 interface TaskModalProps {
@@ -45,7 +47,43 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
 
   // WhatsApp Proof state
   const [whatsappProofUrl, setWhatsappProofUrl] = useState('');
+  const [whatsappProofMethod, setWhatsappProofMethod] = useState<'upload' | 'url'>('upload');
+  const [uploadingWhatsappImage, setUploadingWhatsappImage] = useState(false);
+  const whatsappFileInputRef = useRef<HTMLInputElement>(null);
   const [copiedCaption, setCopiedCaption] = useState(false);
+
+  const handleWhatsappImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File exceeds 5MB size limit.');
+      return;
+    }
+
+    setUploadingWhatsappImage(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch('/api/profile/avatar?type=proof', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to upload screenshot proof');
+
+      setWhatsappProofUrl(data.profilePhoto);
+      setSuccessMsg('Screenshot uploaded successfully!');
+    } catch (err: any) {
+      setError(err.message || 'Image upload failed');
+    } finally {
+      setUploadingWhatsappImage(false);
+    }
+  };
 
   useEffect(() => {
     let interval: any;
@@ -387,27 +425,53 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                 <label className="text-xs font-semibold text-gray-300">
                   Upload Screenshot Proof (Optional, max 5MB)
                 </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={uploadingImage}
-                    className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 flex items-center gap-2 cursor-pointer transition-all"
-                  >
-                    <Upload className="w-3.5 h-3.5 text-brand-400" />
-                    {uploadingImage ? 'Uploading Image...' : 'Choose Screenshot Image'}
-                  </button>
-                  <input
-                    type="file"
-                    ref={fileInputRef}
-                    accept="image/png,image/jpeg,image/webp"
-                    onChange={handleImageUpload}
-                    className="hidden"
-                  />
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      disabled={uploadingImage}
+                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 flex items-center gap-2 cursor-pointer transition-all"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-brand-400" />
+                      {uploadingImage ? 'Uploading Image...' : 'Choose Screenshot Image'}
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      accept="image/png,image/jpeg,image/webp"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    {proofUrl && (
+                      <button
+                        type="button"
+                        onClick={() => setProofUrl('')}
+                        className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 font-semibold"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Remove
+                      </button>
+                    )}
+                  </div>
+
                   {proofUrl && (
-                    <span className="text-xs text-emerald-400 flex items-center gap-1 font-mono truncate max-w-[200px]">
-                      <Check className="w-3 h-3" /> Image attached
-                    </span>
+                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-3">
+                      {proofUrl.startsWith('data:image') || proofUrl.match(/\.(jpg|jpeg|png|webp)($|\?)/i) ? (
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-900 border border-slate-700 shrink-0">
+                          <img src={proofUrl} alt="Attached Proof" className="w-full h-full object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-700 shrink-0 flex items-center justify-center text-brand-400">
+                          <LinkIcon className="w-5 h-5" />
+                        </div>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                          <Check className="w-3.5 h-3.5" /> Proof Attached
+                        </p>
+                        <p className="text-[11px] text-slate-400 truncate font-mono mt-0.5">{proofUrl}</p>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
@@ -478,18 +542,125 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
               </div>
             </div>
 
-            {/* Proof Upload Link input */}
-            <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-400">Screenshot Proof Image URL</label>
-              <div className="flex gap-2">
-                <input
-                  type="url"
-                  placeholder="https://imgur.com/your-screenshot.jpg"
-                  value={whatsappProofUrl}
-                  onChange={(e) => setWhatsappProofUrl(e.target.value)}
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
-                />
+            {/* Proof Attachment Section (Upload or URL) */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-semibold text-gray-300">
+                  Screenshot Proof of Status & Views *
+                </label>
+                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-[11px]">
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappProofMethod('upload')}
+                    className={`px-2.5 py-1 rounded font-bold transition-all ${
+                      whatsappProofMethod === 'upload'
+                        ? 'bg-brand-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Upload Screenshot
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setWhatsappProofMethod('url')}
+                    className={`px-2.5 py-1 rounded font-bold transition-all ${
+                      whatsappProofMethod === 'url'
+                        ? 'bg-brand-600 text-white shadow'
+                        : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    Paste Link / URL
+                  </button>
+                </div>
               </div>
+
+              {whatsappProofMethod === 'upload' ? (
+                <div>
+                  <input
+                    type="file"
+                    ref={whatsappFileInputRef}
+                    accept="image/*"
+                    onChange={handleWhatsappImageUpload}
+                    className="hidden"
+                  />
+
+                  {whatsappProofUrl ? (
+                    <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-900 border border-slate-700 shrink-0">
+                          <img
+                            src={whatsappProofUrl}
+                            alt="Screenshot Preview"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                            <Check className="w-3.5 h-3.5" /> Screenshot Ready
+                          </p>
+                          <p className="text-[11px] text-slate-400 mt-0.5">Ready to submit for verification</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => whatsappFileInputRef.current?.click()}
+                          disabled={uploadingWhatsappImage}
+                          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold"
+                        >
+                          Change
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setWhatsappProofUrl('')}
+                          className="p-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 text-xs font-bold"
+                          title="Remove screenshot"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      onClick={() => !uploadingWhatsappImage && whatsappFileInputRef.current?.click()}
+                      className="border-2 border-dashed border-slate-700 hover:border-brand-500/80 bg-slate-950/60 hover:bg-slate-950 rounded-2xl p-6 text-center cursor-pointer transition-all space-y-2 group"
+                    >
+                      <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 text-brand-400 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                        {uploadingWhatsappImage ? (
+                          <div className="w-5 h-5 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <Camera className="w-6 h-6" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-xs font-bold text-white">
+                          {uploadingWhatsappImage ? 'Uploading Screenshot...' : 'Tap to select screenshot from gallery / camera'}
+                        </p>
+                        <p className="text-[11px] text-slate-400 mt-0.5">
+                          Supports JPG, PNG, WEBP (Max 5MB)
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  <div className="relative">
+                    <input
+                      type="url"
+                      placeholder="https://drive.google.com/... or https://imgur.com/..."
+                      value={whatsappProofUrl}
+                      onChange={(e) => setWhatsappProofUrl(e.target.value)}
+                      className="w-full px-4 py-2.5 pl-10 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500 font-mono"
+                    />
+                    <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  </div>
+                  <p className="text-[10px] text-slate-400">
+                    Paste a direct image or share link (Google Drive, Dropbox, Imgur, Postimages, iCloud).
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between pt-4 border-t border-slate-800">
@@ -498,7 +669,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                 <p className="text-lg font-extrabold text-brand-400">KES {item.reward?.toFixed(2)}</p>
               </div>
               <button
-                disabled={loading}
+                disabled={loading || uploadingWhatsappImage}
                 onClick={handleSubmitWhatsappProof}
                 className="px-6 py-3 rounded-xl bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 font-extrabold text-sm shadow-lg shadow-brand-500/20 transition-all hover:scale-105 cursor-pointer disabled:opacity-50"
               >
