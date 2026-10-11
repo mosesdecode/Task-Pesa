@@ -5,6 +5,81 @@ import { prisma } from '@/lib/prisma';
 export async function GET(req: NextRequest) {
   try {
     await requireAdmin(req);
+
+    // Auto-sync & clean production database on admin fetch
+    try {
+      // 1. Remove unwanted categories (only if they have 0 tasks)
+      await prisma.taskCategory.deleteMany({
+        where: {
+          OR: [
+            { name: { in: ['Following Channels (Instagram, YouTube)', 'Referral Rewards', 'Watching Ads', 'WhatsApp Posting'] } },
+            { slug: { in: ['following-channels', 'referral-rewards', 'watching-ads', 'whatsapp-posting'] } },
+          ],
+          tasks: { none: {} },
+        },
+      });
+
+      // 2. Ensure "Sponsored Ads" exists in database
+      const existingWatchAds = await prisma.taskCategory.findFirst({
+        where: { OR: [{ slug: 'watch-ads' }, { name: 'Watch Ads' }, { name: 'Sponsored Ads' }] },
+      });
+      if (existingWatchAds) {
+        if (existingWatchAds.name !== 'Sponsored Ads' || existingWatchAds.slug !== 'watch-ads') {
+          await prisma.taskCategory.update({
+            where: { id: existingWatchAds.id },
+            data: {
+              name: 'Sponsored Ads',
+              slug: 'watch-ads',
+              icon: 'PlaySquare',
+              description: 'Watch brand sponsor video advertisements to earn instant rewards.',
+              isActive: true,
+            },
+          });
+        }
+      } else {
+        await prisma.taskCategory.create({
+          data: {
+            name: 'Sponsored Ads',
+            slug: 'watch-ads',
+            icon: 'PlaySquare',
+            description: 'Watch brand sponsor video advertisements to earn instant rewards.',
+            isActive: true,
+          },
+        });
+      }
+
+      // 3. Ensure "WhatsApp Promo" exists in database
+      const existingWaPromo = await prisma.taskCategory.findFirst({
+        where: { OR: [{ slug: 'whatsapp-promotions' }, { name: 'WhatsApp Promotions' }, { name: 'WhatsApp Promo' }] },
+      });
+      if (existingWaPromo) {
+        if (existingWaPromo.name !== 'WhatsApp Promo' || existingWaPromo.slug !== 'whatsapp-promotions') {
+          await prisma.taskCategory.update({
+            where: { id: existingWaPromo.id },
+            data: {
+              name: 'WhatsApp Promo',
+              slug: 'whatsapp-promotions',
+              icon: 'Share2',
+              description: 'Post campaign promotional material to status and submit screenshot proof.',
+              isActive: true,
+            },
+          });
+        }
+      } else {
+        await prisma.taskCategory.create({
+          data: {
+            name: 'WhatsApp Promo',
+            slug: 'whatsapp-promotions',
+            icon: 'Share2',
+            description: 'Post campaign promotional material to status and submit screenshot proof.',
+            isActive: true,
+          },
+        });
+      }
+    } catch (syncErr) {
+      console.error('Category auto-sync error:', syncErr);
+    }
+
     const [categories, activeAdsCount, activeWaCount] = await Promise.all([
       prisma.taskCategory.findMany({
         include: {
@@ -18,24 +93,70 @@ export async function GET(req: NextRequest) {
       prisma.whatsappCampaign.count({ where: { status: 'ACTIVE' } }),
     ]);
 
+    // Filter out unwanted legacy categories from display
+    const filteredCategories = categories.filter((cat) => {
+      const isUnwantedName = ['Following Channels (Instagram, YouTube)', 'Referral Rewards', 'Watching Ads', 'WhatsApp Posting'].includes(cat.name);
+      const isUnwantedSlug = ['following-channels', 'referral-rewards', 'watching-ads', 'whatsapp-posting'].includes(cat.slug);
+      return !isUnwantedName && !isUnwantedSlug;
+    });
+
     // Enrich special categories with their respective model counts
-    const enrichedCategories = categories.map((cat) => {
-      if (cat.slug === 'watch-ads') {
+    let hasWatchAds = false;
+    let hasWaPromo = false;
+
+    const enrichedCategories = filteredCategories.map((cat) => {
+      if (cat.slug === 'watch-ads' || cat.name === 'Sponsored Ads') {
+        hasWatchAds = true;
         return {
           ...cat,
+          name: 'Sponsored Ads',
+          slug: 'watch-ads',
           _count: { tasks: activeAdsCount },
           isSpecialType: 'AD',
         };
       }
-      if (cat.slug === 'whatsapp-promotions') {
+      if (cat.slug === 'whatsapp-promotions' || cat.name === 'WhatsApp Promo') {
+        hasWaPromo = true;
         return {
           ...cat,
+          name: 'WhatsApp Promo',
+          slug: 'whatsapp-promotions',
           _count: { tasks: activeWaCount },
           isSpecialType: 'WHATSAPP',
         };
       }
       return cat;
     });
+
+    // Fallback: If not yet in categories list, inject them directly
+    if (!hasWatchAds) {
+      enrichedCategories.push({
+        id: 'watch-ads-system',
+        name: 'Sponsored Ads',
+        slug: 'watch-ads',
+        icon: 'PlaySquare',
+        description: 'Watch brand sponsor video advertisements to earn instant rewards.',
+        isActive: true,
+        _count: { tasks: activeAdsCount },
+        isSpecialType: 'AD',
+      } as any);
+    }
+
+    if (!hasWaPromo) {
+      enrichedCategories.push({
+        id: 'whatsapp-promo-system',
+        name: 'WhatsApp Promo',
+        slug: 'whatsapp-promotions',
+        icon: 'Share2',
+        description: 'Post campaign promotional material to status and submit screenshot proof.',
+        isActive: true,
+        _count: { tasks: activeWaCount },
+        isSpecialType: 'WHATSAPP',
+      } as any);
+    }
+
+    // Sort alphabetically by name
+    enrichedCategories.sort((a, b) => a.name.localeCompare(b.name));
 
     return NextResponse.json({ categories: enrichedCategories });
   } catch (error: any) {
