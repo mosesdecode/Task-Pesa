@@ -6,9 +6,16 @@ export async function GET(req: NextRequest) {
   try {
     const user = await getSessionUser(req);
     const campaigns = await prisma.whatsappCampaign.findMany({
-      where: { status: 'ACTIVE' },
+      where: user
+        ? {
+            OR: [
+              { status: 'ACTIVE' },
+              { submissions: { some: { userId: user.id } } },
+            ],
+          }
+        : { status: 'ACTIVE' },
       include: {
-        submissions: user ? { where: { userId: user.id } } : false,
+        submissions: user ? { where: { userId: user.id }, orderBy: { submittedAt: 'desc' } } : false,
       },
       orderBy: { createdAt: 'desc' },
     });

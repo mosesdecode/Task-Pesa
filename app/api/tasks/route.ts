@@ -9,27 +9,35 @@ export async function GET(req: NextRequest) {
     const categorySlug = searchParams.get('category');
     const searchQuery = searchParams.get('q');
 
-    const whereClause: any = {
-      status: { in: ['PUBLISHED', 'ACTIVE'] },
-      category: { isActive: true },
-    };
+    const whereConditions: any[] = [
+      {
+        OR: [
+          { status: { in: ['PUBLISHED', 'ACTIVE'] }, category: { isActive: true } },
+          ...(user ? [{ submissions: { some: { userId: user.id } } }] : []),
+        ],
+      },
+    ];
 
     if (categorySlug && categorySlug !== 'all') {
       const category = await prisma.taskCategory.findFirst({
         where: { slug: categorySlug, isActive: true },
       });
       if (category) {
-        whereClause.categoryId = category.id;
+        whereConditions.push({ categoryId: category.id });
       }
     }
 
     if (searchQuery && searchQuery.trim()) {
-      whereClause.OR = [
-        { title: { contains: searchQuery.trim(), mode: 'insensitive' } },
-        { instructions: { contains: searchQuery.trim(), mode: 'insensitive' } },
-        { description: { contains: searchQuery.trim(), mode: 'insensitive' } },
-      ];
+      whereConditions.push({
+        OR: [
+          { title: { contains: searchQuery.trim(), mode: 'insensitive' } },
+          { instructions: { contains: searchQuery.trim(), mode: 'insensitive' } },
+          { description: { contains: searchQuery.trim(), mode: 'insensitive' } },
+        ],
+      });
     }
+
+    const whereClause: any = { AND: whereConditions };
 
     const [tasks, categories] = await Promise.all([
       prisma.task.findMany({
