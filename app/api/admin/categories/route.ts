@@ -5,16 +5,39 @@ import { prisma } from '@/lib/prisma';
 export async function GET(req: NextRequest) {
   try {
     await requireAdmin(req);
-    const categories = await prisma.taskCategory.findMany({
-      include: {
-        _count: {
-          select: { tasks: true },
+    const [categories, activeAdsCount, activeWaCount] = await Promise.all([
+      prisma.taskCategory.findMany({
+        include: {
+          _count: {
+            select: { tasks: true },
+          },
         },
-      },
-      orderBy: { name: 'asc' },
+        orderBy: { name: 'asc' },
+      }),
+      prisma.advertisement.count({ where: { status: 'ACTIVE' } }),
+      prisma.whatsappCampaign.count({ where: { status: 'ACTIVE' } }),
+    ]);
+
+    // Enrich special categories with their respective model counts
+    const enrichedCategories = categories.map((cat) => {
+      if (cat.slug === 'watch-ads') {
+        return {
+          ...cat,
+          _count: { tasks: activeAdsCount },
+          isSpecialType: 'AD',
+        };
+      }
+      if (cat.slug === 'whatsapp-promotions') {
+        return {
+          ...cat,
+          _count: { tasks: activeWaCount },
+          isSpecialType: 'WHATSAPP',
+        };
+      }
+      return cat;
     });
 
-    return NextResponse.json({ categories });
+    return NextResponse.json({ categories: enrichedCategories });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || 'Unauthorized' }, { status: 403 });
   }
@@ -120,12 +143,52 @@ export async function DELETE(req: NextRequest) {
     const admin = await requireAdmin(req);
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
+    const hard = searchParams.get('hard') === 'true';
 
     if (!id) {
       return NextResponse.json({ error: 'Category ID is required' }, { status: 400 });
     }
 
-    // Rather than deleting and breaking historical tasks, deactivate the category
+    const existing = await prisma.taskCategory.findUnique({
+      where: { id },
+      include: { _count: { select: { tasks: true } } },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
+
+    // Permanently remove if hard delete is requested or if category has 0 associated tasks
+    if (hard || existing._count.tasks === 0) {
+      if (existing._count.tasks > 0) {
+        return NextResponse.json(
+          { error: `Cannot permanently delete "${existing.name}" because it has ${existing._count.tasks} associated task(s). Reassign or delete tasks first.` },
+          { status: 400 }
+        );
+      }
+
+      await prisma.taskCategory.delete({
+        where: { id },
+      });
+
+      await prisma.adminAuditLog.create({
+        data: {
+          adminId: admin.id,
+          action: 'DELETE_CATEGORY',
+          targetType: 'TASK_CATEGORY',
+          targetId: id,
+          detailsJson: JSON.stringify({ name: existing.name, slug: existing.slug }),
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Category "${existing.name}" has been permanently removed from the system.`,
+        deleted: true,
+      });
+    }
+
+    // Otherwise soft-deactivate
     const category = await prisma.taskCategory.update({
       where: { id },
       data: { isActive: false },
@@ -142,10 +205,10 @@ export async function DELETE(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Category "${category.name}" has been deactivated. Existing tasks remain valid.`,
+      message: `Category "${category.name}" has been deactivated.`,
       category,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Failed to deactivate category' }, { status: 400 });
+    return NextResponse.json({ error: error.message || 'Failed to process category deletion' }, { status: 400 });
   }
 }

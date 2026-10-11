@@ -163,20 +163,22 @@ export default function TasksPage() {
           All Tasks ({tasks.length})
         </button>
 
-        {categories.map((cat) => (
-          <button
-            key={cat.id}
-            onClick={() => setActiveTab(cat.slug)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-              activeTab === cat.slug
-                ? 'bg-brand-500 text-slate-950 shadow-md shadow-brand-500/20'
-                : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
-            }`}
-          >
-            <BrainCircuit className="w-3.5 h-3.5" />
-            {cat.name}
-          </button>
-        ))}
+        {categories
+          .filter((cat) => cat.slug !== 'watch-ads' && cat.slug !== 'whatsapp-promotions')
+          .map((cat) => (
+            <button
+              key={cat.id}
+              onClick={() => setActiveTab(cat.slug)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                activeTab === cat.slug
+                  ? 'bg-brand-500 text-slate-950 shadow-md shadow-brand-500/20'
+                  : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+              }`}
+            >
+              <BrainCircuit className="w-3.5 h-3.5" />
+              {cat.name}
+            </button>
+          ))}
 
         <button
           onClick={() => setActiveTab('watch-ads')}

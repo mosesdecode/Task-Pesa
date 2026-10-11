@@ -1095,6 +1095,28 @@ function AdminDashboardInner() {
     } catch (e) {}
   };
 
+  const handleDeleteCategory = async (cat: any) => {
+    if (!window.confirm(`Are you sure you want to permanently delete category "${cat.name}" from the system?`)) {
+      return;
+    }
+    setError('');
+    setSuccessMsg('');
+    try {
+      const res = await fetch(`/api/admin/categories?id=${cat.id}&hard=true`, {
+        method: 'DELETE',
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || 'Failed to delete category');
+        return;
+      }
+      setSuccessMsg(data.message || `Category "${cat.name}" permanently deleted.`);
+      fetchCategories();
+    } catch (e: any) {
+      setError(e.message || 'Failed to delete category');
+    }
+  };
+
   // Submission Review Actions (Approve & Reject)
   const handleApproveSubmission = async (sub: any) => {
     setActionLoading(true);
@@ -2773,24 +2795,49 @@ function AdminDashboardInner() {
                 </div>
               ) : (
                 categoriesList.map((cat) => (
-                  <div key={cat.id} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex items-center justify-between">
-                    <div>
-                      <span className="text-xs font-bold text-white block">{cat.name}</span>
-                      <span className="text-[11px] text-slate-400 block">{cat.description}</span>
+                  <div key={cat.id} className="p-4 rounded-2xl bg-dark-900/80 border border-dark-800 flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-xs font-bold text-white block">{cat.name}</span>
+                        {cat.isSpecialType === 'AD' && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-blue-500/20 text-blue-400 border border-blue-500/30">
+                            Ads System
+                          </span>
+                        )}
+                        {cat.isSpecialType === 'WHATSAPP' && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                            WhatsApp Promo
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[11px] text-slate-400 block mt-0.5 truncate">{cat.description}</span>
                       <span className="text-[10px] text-brand-400 font-mono mt-1 block">
-                        {cat._count?.tasks || 0} associated tasks
+                        {cat.isSpecialType === 'AD'
+                          ? `${cat._count?.tasks || 0} active video ads`
+                          : cat.isSpecialType === 'WHATSAPP'
+                          ? `${cat._count?.tasks || 0} active campaigns`
+                          : `${cat._count?.tasks || 0} associated tasks`}
                       </span>
                     </div>
-                    <button
-                      onClick={() => handleToggleCategory(cat)}
-                      className={`px-3 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer transition-colors ${
-                        cat.isActive
-                          ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
-                          : 'bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30'
-                      }`}
-                    >
-                      {cat.isActive ? 'Active' : 'Disabled'}
-                    </button>
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <button
+                        onClick={() => handleToggleCategory(cat)}
+                        className={`px-3 py-1.5 rounded-xl text-[11px] font-bold cursor-pointer transition-colors ${
+                          cat.isActive
+                            ? 'bg-emerald-500/15 text-emerald-400 hover:bg-emerald-500/25 border border-emerald-500/30'
+                            : 'bg-rose-500/15 text-rose-400 hover:bg-rose-500/25 border border-rose-500/30'
+                        }`}
+                      >
+                        {cat.isActive ? 'Active' : 'Disabled'}
+                      </button>
+                      <button
+                        onClick={() => handleDeleteCategory(cat)}
+                        title={`Permanently delete "${cat.name}"`}
+                        className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-colors cursor-pointer"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 ))
               )}
