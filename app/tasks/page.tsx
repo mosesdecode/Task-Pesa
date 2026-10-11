@@ -75,22 +75,14 @@ export default function TasksPage() {
       }
       setUser(meData.user);
 
-      const [taskRes, adRes, waRes] = await Promise.all([
-        fetch('/api/tasks'),
-        fetch('/api/ads'),
-        fetch('/api/whatsapp'),
-      ]);
+      // Single request replaces three separate /api/tasks, /api/ads, /api/whatsapp calls
+      const dashRes = await fetch('/api/dashboard');
+      const dashData = await dashRes.json();
 
-      const [taskData, adData, waData] = await Promise.all([
-        taskRes.json(),
-        adRes.json(),
-        waRes.json(),
-      ]);
-
-      if (taskData.tasks) setTasks(taskData.tasks);
-      if (taskData.categories) setCategories(taskData.categories);
-      if (adData.ads) setAds(adData.ads);
-      if (waData.campaigns) setWhatsappCampaigns(waData.campaigns);
+      if (dashData.tasks) setTasks(dashData.tasks);
+      if (dashData.categories) setCategories(dashData.categories);
+      if (dashData.ads) setAds(dashData.ads);
+      if (dashData.campaigns) setWhatsappCampaigns(dashData.campaigns);
     } catch (e) {
       console.error(e);
       window.location.href = '/login?redirect=/tasks';

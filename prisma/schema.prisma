@@ -135,6 +135,11 @@ model Task {
   submissions     TaskSubmission[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
+
+  @@index([status])
+  @@index([categoryId])
+  @@index([status, categoryId])
+  @@index([createdAt])
 }
 
 model TaskSubmission {
@@ -157,6 +162,12 @@ model TaskSubmission {
   reviewedAt         DateTime?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  @@index([userId])
+  @@index([taskId])
+  @@index([status])
+  @@index([userId, taskId])
+  @@index([userId, status])
 }
 
 model Advertisement {
@@ -175,6 +186,8 @@ model Advertisement {
   endDate         DateTime?
   views           AdView[]
   createdAt       DateTime @default(now())
+
+  @@index([status])
 }
 
 model AdView {
@@ -201,6 +214,8 @@ model WhatsappCampaign {
   status          String               @default("ACTIVE")
   submissions     WhatsappSubmission[]
   createdAt       DateTime             @default(now())
+
+  @@index([status])
 }
 
 model WhatsappSubmission {
@@ -213,6 +228,10 @@ model WhatsappSubmission {
   status      String           @default("PENDING") // PENDING, APPROVED, REJECTED
   adminNotes  String?
   submittedAt DateTime         @default(now())
+
+  @@index([userId])
+  @@index([campaignId])
+  @@index([userId, campaignId])
 }
 
 model Referral {
@@ -278,6 +297,11 @@ model WalletTransaction {
   description String
   referenceId String?
   createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, type])
+  @@index([userId, status])
+  @@index([createdAt])
 }
 
 model Deposit {
@@ -333,6 +357,9 @@ model Notification {
   type      String   @default("INFO")
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, isRead])
 }
 
 model SupportTicket {

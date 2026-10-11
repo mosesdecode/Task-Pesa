@@ -8,23 +8,49 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const categorySlug = searchParams.get('category');
     const searchQuery = searchParams.get('q');
+    const page = Math.max(1, parseInt(searchParams.get('page') || '1', 10));
+    const limit = Math.min(100, parseInt(searchParams.get('limit') || '100', 10));
+
+    const now = new Date();
+
+    // Fetch categories first (cheap, small table) — resolves category slug
+    // without a second waterfall query inside the tasks query
+    const categories = await prisma.taskCategory.findMany({
+      where: { isActive: true },
+      orderBy: { name: 'asc' },
+      select: { id: true, name: true, slug: true, icon: true, description: true, isActive: true },
+    });
+
+    // Resolve categoryId from slug in-memory — eliminates the DB waterfall
+    let categoryIdFilter: string | undefined;
+    if (categorySlug && categorySlug !== 'all') {
+      const matched = categories.find((c) => c.slug === categorySlug);
+      if (matched) categoryIdFilter = matched.id;
+    }
 
     const whereConditions: any[] = [
       {
         OR: [
-          { status: { in: ['PUBLISHED', 'ACTIVE'] }, category: { isActive: true } },
+          {
+            status: { in: ['PUBLISHED', 'ACTIVE'] },
+            category: { isActive: true },
+            // Exclude expired tasks
+            OR: [
+              { endDate: null },
+              { endDate: { gt: now } },
+            ],
+            AND: [
+              { OR: [{ deadline: null }, { deadline: { gt: now } }] },
+            ],
+          },
+          // Always include tasks the user has already interacted with (for lifecycle tabs)
           ...(user ? [{ submissions: { some: { userId: user.id } } }] : []),
         ],
       },
     ];
 
-    if (categorySlug && categorySlug !== 'all') {
-      const category = await prisma.taskCategory.findFirst({
-        where: { slug: categorySlug, isActive: true },
-      });
-      if (category) {
-        whereConditions.push({ categoryId: category.id });
-      }
+    if (categoryIdFilter) {
+      whereConditions.push({ categoryId: categoryIdFilter });
     }
 
     if (searchQuery && searchQuery.trim()) {
@@ -39,58 +65,67 @@ export async function GET(req: NextRequest) {
 
     const whereClause: any = { AND: whereConditions };
 
-    const [tasks, categories] = await Promise.all([
-      prisma.task.findMany({
-        where: whereClause,
-        include: {
-          category: true,
-          submissions: user
-            ? {
-                where: { userId: user.id },
-                orderBy: { createdAt: 'desc' },
-                take: 1,
-              }
-            : false,
+    const tasks = await prisma.task.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        instructions: true,
+        rules: true,
+        categoryId: true,
+        reward: true,
+        minPackageTier: true,
+        durationSeconds: true,
+        totalSlots: true,
+        remainingSlots: true,
+        deadline: true,
+        endDate: true,
+        status: true,
+        proofRequired: true,
+        externalUrl: true,
+        // dataPayloadJson intentionally excluded from list — fetched only on task open
+        createdAt: true,
+        updatedAt: true,
+        category: {
+          select: { id: true, name: true, slug: true, icon: true },
         },
-        orderBy: { createdAt: 'desc' },
-      }),
-      prisma.taskCategory.findMany({
-        where: { isActive: true },
-        orderBy: { name: 'asc' },
-      }),
-    ]);
+        submissions: user
+          ? {
+              where: { userId: user.id },
+              orderBy: { createdAt: 'desc' },
+              take: 1,
+              select: {
+                id: true,
+                status: true,
+                rejectionReason: true,
+                proofUrl: true,
+                proofText: true,
+                startedAt: true,
+                submittedAt: true,
+                reviewedAt: true,
+              },
+            }
+          : false,
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      skip: (page - 1) * limit,
+    });
 
-    // Map each task to cleanly separate task definition from user submission status
+    // Map to clean shape separating task definition from user submission status
     const mappedTasks = tasks.map((task: any) => {
       const userSub = task.submissions?.[0] || null;
-      let userStatus = 'NOT_STARTED';
-      if (userSub) {
-        userStatus = userSub.status; // IN_PROGRESS, SUBMITTED, UNDER_REVIEW, APPROVED, REJECTED
-      }
-
+      const userStatus = userSub ? userSub.status : 'NOT_STARTED';
       const { submissions, ...taskDetails } = task;
       return {
         ...taskDetails,
         userStatus,
-        userSubmission: userSub
-          ? {
-              id: userSub.id,
-              status: userSub.status,
-              rejectionReason: userSub.rejectionReason,
-              proofUrl: userSub.proofUrl,
-              proofText: userSub.proofText,
-              startedAt: userSub.startedAt,
-              submittedAt: userSub.submittedAt,
-              reviewedAt: userSub.reviewedAt,
-            }
-          : null,
+        userSubmission: userSub || null,
       };
     });
 
-    return NextResponse.json({
-      tasks: mappedTasks,
-      categories,
-    });
+    return NextResponse.json({ tasks: mappedTasks, categories });
   } catch (error: any) {
     console.error('Fetch tasks error:', error);
     return NextResponse.json({ error: 'Failed to fetch tasks' }, { status: 500 });
