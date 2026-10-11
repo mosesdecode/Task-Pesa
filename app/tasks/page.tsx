@@ -295,32 +295,63 @@ export default function TasksPage() {
 
       {/* ── Main Content Area ── */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-5 shadow-lg"
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <Skeleton className="w-20 h-5 rounded-full" />
-                  <Skeleton className="w-16 h-4" />
-                </div>
-                <div>
-                  <Skeleton className="w-3/4 h-5 mb-2" />
-                  <Skeleton className="w-full h-3 mb-1" />
-                  <Skeleton className="w-5/6 h-3" />
-                </div>
-              </div>
-              <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
-                <div className="space-y-1">
-                  <Skeleton className="w-12 h-3" />
-                  <Skeleton className="w-20 h-6" />
-                </div>
-                <Skeleton className="w-28 h-9 rounded-xl" />
+        <div className="space-y-8 animate-in fade-in duration-200">
+          {/* Skeleton Category Overview Grid */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Skeleton className="w-4 h-4 rounded-md" />
+                <Skeleton className="w-32 h-4 rounded-md" />
               </div>
             </div>
-          ))}
+
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+              {Array.from({ length: 12 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="p-4 rounded-2xl border border-slate-800 bg-slate-900/80 flex flex-col justify-between space-y-3"
+                >
+                  <div className="flex items-center justify-between w-full">
+                    <Skeleton className="w-8 h-8 rounded-xl" />
+                    <Skeleton className="w-6 h-4 rounded-full" />
+                  </div>
+                  <div className="space-y-1.5 pt-1">
+                    <Skeleton className="w-20 h-3 rounded-md" />
+                    <Skeleton className="w-14 h-2.5 rounded-md" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Skeleton Task Cards Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-5 shadow-lg"
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <Skeleton className="w-20 h-5 rounded-full" />
+                    <Skeleton className="w-16 h-4 rounded-md" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="w-3/4 h-5 rounded-md" />
+                    <Skeleton className="w-full h-3 rounded-md" />
+                    <Skeleton className="w-5/6 h-3 rounded-md" />
+                  </div>
+                </div>
+                <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Skeleton className="w-12 h-3 rounded-md" />
+                    <Skeleton className="w-20 h-6 rounded-md" />
+                  </div>
+                  <Skeleton className="w-28 h-9 rounded-xl" />
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : (
         <>
