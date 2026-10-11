@@ -208,6 +208,26 @@ export async function POST(req: NextRequest) {
             },
           });
 
+          // 4b. Record in Central Financial Ledger (so it reflects in Admin Ledger & Task Earnings)
+          await tx.financialLedger.create({
+            data: {
+              userId: sub.userId,
+              type: 'TASK_REWARD',
+              amount: rewardAmount,
+              currency: 'KES',
+              status: 'COMPLETED',
+              reference: `TR-${sub.id.slice(0, 8).toUpperCase()}`,
+              source: 'TASK_COMPLETION',
+              taskId: sub.taskId,
+              submissionId: sub.id,
+              metadataJson: JSON.stringify({
+                taskId: sub.taskId,
+                taskTitle: sub.task.title,
+                username: sub.user?.username,
+              }),
+            },
+          });
+
           // 5. Send notification to user
           await tx.notification.create({
             data: {
@@ -347,6 +367,25 @@ export async function POST(req: NextRequest) {
               status: 'COMPLETED',
               description: `WhatsApp Campaign: ${sub.campaign.campaignName}`,
               referenceId: sub.id,
+            },
+          });
+
+          // Record in Central Financial Ledger
+          await tx.financialLedger.create({
+            data: {
+              userId: sub.userId,
+              type: 'TASK_REWARD',
+              amount: rewardAmount,
+              currency: 'KES',
+              status: 'COMPLETED',
+              reference: `WA-${sub.id.slice(0, 8).toUpperCase()}`,
+              source: 'WHATSAPP_CAMPAIGN',
+              submissionId: sub.id,
+              metadataJson: JSON.stringify({
+                campaignId: sub.campaignId,
+                campaignName: sub.campaign?.campaignName,
+                username: sub.user?.username,
+              }),
             },
           });
 

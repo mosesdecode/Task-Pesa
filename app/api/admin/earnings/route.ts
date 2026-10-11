@@ -19,6 +19,78 @@ export async function GET(req: NextRequest) {
 
     const startOfMonth = new Date(startOfToday.getFullYear(), startOfToday.getMonth(), 1);
 
+    // Ensure all already-approved tasks have FinancialLedger records (Requirements: retroactive sync)
+    try {
+      const existingLedgerTaskSubs = await prisma.financialLedger.findMany({
+        where: { type: 'TASK_REWARD', submissionId: { not: null } },
+        select: { submissionId: true },
+      });
+      const recordedSubIds = new Set(existingLedgerTaskSubs.map((l) => l.submissionId));
+
+      const unrecordedTaskSubs = await prisma.taskSubmission.findMany({
+        where: { status: 'APPROVED', rewardPaid: true },
+        include: { task: true, user: true },
+        take: 100,
+      });
+
+      for (const sub of unrecordedTaskSubs) {
+        if (!recordedSubIds.has(sub.id)) {
+          await prisma.financialLedger.create({
+            data: {
+              userId: sub.userId,
+              type: 'TASK_REWARD',
+              amount: sub.rewardAmount ?? sub.task.reward ?? 0,
+              currency: 'KES',
+              status: 'COMPLETED',
+              reference: `TR-${sub.id.slice(0, 8).toUpperCase()}`,
+              source: 'TASK_COMPLETION',
+              taskId: sub.taskId,
+              submissionId: sub.id,
+              metadataJson: JSON.stringify({
+                taskId: sub.taskId,
+                taskTitle: sub.task.title,
+                username: sub.user?.username,
+              }),
+              createdAt: sub.reviewedAt || sub.createdAt,
+            },
+          });
+          recordedSubIds.add(sub.id);
+        }
+      }
+
+      const unrecordedWaSubs = await prisma.whatsappSubmission.findMany({
+        where: { status: 'APPROVED' },
+        include: { campaign: true, user: true },
+        take: 100,
+      });
+
+      for (const wa of unrecordedWaSubs) {
+        if (!recordedSubIds.has(wa.id)) {
+          await prisma.financialLedger.create({
+            data: {
+              userId: wa.userId,
+              type: 'TASK_REWARD',
+              amount: wa.campaign.reward,
+              currency: 'KES',
+              status: 'COMPLETED',
+              reference: `WA-${wa.id.slice(0, 8).toUpperCase()}`,
+              source: 'WHATSAPP_CAMPAIGN',
+              submissionId: wa.id,
+              metadataJson: JSON.stringify({
+                campaignId: wa.campaignId,
+                campaignName: wa.campaign?.campaignName,
+                username: wa.user?.username,
+              }),
+              createdAt: wa.submittedAt,
+            },
+          });
+          recordedSubIds.add(wa.id);
+        }
+      }
+    } catch (backfillErr) {
+      console.warn('Task ledger sync warning:', backfillErr);
+    }
+
     // Parallel aggregate queries from real database ledger records (Requirements 5 & 6)
     const [
       config,
@@ -31,6 +103,7 @@ export async function GET(req: NextRequest) {
       totalPlatformRetainedAgg,
       pendingDepositsAgg,
       totalTaskRewardsAgg,
+      walletTaskRewardsAgg,
       ledgerEntries,
     ] = await Promise.all([
       getFinancialConfig(),
@@ -97,6 +170,15 @@ export async function GET(req: NextRequest) {
         _sum: { amount: true },
       }),
 
+      // Fallback aggregate from completed wallet transactions
+      prisma.walletTransaction.aggregate({
+        where: {
+          type: { in: ['TASK_REWARD', 'WHATSAPP_REWARD'] },
+          status: 'COMPLETED',
+        },
+        _sum: { amount: true },
+      }),
+
       // Ledger entries query with optional type & search filters
       prisma.financialLedger.findMany({
         where: {
@@ -134,7 +216,10 @@ export async function GET(req: NextRequest) {
     const totalPlatformRetained = totalPlatformRetainedAgg._sum.amount || 0;
     const pendingDepositsCount = pendingDepositsAgg._count || 0;
     const pendingDepositsAmount = pendingDepositsAgg._sum.amount || 0;
-    const totalTaskRewardsPaid = totalTaskRewardsAgg._sum.amount || 0;
+    const totalTaskRewardsPaid = Math.max(
+      totalTaskRewardsAgg._sum.amount || 0,
+      walletTaskRewardsAgg._sum.amount || 0
+    );
 
     return NextResponse.json({
       success: true,

@@ -45,6 +45,20 @@ export async function creditTaskReward(userId: string, amount: number, taskTitle
       },
     });
 
+    await tx.financialLedger.create({
+      data: {
+        userId,
+        type: 'TASK_REWARD',
+        amount,
+        currency: 'KES',
+        status: 'COMPLETED',
+        reference: `TR-${referenceId.slice(0, 8).toUpperCase()}`,
+        source: 'TASK_COMPLETION',
+        submissionId: referenceId,
+        metadataJson: JSON.stringify({ taskTitle }),
+      },
+    });
+
     await tx.notification.create({
       data: {
         userId,
