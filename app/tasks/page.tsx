@@ -27,7 +27,7 @@ import {
 import { Skeleton } from '@/components/Skeleton';
 import TaskModal from '@/components/TaskModal';
 
-type LifecycleTab = 'ALL_TASKS' | 'PENDING' | 'APPROVED' | 'REJECTED';
+type LifecycleTab = 'AVAILABLE' | 'PENDING' | 'APPROVED' | 'REJECTED';
 
 // Helper to resolve an appropriate icon for each category
 const getCategoryIcon = (slug?: string, name?: string) => {
@@ -44,7 +44,7 @@ const getCategoryIcon = (slug?: string, name?: string) => {
 };
 
 export default function TasksPage() {
-  const [lifecycleTab, setLifecycleTab] = useState<LifecycleTab>('ALL_TASKS');
+  const [lifecycleTab, setLifecycleTab] = useState<LifecycleTab>('AVAILABLE');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [tasks, setTasks] = useState<any[]>([]);
@@ -146,8 +146,14 @@ export default function TasksPage() {
   const rejectedWa = whatsappCampaigns.filter((c) => c.submissions?.[0]?.status === 'REJECTED');
   const totalRejected = rejectedTasks.length + rejectedWa.length;
 
-  // Filter tasks based on search & category (for ALL_TASKS view)
-  const filteredTasks = tasks.filter((t) => {
+  // Only show tasks that are truly available: not yet acted on by the user, with slots open
+  const availableTasks = tasks.filter((t) => {
+    const status = t.userStatus || 'NOT_STARTED';
+    return status === 'NOT_STARTED' && t.remainingSlots > 0;
+  });
+
+  // Filter available tasks based on search & category (for AVAILABLE view)
+  const filteredTasks = availableTasks.filter((t) => {
     const matchesCategory =
       selectedCategory === 'all' ||
       t.category?.slug === selectedCategory ||
@@ -198,25 +204,25 @@ export default function TasksPage() {
 
       {/* ── Top Lifecycle Navigation Tabs ── */}
       <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-800">
-        {/* Tab 1: All Tasks */}
+        {/* Tab 1: Available Tasks */}
         <button
-          onClick={() => setLifecycleTab('ALL_TASKS')}
+          onClick={() => setLifecycleTab('AVAILABLE')}
           className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
-            lifecycleTab === 'ALL_TASKS'
+            lifecycleTab === 'AVAILABLE'
               ? 'bg-brand-500 text-slate-950 shadow-md shadow-brand-500/20'
               : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
           }`}
         >
           <Zap className="w-4 h-4" />
-          <span>All Tasks</span>
+          <span>Available Tasks</span>
           <span
             className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold ${
-              lifecycleTab === 'ALL_TASKS'
+              lifecycleTab === 'AVAILABLE'
                 ? 'bg-slate-950/20 text-slate-950'
                 : 'bg-slate-800 text-slate-400'
             }`}
           >
-            {tasks.length}
+            {availableTasks.length}
           </span>
         </button>
 
@@ -356,9 +362,9 @@ export default function TasksPage() {
       ) : (
         <>
           {/* ══════════════════════════════════════════════════════════
-              VIEW 1: ALL TASKS (With Category Cards / Boxes)
+              VIEW 1: AVAILABLE TASKS (With Category Cards / Boxes)
           ══════════════════════════════════════════════════════════ */}
-          {lifecycleTab === 'ALL_TASKS' && (
+          {lifecycleTab === 'AVAILABLE' && (
             <div className="space-y-8 animate-in fade-in duration-200">
               {/* Category Overview Boxes Grid */}
               <div className="space-y-3">
@@ -392,7 +398,7 @@ export default function TasksPage() {
                         <Zap className="w-4 h-4" />
                       </div>
                       <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold">
-                        {tasks.length}
+                        {availableTasks.length}
                       </span>
                     </div>
                     <div>
@@ -404,7 +410,7 @@ export default function TasksPage() {
                   {/* Standard Categories Boxes */}
                   {standardCategories.map((cat) => {
                     const Icon = getCategoryIcon(cat.slug, cat.name);
-                    const catTasks = tasks.filter(
+                    const catTasks = availableTasks.filter(
                       (t) => t.categoryId === cat.id || t.category?.slug === cat.slug
                     );
                     const isSelected = selectedCategory === cat.slug;
@@ -736,11 +742,11 @@ export default function TasksPage() {
                   <div>
                     <h3 className="text-base font-bold text-white">No Pending Submissions</h3>
                     <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-                      You do not have any tasks currently awaiting review. Go to the "All Tasks" tab to complete tasks and earn instant cash!
+                      You do not have any tasks currently awaiting review. Go to the "Available Tasks" tab to complete tasks and earn instant cash!
                     </p>
                   </div>
                   <button
-                    onClick={() => setLifecycleTab('ALL_TASKS')}
+                    onClick={() => setLifecycleTab('AVAILABLE')}
                     className="px-4 py-2 rounded-xl bg-brand-500 text-slate-950 font-bold text-xs cursor-pointer hover:bg-brand-400 transition-colors"
                   >
                     Browse Available Tasks
@@ -886,7 +892,7 @@ export default function TasksPage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => setLifecycleTab('ALL_TASKS')}
+                    onClick={() => setLifecycleTab('AVAILABLE')}
                     className="px-4 py-2 rounded-xl bg-brand-500 text-slate-950 font-bold text-xs cursor-pointer hover:bg-brand-400 transition-colors"
                   >
                     Start Earning
