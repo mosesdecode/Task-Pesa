@@ -42,13 +42,9 @@ export async function GET(req: NextRequest) {
       return !isUnwantedName && !isUnwantedSlug;
     });
 
-    // Enrich special categories with their respective model counts
-    let hasWatchAds = false;
-    let hasWaPromo = false;
-
+    // Enrich special categories if they exist in DB
     const enrichedCategories = filteredCategories.map((cat) => {
       if (cat.slug === 'watch-ads' || cat.name === 'Sponsored Ads') {
-        hasWatchAds = true;
         return {
           ...cat,
           name: 'Sponsored Ads',
@@ -58,7 +54,6 @@ export async function GET(req: NextRequest) {
         };
       }
       if (cat.slug === 'whatsapp-promotions' || cat.name === 'WhatsApp Promo') {
-        hasWaPromo = true;
         return {
           ...cat,
           name: 'WhatsApp Promo',
@@ -69,33 +64,6 @@ export async function GET(req: NextRequest) {
       }
       return cat;
     });
-
-    // Fallback: If not yet in categories list, inject them directly
-    if (!hasWatchAds) {
-      enrichedCategories.push({
-        id: 'watch-ads-system',
-        name: 'Sponsored Ads',
-        slug: 'watch-ads',
-        icon: 'PlaySquare',
-        description: 'Watch brand sponsor video advertisements to earn instant rewards.',
-        isActive: true,
-        _count: { tasks: activeAdsCount },
-        isSpecialType: 'AD',
-      } as any);
-    }
-
-    if (!hasWaPromo) {
-      enrichedCategories.push({
-        id: 'whatsapp-promo-system',
-        name: 'WhatsApp Promo',
-        slug: 'whatsapp-promotions',
-        icon: 'Share2',
-        description: 'Post campaign promotional material to status and submit screenshot proof.',
-        isActive: true,
-        _count: { tasks: activeWaCount },
-        isSpecialType: 'WHATSAPP',
-      } as any);
-    }
 
     // Sort alphabetically by name
     enrichedCategories.sort((a, b) => a.name.localeCompare(b.name));
