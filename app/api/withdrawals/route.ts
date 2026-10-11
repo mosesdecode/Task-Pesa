@@ -7,10 +7,10 @@ export async function POST(req: NextRequest) {
   try {
     const user = await requireAuth(req);
     const body = await req.json();
-    const { amount, mpesaNumber } = body;
+    const { amount, mpesaNumber, otpCode } = body;
 
     const numAmount = parseFloat(amount);
-    const targetPhone = mpesaNumber || user.mpesaNumber;
+    const targetPhone = mpesaNumber || user.mpesaNumber || user.phone;
 
     if (!numAmount || isNaN(numAmount)) {
       return NextResponse.json({ error: 'Please enter a valid withdrawal amount' }, { status: 400 });
@@ -22,6 +22,38 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Require and verify 6-digit OTP authorization
+    if (!otpCode || otpCode.trim().length !== 6) {
+      return NextResponse.json(
+        { error: 'Please enter the 6-digit withdrawal verification code sent to your phone.' },
+        { status: 400 }
+      );
+    }
+
+    const validOtp = await prisma.otpCode.findFirst({
+      where: {
+        userId: user.id,
+        type: 'WITHDRAWAL',
+        code: otpCode.trim(),
+        isUsed: false,
+        expiresAt: { gt: new Date() },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!validOtp) {
+      return NextResponse.json(
+        { error: 'Invalid or expired withdrawal authorization code. Please request a new code.' },
+        { status: 400 }
+      );
+    }
+
+    // Mark OTP as consumed
+    await prisma.otpCode.update({
+      where: { id: validOtp.id },
+      data: { isUsed: true },
+    });
 
     const withdrawal = await requestWithdrawal(user.id, targetPhone, numAmount);
 

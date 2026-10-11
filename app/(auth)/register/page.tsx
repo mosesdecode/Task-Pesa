@@ -3,9 +3,22 @@
 import React, { useState, useEffect, useRef, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { UserPlus, AlertCircle, Eye, EyeOff, Smartphone, CheckCircle2, Loader2, XCircle, CreditCard } from 'lucide-react';
+import {
+  UserPlus,
+  AlertCircle,
+  Eye,
+  EyeOff,
+  Smartphone,
+  CheckCircle2,
+  Loader2,
+  XCircle,
+  CreditCard,
+  ShieldCheck,
+  ArrowLeft,
+  RotateCw,
+} from 'lucide-react';
 
-type Step = 'form' | 'waiting' | 'success' | 'failed';
+type Step = 'form' | 'otp' | 'waiting' | 'success' | 'failed';
 
 function RegisterForm() {
   const searchParams = useSearchParams();
@@ -27,7 +40,18 @@ function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<Step>('form');
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [countdown, setCountdown] = useState(120); // 2 min timeout
+  const [sentPhone, setSentPhone] = useState<string>('');
+  const [demoCode, setDemoCode] = useState<string | null>(null);
+
+  // OTP state
+  const [otpCode, setOtpCode] = useState('');
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [resendingOtp, setResendingOtp] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(60);
+  const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Polling state for payment
+  const [countdown, setCountdown] = useState(120);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const countdownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -38,25 +62,42 @@ function RegisterForm() {
     }
   }, [searchParams]);
 
-  // Start polling once we have a pendingId
+  // Handle OTP resend cooldown timer
+  useEffect(() => {
+    if (step === 'otp') {
+      setOtpCooldown(60);
+      cooldownTimerRef.current = setInterval(() => {
+        setOtpCooldown((prev) => {
+          if (prev <= 1) {
+            if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => {
+      if (cooldownTimerRef.current) clearInterval(cooldownTimerRef.current);
+    };
+  }, [step]);
+
+  // Start polling once we have a pendingId in waiting step
   useEffect(() => {
     if (step !== 'waiting' || !pendingId) return;
 
-    // Countdown timer
     setCountdown(120);
     countdownIntervalRef.current = setInterval(() => {
       setCountdown((c) => {
         if (c <= 1) {
           clearAllIntervals();
           setStep('failed');
-          setError('Payment timed out. Please try again.');
+          setError('Payment confirmation timed out. Please try again.');
           return 0;
         }
         return c - 1;
       });
     }, 1000);
 
-    // Poll every 3 seconds
     pollIntervalRef.current = setInterval(async () => {
       try {
         const res = await fetch(`/api/auth/register/status?pendingId=${pendingId}`);
@@ -65,7 +106,6 @@ function RegisterForm() {
         if (data.status === 'COMPLETED') {
           clearAllIntervals();
           setStep('success');
-          // Auto-login after 2 seconds by redirecting to login page
           setTimeout(() => {
             window.location.href = '/login?registered=1';
           }, 2500);
@@ -88,7 +128,8 @@ function RegisterForm() {
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Step 1: Submit Form -> Sends Africa's Talking OTP
+  const handleInitiate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
@@ -120,12 +161,10 @@ function RegisterForm() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Registration failed');
 
-      if (data.authorizationUrl) {
-        window.location.href = data.authorizationUrl;
-      } else {
-        setPendingId(data.pendingId);
-        setStep('waiting');
-      }
+      setPendingId(data.pendingId);
+      setSentPhone(data.phone);
+      if (data.demoCode) setDemoCode(data.demoCode);
+      setStep('otp');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -133,7 +172,155 @@ function RegisterForm() {
     }
   };
 
-  // ── WAITING SCREEN ──
+  // Step 2: Verify OTP -> Redirects to Paystack KES 200 Payment
+  const handleVerifyOtp = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!otpCode || otpCode.trim().length !== 6) {
+      setError('Please enter the 6-digit verification code.');
+      return;
+    }
+
+    setVerifyingOtp(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/auth/register/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pendingId,
+          code: otpCode.trim(),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Verification failed');
+
+      if (data.authorizationUrl) {
+        // Redirect directly to Paystack hosted checkout for KES 200
+        window.location.href = data.authorizationUrl;
+      } else {
+        setStep('waiting');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  // Resend OTP via Africa's Talking
+  const handleResendOtp = async () => {
+    if (otpCooldown > 0 || resendingOtp || !pendingId) return;
+
+    setResendingOtp(true);
+    setError(null);
+
+    try {
+      const res = await fetch('/api/auth/register/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pendingId, resend: true }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to resend OTP');
+
+      if (data.demoCode) setDemoCode(data.demoCode);
+      setOtpCooldown(60);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setResendingOtp(false);
+    }
+  };
+
+  // ── STEP 2: OTP VERIFICATION SCREEN ──
+  if (step === 'otp') {
+    return (
+      <div className="w-full max-w-xl glass-card rounded-3xl p-8 sm:p-12 space-y-8 border border-slate-700/80 shadow-2xl text-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-xl shadow-brand-500/20">
+            <ShieldCheck className="w-10 h-10 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-black text-white">Verify Your Phone</h2>
+            <p className="text-sm text-slate-400 mt-1">
+              Enter the 6-digit SMS verification code sent to{' '}
+              <strong className="text-emerald-400 font-mono">{sentPhone}</strong>
+            </p>
+          </div>
+        </div>
+
+        {demoCode && (
+          <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
+            Development Mode OTP: <strong className="font-mono text-sm tracking-wider">{demoCode}</strong>
+          </div>
+        )}
+
+        {error && (
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2 text-left">
+            <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+            <span>{error}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleVerifyOtp} className="space-y-6">
+          <div className="space-y-2">
+            <input
+              type="text"
+              required
+              maxLength={6}
+              autoFocus
+              placeholder="000000"
+              value={otpCode}
+              onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="w-full px-4 py-4 rounded-2xl bg-slate-900 border border-slate-700 text-center text-3xl font-mono tracking-[0.5em] text-white focus:outline-none focus:border-brand-500 transition-all shadow-inner"
+            />
+            <p className="text-xs text-slate-500">Code expires in 10 minutes</p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={verifyingOtp || otpCode.length !== 6}
+            className="w-full py-4 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 font-black text-sm shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
+          >
+            {verifyingOtp ? (
+              <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <>
+                <CreditCard className="w-4 h-4" />
+                <span>Verify & Pay KES 200 via Paystack</span>
+              </>
+            )}
+          </button>
+        </form>
+
+        <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+          <button
+            type="button"
+            onClick={() => { setStep('form'); setError(null); }}
+            className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Change Details</span>
+          </button>
+
+          <button
+            type="button"
+            disabled={otpCooldown > 0 || resendingOtp}
+            onClick={handleResendOtp}
+            className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-semibold disabled:opacity-40 disabled:no-underline cursor-pointer"
+          >
+            <RotateCw className={`w-3.5 h-3.5 ${resendingOtp ? 'animate-spin' : ''}`} />
+            <span>{otpCooldown > 0 ? `Resend Code (${otpCooldown}s)` : 'Resend Code'}</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // ── STEP 3: WAITING FOR PAYMENT SCREEN ──
   if (step === 'waiting') {
     const mins = Math.floor(countdown / 60);
     const secs = countdown % 60;
@@ -144,19 +331,18 @@ function RegisterForm() {
             <Smartphone className="w-10 h-10 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-white">Check Your Phone</h2>
-            <p className="text-sm text-slate-400 mt-1">An M-Pesa payment prompt has been sent to your phone</p>
+            <h2 className="text-2xl font-black text-white">Payment in Progress</h2>
+            <p className="text-sm text-slate-400 mt-1">Completing your KES 200 account activation</p>
           </div>
         </div>
 
         <div className="p-5 rounded-2xl bg-slate-900/80 border border-emerald-500/20 space-y-3">
           <p className="text-slate-300 text-sm leading-relaxed">
-            Enter your <strong className="text-white">M-Pesa PIN</strong> to pay{' '}
-            <strong className="text-emerald-400 font-black text-base">KES 200</strong> and complete your registration.
+            Please complete your payment on the Paystack checkout. Your account will automatically activate once confirmed.
           </p>
           <div className="flex items-center justify-center gap-2 pt-1">
             <Loader2 className="w-5 h-5 text-brand-400 animate-spin" />
-            <span className="text-xs text-slate-400 font-medium">Waiting for payment confirmation...</span>
+            <span className="text-xs text-slate-400 font-medium">Listening for payment confirmation...</span>
           </div>
           <p className="text-xs text-slate-500">
             Time remaining: <span className="text-amber-400 font-mono font-bold">{mins}:{secs.toString().padStart(2, '0')}</span>
@@ -164,13 +350,13 @@ function RegisterForm() {
         </div>
 
         <p className="text-xs text-slate-500">
-          Didn&apos;t receive the prompt?{' '}
+          Encountering issues?{' '}
           <button
             type="button"
             onClick={() => { clearAllIntervals(); setStep('form'); setError(null); }}
             className="text-brand-400 hover:underline font-semibold cursor-pointer"
           >
-            Go back and retry
+            Go back to registration
           </button>
         </p>
       </div>
@@ -186,8 +372,8 @@ function RegisterForm() {
             <CheckCircle2 className="w-12 h-12 text-emerald-400" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-white">Account Created! 🎉</h2>
-            <p className="text-sm text-slate-400 mt-1">Your payment was confirmed and your account is now active.</p>
+            <h2 className="text-2xl font-black text-white">Account Created & Activated! 🎉</h2>
+            <p className="text-sm text-slate-400 mt-1">Your payment was confirmed and your account is now ready for tasks.</p>
           </div>
         </div>
         <p className="text-xs text-slate-500">Redirecting you to login...</p>
@@ -206,7 +392,7 @@ function RegisterForm() {
           </div>
           <div>
             <h2 className="text-2xl font-black text-white">Payment Not Completed</h2>
-            <p className="text-sm text-slate-400 mt-1">{error || 'Your M-Pesa payment was not received.'}</p>
+            <p className="text-sm text-slate-400 mt-1">{error || 'Your activation payment was not confirmed.'}</p>
           </div>
         </div>
         <button
@@ -220,7 +406,7 @@ function RegisterForm() {
     );
   }
 
-  // ── REGISTRATION FORM ──
+  // ── STEP 1: REGISTRATION FORM ──
   return (
     <div className="w-full max-w-xl glass-card rounded-3xl p-6 sm:p-10 space-y-8 border border-slate-700/80 shadow-2xl">
       <div className="text-center space-y-2">
@@ -233,13 +419,15 @@ function RegisterForm() {
         <p className="text-xs text-gray-400">Join Kenya&apos;s premier global work space</p>
       </div>
 
-      {/* Activation fee notice */}
+      {/* Activation flow notice */}
       <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3">
         <Smartphone className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-bold text-emerald-300">One-time Activation Fee: KES 200</p>
+          <p className="text-sm font-bold text-emerald-300">2-Step Verified Registration</p>
           <p className="text-xs text-slate-400 mt-0.5">
-            After filling in your details, you will receive an M-Pesa STK push to your phone. Pay KES 200 to instantly activate your account.
+            1. Verify your Safaricom phone via SMS code (Africa&apos;s Talking).
+            <br />
+            2. Activate your account with KES 200 via Paystack to unlock tasks.
           </p>
         </div>
       </div>
@@ -251,7 +439,7 @@ function RegisterForm() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleInitiate} className="space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-gray-300">Full Name</label>
@@ -282,26 +470,38 @@ function RegisterForm() {
           </div>
         </div>
 
+        <div className="space-y-1">
+          <label className="text-xs font-semibold text-gray-300">Email Address</label>
+          <input
+            type="email"
+            required
+            placeholder="john@example.com"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+          />
+        </div>
+
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-300">Email Address</label>
-            <input
-              type="email"
-              required
-              placeholder="john@example.co.ke"
-              value={formData.email}
-              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
-            />
-          </div>
           <div className="space-y-1">
             <label className="text-xs font-semibold text-gray-300">Safaricom Phone Number</label>
             <input
               type="tel"
               required
-              placeholder="0712345678 or 0110..."
+              placeholder="0712345678"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+            />
+            <p className="text-[10px] text-slate-500">Will receive verification SMS code</p>
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-semibold text-gray-300">M-Pesa Number (for Payouts)</label>
+            <input
+              type="tel"
+              placeholder="Same as phone if blank"
+              value={formData.mpesaNumber}
+              onChange={(e) => setFormData({ ...formData, mpesaNumber: e.target.value })}
               className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
             />
           </div>
@@ -314,15 +514,15 @@ function RegisterForm() {
               <input
                 type={showPassword ? 'text' : 'password'}
                 required
-                placeholder="••••••••"
+                placeholder="At least 6 characters"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-3 pr-10 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500 pr-10"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                className="absolute right-3 top-3.5 text-gray-500 hover:text-white"
               >
                 {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -334,15 +534,15 @@ function RegisterForm() {
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
                 required
-                placeholder="••••••••"
+                placeholder="Repeat password"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="w-full px-4 py-3 pr-10 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500 pr-10"
               />
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                className="absolute right-3 top-3.5 text-gray-500 hover:text-white"
               >
                 {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
               </button>
@@ -354,21 +554,16 @@ function RegisterForm() {
           <label className="text-xs font-semibold text-gray-300">Referral Code (Optional)</label>
           <input
             type="text"
-            placeholder="e.g. TM-JOHN1234"
+            placeholder="e.g. TM-JOHN123"
             value={formData.referralCode}
             onChange={(e) => setFormData({ ...formData, referralCode: e.target.value.toUpperCase() })}
-            className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+            className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm font-mono focus:outline-none focus:border-brand-500"
           />
         </div>
 
-        <div className="flex items-start gap-2 pt-2">
-          <input
-            type="checkbox"
-            id="terms"
-            required
-            className="mt-1 rounded bg-slate-900 border-slate-700 text-brand-500 focus:ring-brand-500"
-          />
-          <label htmlFor="terms" className="text-xs text-gray-400 leading-normal">
+        <div className="flex items-start gap-2 pt-1">
+          <input type="checkbox" required id="terms" className="mt-1 accent-emerald-500 cursor-pointer" />
+          <label htmlFor="terms" className="text-xs text-gray-400">
             I agree to the{' '}
             <Link href="/terms" className="text-brand-400 hover:underline">
               Terms of Service
@@ -390,8 +585,8 @@ function RegisterForm() {
             <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
           ) : (
             <>
-              <CreditCard className="w-4 h-4" />
-              <span>Register & Pay KES 200 via Paystack</span>
+              <Smartphone className="w-4 h-4" />
+              <span>Verify Phone & Continue</span>
             </>
           )}
         </button>

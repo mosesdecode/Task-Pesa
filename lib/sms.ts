@@ -9,6 +9,8 @@
  * - SMS_SENDER_ID: Approved alphanumeric sender ID (default: TASKMINT)
  */
 
+import { normalizeKenyanPhone } from './phone';
+
 export interface SendSmsResult {
   success: boolean;
   provider: string;
@@ -16,10 +18,21 @@ export interface SendSmsResult {
   error?: string;
 }
 
-export async function sendSmsOtp(phone: string, otpCode: string): Promise<SendSmsResult> {
+export async function sendSmsOtp(
+  phone: string,
+  otpCode: string,
+  purpose: 'REGISTRATION' | 'WITHDRAWAL' | 'VERIFICATION' = 'VERIFICATION'
+): Promise<SendSmsResult> {
   const provider = process.env.SMS_PROVIDER || 'development';
   const senderId = process.env.SMS_SENDER_ID || 'TaskMint';
-  const messageText = `Your TaskMint phone verification code is: ${otpCode}. Valid for 10 minutes. Do not share this code with anyone.`;
+  const targetPhone = normalizeKenyanPhone(phone);
+
+  let messageText = `Your TaskMint verification code is: ${otpCode}. Valid for 10 minutes. Do not share this code.`;
+  if (purpose === 'REGISTRATION') {
+    messageText = `Your TaskMint registration verification code is: ${otpCode}. Enter this to activate your account. Valid for 10 minutes.`;
+  } else if (purpose === 'WITHDRAWAL') {
+    messageText = `Your TaskMint withdrawal authorization code is: ${otpCode}. Valid for 10 minutes. NEVER share this code with anyone.`;
+  }
 
   // 1. Africa's Talking SMS Integration
   if (provider === 'africastalking' && process.env.AFRICASTALKING_API_KEY && process.env.AFRICASTALKING_USERNAME) {
@@ -33,7 +46,7 @@ export async function sendSmsOtp(phone: string, otpCode: string): Promise<SendSm
 
       const formData = new URLSearchParams();
       formData.append('username', username);
-      formData.append('to', phone);
+      formData.append('to', targetPhone);
       formData.append('message', messageText);
       if (senderId && !isSandbox) {
         formData.append('from', senderId);

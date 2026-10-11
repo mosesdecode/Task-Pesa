@@ -23,18 +23,25 @@ export default function WalletPage() {
   const [loading, setLoading] = useState(true);
   const [amount, setAmount] = useState('');
   const [mpesaNumber, setMpesaNumber] = useState('');
-  const [requesting, setRequesting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   const [redeeming, setRedeeming] = useState(false);
   const [redeemMessage, setRedeemMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // OTP Verification state
+  // Phone OTP Verification (for eligibility check)
   const [showOtpModal, setShowOtpModal] = useState(false);
   const [otpCode, setOtpCode] = useState('');
   const [sendingOtp, setSendingOtp] = useState(false);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [otpMessage, setOtpMessage] = useState<string | null>(null);
+
+  // Withdrawal OTP 2FA state
+  const [showWithdrawalOtpModal, setShowWithdrawalOtpModal] = useState(false);
+  const [withdrawalOtpCode, setWithdrawalOtpCode] = useState('');
+  const [sendingWithdrawalOtp, setSendingWithdrawalOtp] = useState(false);
+  const [submittingWithdrawal, setSubmittingWithdrawal] = useState(false);
+  const [withdrawalOtpMessage, setWithdrawalOtpMessage] = useState<string | null>(null);
+  const [pendingWithdrawal, setPendingWithdrawal] = useState<{ amount: string; mpesaNumber: string } | null>(null);
 
   const [user, setUser] = useState<any>(null);
 
@@ -122,28 +129,63 @@ export default function WalletPage() {
     }
   };
 
+  // Step 1: validate form and request withdrawal OTP via SMS
   const handleWithdrawalRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
-    setRequesting(true);
+    setSendingWithdrawalOtp(true);
+
+    try {
+      const res = await fetch('/api/withdrawals/otp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount, mpesaNumber }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
+
+      // Store what we want to withdraw, open the 2FA modal
+      setPendingWithdrawal({ amount, mpesaNumber });
+      setWithdrawalOtpCode('');
+      setWithdrawalOtpMessage(data.message || 'A 6-digit code has been sent to your phone.');
+      setShowWithdrawalOtpModal(true);
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message });
+    } finally {
+      setSendingWithdrawalOtp(false);
+    }
+  };
+
+  // Step 2: submit withdrawal with the OTP code
+  const handleFinalWithdrawal = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!pendingWithdrawal) return;
+    setSubmittingWithdrawal(true);
+    setWithdrawalOtpMessage(null);
 
     try {
       const res = await fetch('/api/withdrawals', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount, mpesaNumber }),
+        body: JSON.stringify({
+          amount: pendingWithdrawal.amount,
+          mpesaNumber: pendingWithdrawal.mpesaNumber,
+          otpCode: withdrawalOtpCode.trim(),
+        }),
       });
-
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Withdrawal request failed');
 
-      setMessage({ type: 'success', text: data.message });
+      setShowWithdrawalOtpModal(false);
+      setPendingWithdrawal(null);
+      setWithdrawalOtpCode('');
       setAmount('');
+      setMessage({ type: 'success', text: data.message });
       fetchWallet();
     } catch (err: any) {
-      setMessage({ type: 'error', text: err.message });
+      setWithdrawalOtpMessage(`Error: ${err.message}`);
     } finally {
-      setRequesting(false);
+      setSubmittingWithdrawal(false);
     }
   };
 
@@ -451,17 +493,17 @@ export default function WalletPage() {
 
             <button
               type="submit"
-              disabled={requesting || availableBalance < 500}
+              disabled={sendingWithdrawalOtp || availableBalance < 500}
               className={`w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 ${
                 availableBalance >= 500
                   ? 'bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white shadow-xl shadow-brand-500/20 hover:scale-[1.02]'
                   : 'bg-slate-800 text-gray-500 cursor-not-allowed border border-slate-700'
               }`}
             >
-              {requesting
-                ? 'Submitting...'
+              {sendingWithdrawalOtp
+                ? 'Sending OTP...'
                 : availableBalance >= 500
-                ? 'Submit Withdrawal Request'
+                ? 'Continue — Verify via OTP'
                 : 'Min KES 500 Required'}
             </button>
           </form>
@@ -586,7 +628,7 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {/* Phone OTP Verification Modal */}
+      {/* Phone OTP Verification Modal (eligibility check) */}
       {showOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-md w-full p-6 sm:p-8 rounded-3xl glass-card border-brand-500/40 space-y-6 relative">
@@ -604,7 +646,7 @@ export default function WalletPage() {
             </div>
 
             <p className="text-xs text-gray-300 leading-relaxed">
-              An OTP verification code was sent to your phone. Enter the 6-digit code below to confirm your line for withdrawals.
+              An OTP verification code was sent to your phone. Enter the 6-digit code below to confirm your Safaricom line for withdrawals.
             </p>
 
             {otpMessage && (
@@ -633,6 +675,76 @@ export default function WalletPage() {
                 className="w-full py-3.5 rounded-xl font-extrabold text-xs bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg hover:scale-105 disabled:opacity-50"
               >
                 {verifyingOtp ? 'Verifying...' : 'Verify Phone Number'}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Withdrawal 2FA OTP Modal */}
+      {showWithdrawalOtpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="max-w-md w-full p-6 sm:p-8 rounded-3xl glass-card border-amber-500/40 space-y-6 relative">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-black text-white flex items-center gap-2">
+                <ShieldCheck className="w-5 h-5 text-amber-400" />
+                Authorize Withdrawal
+              </h3>
+              <button
+                onClick={() => { setShowWithdrawalOtpModal(false); setSendingWithdrawalOtp(false); }}
+                className="text-gray-400 hover:text-white text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-xs text-amber-300 space-y-1">
+              <p className="font-extrabold text-amber-400">🔐 Security Verification Required</p>
+              <p>A 6-digit authorization code was sent to your registered phone number. Enter it below to confirm your withdrawal of <span className="font-bold text-white">KES {pendingWithdrawal?.amount}</span>.</p>
+            </div>
+
+            {withdrawalOtpMessage && (
+              <div className={`p-3 rounded-xl text-xs font-semibold border ${
+                withdrawalOtpMessage.startsWith('Error')
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                  : 'bg-brand-500/10 border-brand-500/30 text-brand-300'
+              }`}>
+                {withdrawalOtpMessage}
+              </div>
+            )}
+
+            <form onSubmit={handleFinalWithdrawal} className="space-y-4">
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-300">Enter 6-Digit Authorization Code</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  required
+                  autoFocus
+                  placeholder="123456"
+                  value={withdrawalOtpCode}
+                  onChange={(e) => setWithdrawalOtpCode(e.target.value.replace(/\D/g, ''))}
+                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-center font-mono text-2xl tracking-[0.5em] focus:outline-none focus:border-amber-500"
+                />
+                <p className="text-[11px] text-gray-500 text-center">Code expires in 10 minutes</p>
+              </div>
+
+              <button
+                type="submit"
+                disabled={submittingWithdrawal || withdrawalOtpCode.length !== 6}
+                className="w-full py-3.5 rounded-xl font-extrabold text-sm bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-lg shadow-amber-500/20 hover:scale-[1.02] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:scale-100"
+              >
+                {submittingWithdrawal ? 'Processing Withdrawal...' : 'Confirm & Submit Withdrawal'}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleWithdrawalRequest.bind(null, { preventDefault: () => {} } as any)}
+                disabled={sendingWithdrawalOtp || submittingWithdrawal}
+                className="w-full py-2 rounded-xl text-xs text-gray-400 hover:text-white underline underline-offset-2 disabled:opacity-50"
+              >
+                Didn't receive a code? Resend OTP
               </button>
             </form>
           </div>

@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
-import { getDarajaAccessToken, formatKenyanPhone } from '@/lib/mpesa';
-import { initializePaystackTransaction, generatePaystackReference } from '@/lib/paystack';
+import { normalizeKenyanPhone, isSafaricomNumber } from '@/lib/phone';
+import { sendSmsOtp } from '@/lib/sms';
 import { validateReferralEligibility } from '@/lib/antifraud';
-
-const ACTIVATION_FEE = 200;
 
 export async function POST(req: NextRequest) {
   try {
@@ -20,11 +18,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Password must be at least 6 characters' }, { status: 400 });
     }
 
-    const resolvedMpesa = (mpesaNumber?.trim() || phone.trim());
+    const normalizedPhone = normalizeKenyanPhone(phone);
+    if (!isSafaricomNumber(normalizedPhone)) {
+      return NextResponse.json(
+        { error: 'Please enter a valid Kenyan Safaricom phone number (e.g. 07XXXXXXXX or 011XXXXXXX).' },
+        { status: 400 }
+      );
+    }
+
+    const resolvedMpesa = normalizeKenyanPhone(mpesaNumber?.trim() || phone.trim());
 
     // Check duplicates in the live User table
     const existingUser = await prisma.user.findFirst({
-      where: { OR: [{ email }, { phone }, { username }] },
+      where: {
+        OR: [
+          { email: email.trim().toLowerCase() },
+          { phone: normalizedPhone },
+          { username: username.trim().toLowerCase() },
+        ],
+      },
     });
     if (existingUser) {
       return NextResponse.json(
@@ -33,12 +45,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check duplicates in the pending table
+    // Check duplicates in the pending table and remove stale records
     const existingPending = await prisma.pendingRegistration.findFirst({
-      where: { OR: [{ email }, { phone }, { username }] },
+      where: {
+        OR: [
+          { email: email.trim().toLowerCase() },
+          { phone: normalizedPhone },
+          { username: username.trim().toLowerCase() },
+        ],
+      },
     });
     if (existingPending) {
-      // Allow them to re-initiate by deleting stale pending record
       await prisma.pendingRegistration.delete({ where: { id: existingPending.id } });
     }
 
@@ -50,10 +67,10 @@ export async function POST(req: NextRequest) {
       });
       if (referrer) {
         const antiFraud = await validateReferralEligibility(referrer.id, {
-          phone,
+          phone: normalizedPhone,
           mpesaNumber: resolvedMpesa,
-          email,
-          username,
+          email: email.trim().toLowerCase(),
+          username: username.trim().toLowerCase(),
         });
         if (antiFraud.allowed) {
           validatedReferralCode = referralCode.trim();
@@ -63,70 +80,39 @@ export async function POST(req: NextRequest) {
 
     const passwordHash = await hashPassword(password);
 
-    // Save to PendingRegistration
+    // Generate 6-digit OTP code
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAtMs = Date.now() + 10 * 60 * 1000; // 10 minutes validity
+
+    // Save to PendingRegistration with OTP embedded in checkoutRequestId
     const pending = await prisma.pendingRegistration.create({
       data: {
-        fullName,
-        username,
-        email,
-        phone,
+        fullName: fullName.trim(),
+        username: username.trim().toLowerCase(),
+        email: email.trim().toLowerCase(),
+        phone: normalizedPhone,
         mpesaNumber: resolvedMpesa,
         passwordHash,
         referralCode: validatedReferralCode,
-        status: 'PENDING_PAYMENT',
+        checkoutRequestId: `OTP:${otpCode}:${expiresAtMs}`,
+        status: 'PENDING_OTP',
       },
     });
 
-    // Generate Paystack reference
-    const reference = generatePaystackReference('REG');
-
-    // Update pending record with the generated reference (acts as checkoutRequestId)
-    await prisma.pendingRegistration.update({
-      where: { id: pending.id },
-      data: { checkoutRequestId: reference },
-    });
-
-    const host = req.headers.get('x-forwarded-host') || req.headers.get('host');
-    const proto = req.headers.get('x-forwarded-proto') || (host?.includes('localhost') ? 'http' : 'https');
-    const appUrl = process.env.APP_URL && !process.env.APP_URL.includes('localhost')
-      ? process.env.APP_URL
-      : host
-        ? `${proto}://${host}`
-        : 'http://localhost:3000';
-    
-    // We will redirect them back to a verification page, or just status polling
-    const callbackUrl = `${appUrl}/api/paystack/verify?reference=${reference}&type=REGISTRATION`;
-
-    const result = await initializePaystackTransaction({
-      email,
-      amount: ACTIVATION_FEE,
-      reference,
-      callbackUrl,
-      userId: pending.id, // we pass pending id since user id doesn't exist yet
-      type: 'ACTIVATION',
-      phone: resolvedMpesa,
-      metadata: {
-        username,
-        fullName,
-        isRegistration: true,
-      },
-    });
-
-    if (!result.success || !result.authorizationUrl) {
-      await prisma.pendingRegistration.delete({ where: { id: pending.id } });
-      return NextResponse.json({ error: 'Failed to initialize payment gateway' }, { status: 400 });
-    }
+    // Send OTP via Africa's Talking SMS
+    const smsResult = await sendSmsOtp(normalizedPhone, otpCode, 'REGISTRATION');
 
     return NextResponse.json({
       success: true,
+      step: 'otp',
       pendingId: pending.id,
-      checkoutRequestId: reference,
-      authorizationUrl: result.authorizationUrl, // the frontend will redirect here
-      isSimulation: false,
-      message: 'Redirecting to payment gateway...',
+      phone: normalizedPhone,
+      message: `A 6-digit verification code has been sent to ${normalizedPhone}.`,
+      smsProvider: smsResult.provider,
+      demoCode: process.env.NODE_ENV !== 'production' ? otpCode : undefined,
     });
   } catch (error: any) {
     console.error('Register initiate error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to initiate registration payment' }, { status: 500 });
+    return NextResponse.json({ error: error.message || 'Failed to initiate registration' }, { status: 500 });
   }
 }
