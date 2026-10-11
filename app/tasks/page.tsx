@@ -165,6 +165,9 @@ export default function TasksPage() {
     (c) => c.slug !== 'watch-ads' && c.slug !== 'whatsapp-promotions'
   );
 
+  const isAdsActive = categories.length === 0 || categories.some((c) => c.slug === 'watch-ads');
+  const isWhatsappActive = categories.length === 0 || categories.some((c) => c.slug === 'whatsapp-promotions');
+
   return (
     <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 min-h-[85vh]">
       {/* ── Page Header ── */}
@@ -436,54 +439,58 @@ export default function TasksPage() {
                   })}
 
                   {/* Special Box 1: Sponsored Video Ads */}
-                  <button
-                    onClick={() => setSelectedCategory('watch-ads')}
-                    className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-3 transition-all cursor-pointer ${
-                      selectedCategory === 'watch-ads'
-                        ? 'bg-blue-500/20 border-blue-500 shadow-md shadow-blue-500/10'
-                        : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
-                        <PlaySquare className="w-4 h-4" />
+                  {isAdsActive && (
+                    <button
+                      onClick={() => setSelectedCategory('watch-ads')}
+                      className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-3 transition-all cursor-pointer ${
+                        selectedCategory === 'watch-ads'
+                          ? 'bg-blue-500/20 border-blue-500 shadow-md shadow-blue-500/10'
+                          : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div className="w-8 h-8 rounded-xl bg-blue-500/20 text-blue-400 flex items-center justify-center">
+                          <PlaySquare className="w-4 h-4" />
+                        </div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold">
+                          {ads.length}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold">
-                        {ads.length}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-white line-clamp-1">Sponsored Ads</div>
-                      <div className="text-[10px] text-blue-400 mt-0.5 font-mono">
-                        {ads.length} video ads
+                      <div>
+                        <div className="text-xs font-bold text-white line-clamp-1">Sponsored Ads</div>
+                        <div className="text-[10px] text-blue-400 mt-0.5 font-mono">
+                          {ads.length} video ads
+                        </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                  )}
 
                   {/* Special Box 2: WhatsApp Promo */}
-                  <button
-                    onClick={() => setSelectedCategory('whatsapp-promotions')}
-                    className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-3 transition-all cursor-pointer ${
-                      selectedCategory === 'whatsapp-promotions'
-                        ? 'bg-emerald-500/20 border-emerald-500 shadow-md shadow-emerald-500/10'
-                        : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between w-full">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
-                        <Share2 className="w-4 h-4" />
+                  {isWhatsappActive && (
+                    <button
+                      onClick={() => setSelectedCategory('whatsapp-promotions')}
+                      className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-3 transition-all cursor-pointer ${
+                        selectedCategory === 'whatsapp-promotions'
+                          ? 'bg-emerald-500/20 border-emerald-500 shadow-md shadow-emerald-500/10'
+                          : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between w-full">
+                        <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center">
+                          <Share2 className="w-4 h-4" />
+                        </div>
+                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold">
+                          {whatsappCampaigns.length}
+                        </span>
                       </div>
-                      <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-bold">
-                        {whatsappCampaigns.length}
-                      </span>
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-white line-clamp-1">WhatsApp Promo</div>
-                      <div className="text-[10px] text-emerald-400 mt-0.5 font-mono">
-                        {whatsappCampaigns.length} campaigns
+                      <div>
+                        <div className="text-xs font-bold text-white line-clamp-1">WhatsApp Promo</div>
+                        <div className="text-[10px] text-emerald-400 mt-0.5 font-mono">
+                          {whatsappCampaigns.length} campaigns
+                        </div>
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                  )}
                 </div>
               </div>
 

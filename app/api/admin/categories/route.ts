@@ -32,7 +32,7 @@ export async function GET(req: NextRequest) {
               slug: 'watch-ads',
               icon: 'PlaySquare',
               description: 'Watch brand sponsor video advertisements to earn instant rewards.',
-              isActive: true,
+              isActive: existingWatchAds.isActive,
             },
           });
         }
@@ -61,7 +61,7 @@ export async function GET(req: NextRequest) {
               slug: 'whatsapp-promotions',
               icon: 'Share2',
               description: 'Post campaign promotional material to status and submit screenshot proof.',
-              isActive: true,
+              isActive: existingWaPromo.isActive,
             },
           });
         }
@@ -265,6 +265,7 @@ export async function DELETE(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const id = searchParams.get('id');
     const hard = searchParams.get('hard') === 'true';
+    const cascade = searchParams.get('cascade') === 'true';
 
     if (!id) {
       return NextResponse.json({ error: 'Category ID is required' }, { status: 400 });
@@ -279,17 +280,37 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
 
+    // System categories protection: prevent deletion of core platform features
+    const isSystemCategory = ['whatsapp-promotions', 'watch-ads'].includes(existing.slug);
+    if (isSystemCategory) {
+      return NextResponse.json(
+        { error: `"${existing.name}" is a core system category and cannot be permanently deleted. You can deactivate it by toggling its status instead.` },
+        { status: 400 }
+      );
+    }
+
     // Permanently remove if hard delete is requested or if category has 0 associated tasks
     if (hard || existing._count.tasks === 0) {
-      if (existing._count.tasks > 0) {
+      if (existing._count.tasks > 0 && !cascade) {
         return NextResponse.json(
-          { error: `Cannot permanently delete "${existing.name}" because it has ${existing._count.tasks} associated task(s). Reassign or delete tasks first.` },
+          {
+            error: `Cannot permanently delete "${existing.name}" because it has ${existing._count.tasks} associated task(s). Reassign them or confirm deletion with cascade.`,
+            hasTasks: true,
+            taskCount: existing._count.tasks,
+          },
           { status: 400 }
         );
       }
 
-      await prisma.taskCategory.delete({
-        where: { id },
+      await prisma.$transaction(async (tx) => {
+        if (existing._count.tasks > 0) {
+          await tx.task.deleteMany({
+            where: { categoryId: id },
+          });
+        }
+        await tx.taskCategory.delete({
+          where: { id },
+        });
       });
 
       await prisma.adminAuditLog.create({
@@ -298,13 +319,19 @@ export async function DELETE(req: NextRequest) {
           action: 'DELETE_CATEGORY',
           targetType: 'TASK_CATEGORY',
           targetId: id,
-          detailsJson: JSON.stringify({ name: existing.name, slug: existing.slug }),
+          detailsJson: JSON.stringify({
+            name: existing.name,
+            slug: existing.slug,
+            deletedTasksCount: existing._count.tasks,
+          }),
         },
       });
 
       return NextResponse.json({
         success: true,
-        message: `Category "${existing.name}" has been permanently removed from the system.`,
+        message: existing._count.tasks > 0
+          ? `Category "${existing.name}" and ${existing._count.tasks} associated task(s) permanently removed.`
+          : `Category "${existing.name}" has been permanently removed from the system.`,
         deleted: true,
       });
     }

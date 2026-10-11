@@ -1096,13 +1096,25 @@ function AdminDashboardInner() {
   };
 
   const handleDeleteCategory = async (cat: any) => {
-    if (!window.confirm(`Are you sure you want to permanently delete category "${cat.name}" from the system?`)) {
+    const isSystemCategory = cat.isSpecialType === 'AD' || cat.isSpecialType === 'WHATSAPP' || cat.slug === 'watch-ads' || cat.slug === 'whatsapp-promotions';
+    if (isSystemCategory) {
+      alert(`"${cat.name}" is a core system feature and cannot be deleted. You can deactivate it by clicking the "${cat.isActive ? 'Active' : 'Disabled'}" toggle button.`);
+      return;
+    }
+
+    const taskCount = cat._count?.tasks || 0;
+    let confirmMsg = `Are you sure you want to permanently delete category "${cat.name}" from the system?`;
+    if (taskCount > 0) {
+      confirmMsg = `Category "${cat.name}" currently has ${taskCount} associated task(s).\n\nPermanently deleting this category will also PERMANENTLY DELETE all ${taskCount} associated task(s) and their submissions.\n\nAre you sure you want to proceed?`;
+    }
+
+    if (!window.confirm(confirmMsg)) {
       return;
     }
     setError('');
     setSuccessMsg('');
     try {
-      const res = await fetch(`/api/admin/categories?id=${cat.id}&hard=true`, {
+      const res = await fetch(`/api/admin/categories?id=${cat.id}&hard=true&cascade=true`, {
         method: 'DELETE',
       });
       const data = await res.json();
@@ -2809,6 +2821,11 @@ function AdminDashboardInner() {
                             WhatsApp Promo
                           </span>
                         )}
+                        {(cat.isSpecialType || cat.slug === 'watch-ads' || cat.slug === 'whatsapp-promotions') && (
+                          <span className="px-2 py-0.5 rounded-full text-[9px] font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            System
+                          </span>
+                        )}
                       </div>
                       <span className="text-[11px] text-slate-400 block mt-0.5 truncate">{cat.description}</span>
                       <span className="text-[10px] text-brand-400 font-mono mt-1 block">
@@ -2830,13 +2847,23 @@ function AdminDashboardInner() {
                       >
                         {cat.isActive ? 'Active' : 'Disabled'}
                       </button>
-                      <button
-                        onClick={() => handleDeleteCategory(cat)}
-                        title={`Permanently delete "${cat.name}"`}
-                        className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-colors cursor-pointer"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
+                      {(cat.isSpecialType || cat.slug === 'watch-ads' || cat.slug === 'whatsapp-promotions') ? (
+                        <button
+                          disabled
+                          title={`"${cat.name}" is a core system feature and cannot be deleted. Toggle status to deactivate.`}
+                          className="p-1.5 rounded-xl text-slate-600 cursor-not-allowed opacity-40 border border-transparent"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleDeleteCategory(cat)}
+                          title={`Permanently delete "${cat.name}"`}
+                          className="p-1.5 rounded-xl text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
                 ))
