@@ -18,64 +18,6 @@ export async function GET(req: NextRequest) {
           tasks: { none: {} },
         },
       });
-
-      // 2. Ensure "Sponsored Ads" exists in database
-      const existingWatchAds = await prisma.taskCategory.findFirst({
-        where: { OR: [{ slug: 'watch-ads' }, { name: 'Watch Ads' }, { name: 'Sponsored Ads' }] },
-      });
-      if (existingWatchAds) {
-        if (existingWatchAds.name !== 'Sponsored Ads' || existingWatchAds.slug !== 'watch-ads') {
-          await prisma.taskCategory.update({
-            where: { id: existingWatchAds.id },
-            data: {
-              name: 'Sponsored Ads',
-              slug: 'watch-ads',
-              icon: 'PlaySquare',
-              description: 'Watch brand sponsor video advertisements to earn instant rewards.',
-              isActive: existingWatchAds.isActive,
-            },
-          });
-        }
-      } else {
-        await prisma.taskCategory.create({
-          data: {
-            name: 'Sponsored Ads',
-            slug: 'watch-ads',
-            icon: 'PlaySquare',
-            description: 'Watch brand sponsor video advertisements to earn instant rewards.',
-            isActive: true,
-          },
-        });
-      }
-
-      // 3. Ensure "WhatsApp Promo" exists in database
-      const existingWaPromo = await prisma.taskCategory.findFirst({
-        where: { OR: [{ slug: 'whatsapp-promotions' }, { name: 'WhatsApp Promotions' }, { name: 'WhatsApp Promo' }] },
-      });
-      if (existingWaPromo) {
-        if (existingWaPromo.name !== 'WhatsApp Promo' || existingWaPromo.slug !== 'whatsapp-promotions') {
-          await prisma.taskCategory.update({
-            where: { id: existingWaPromo.id },
-            data: {
-              name: 'WhatsApp Promo',
-              slug: 'whatsapp-promotions',
-              icon: 'Share2',
-              description: 'Post campaign promotional material to status and submit screenshot proof.',
-              isActive: existingWaPromo.isActive,
-            },
-          });
-        }
-      } else {
-        await prisma.taskCategory.create({
-          data: {
-            name: 'WhatsApp Promo',
-            slug: 'whatsapp-promotions',
-            icon: 'Share2',
-            description: 'Post campaign promotional material to status and submit screenshot proof.',
-            isActive: true,
-          },
-        });
-      }
     } catch (syncErr) {
       console.error('Category auto-sync error:', syncErr);
     }
@@ -280,14 +222,6 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
 
-    // System categories protection: prevent deletion of core platform features
-    const isSystemCategory = ['whatsapp-promotions', 'watch-ads'].includes(existing.slug);
-    if (isSystemCategory) {
-      return NextResponse.json(
-        { error: `"${existing.name}" is a core system category and cannot be permanently deleted. You can deactivate it by toggling its status instead.` },
-        { status: 400 }
-      );
-    }
 
     // Permanently remove if hard delete is requested or if category has 0 associated tasks
     if (hard || existing._count.tasks === 0) {
