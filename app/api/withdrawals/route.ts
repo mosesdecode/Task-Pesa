@@ -26,7 +26,7 @@ export async function POST(req: NextRequest) {
     // Require and verify 6-digit OTP authorization
     if (!otpCode || otpCode.trim().length !== 6) {
       return NextResponse.json(
-        { error: 'Please enter the 6-digit withdrawal verification code sent to your phone.' },
+        { error: 'Please enter the 6-digit withdrawal verification code sent to your email.' },
         { status: 400 }
       );
     }

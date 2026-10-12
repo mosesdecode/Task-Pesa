@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
 import { normalizeKenyanPhone, isSafaricomNumber } from '@/lib/phone';
-import { sendSmsOtp } from '@/lib/sms';
+import { sendEmailOtp } from '@/lib/email';
 import { validateReferralEligibility } from '@/lib/antifraud';
 
 export async function POST(req: NextRequest) {
@@ -27,12 +27,13 @@ export async function POST(req: NextRequest) {
     }
 
     const resolvedMpesa = normalizeKenyanPhone(mpesaNumber?.trim() || phone.trim());
+    const normalizedEmail = email.trim().toLowerCase();
 
     // Check duplicates in the live User table
     const existingUser = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: email.trim().toLowerCase() },
+          { email: normalizedEmail },
           { phone: normalizedPhone },
           { username: username.trim().toLowerCase() },
         ],
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     const existingPending = await prisma.pendingRegistration.findFirst({
       where: {
         OR: [
-          { email: email.trim().toLowerCase() },
+          { email: normalizedEmail },
           { phone: normalizedPhone },
           { username: username.trim().toLowerCase() },
         ],
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
         const antiFraud = await validateReferralEligibility(referrer.id, {
           phone: normalizedPhone,
           mpesaNumber: resolvedMpesa,
-          email: email.trim().toLowerCase(),
+          email: normalizedEmail,
           username: username.trim().toLowerCase(),
         });
         if (antiFraud.allowed) {
@@ -89,7 +90,7 @@ export async function POST(req: NextRequest) {
       data: {
         fullName: fullName.trim(),
         username: username.trim().toLowerCase(),
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         phone: normalizedPhone,
         mpesaNumber: resolvedMpesa,
         passwordHash,
@@ -99,16 +100,28 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Send OTP via Africa's Talking SMS
-    const smsResult = await sendSmsOtp(normalizedPhone, otpCode, 'REGISTRATION');
+    // Send OTP via Email (Gmail SMTP)
+    const emailResult = await sendEmailOtp(normalizedEmail, otpCode, 'REGISTRATION', fullName.trim());
+
+    if (!emailResult.success && process.env.EMAIL_USER) {
+      console.error(`[REGISTER OTP EMAIL FAILED] To: ${normalizedEmail}, Error: ${emailResult.error}`);
+      // Clean up the pending record since email failed
+      await prisma.pendingRegistration.delete({ where: { id: pending.id } });
+      return NextResponse.json(
+        {
+          error: `Failed to send verification email to ${normalizedEmail}. ${emailResult.error || 'Please try again or contact support.'}`,
+        },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
       step: 'otp',
       pendingId: pending.id,
-      phone: normalizedPhone,
-      message: `A 6-digit verification code has been sent to ${normalizedPhone}.`,
-      smsProvider: smsResult.provider,
+      email: normalizedEmail,
+      message: `A 6-digit verification code has been sent to ${normalizedEmail}. Please check your inbox (and spam folder).`,
+      emailProvider: emailResult.provider,
       demoCode: process.env.NODE_ENV !== 'production' ? otpCode : undefined,
     });
   } catch (error: any) {

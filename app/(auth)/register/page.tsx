@@ -40,7 +40,7 @@ function RegisterForm() {
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<Step>('form');
   const [pendingId, setPendingId] = useState<string | null>(null);
-  const [sentPhone, setSentPhone] = useState<string>('');
+  const [sentEmail, setSentEmail] = useState<string>('');
   const [demoCode, setDemoCode] = useState<string | null>(null);
 
   // OTP state
@@ -128,7 +128,7 @@ function RegisterForm() {
     if (countdownIntervalRef.current) clearInterval(countdownIntervalRef.current);
   }
 
-  // Step 1: Submit Form -> Sends Africa's Talking OTP
+  // Step 1: Submit Form -> Sends Email OTP
   const handleInitiate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -162,7 +162,7 @@ function RegisterForm() {
       if (!res.ok) throw new Error(data.error || 'Registration failed');
 
       setPendingId(data.pendingId);
-      setSentPhone(data.phone);
+      setSentEmail(data.email);
       if (data.demoCode) setDemoCode(data.demoCode);
       setStep('otp');
     } catch (err: any) {
@@ -241,17 +241,18 @@ function RegisterForm() {
       <div className="w-full max-w-xl glass-card rounded-3xl p-8 sm:p-12 space-y-8 border border-slate-700/80 shadow-2xl text-center">
         <div className="flex flex-col items-center gap-4">
           <span className="px-3 py-1 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-300 text-xs font-bold uppercase tracking-wider">
-            Step 1 of 2 · Phone Verification
+            Step 1 of 2 · Email Verification
           </span>
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-xl shadow-brand-500/20">
             <ShieldCheck className="w-10 h-10 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-white">Verify Your Phone</h2>
+            <h2 className="text-2xl font-black text-white">Check Your Email</h2>
             <p className="text-sm text-slate-400 mt-1">
-              Enter the 6-digit SMS verification code sent to{' '}
-              <strong className="text-emerald-400 font-mono">{sentPhone}</strong>
+              Enter the 6-digit verification code sent to{' '}
+              <strong className="text-emerald-400 font-mono">{sentEmail}</strong>
             </p>
+            <p className="text-xs text-slate-500 mt-1">Check your inbox and spam/junk folder.</p>
           </div>
         </div>
 
@@ -433,10 +434,10 @@ function RegisterForm() {
             <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold uppercase tracking-wider">
               Step 1 of 2
             </span>
-            <span className="text-sm font-bold text-white">Phone Verification</span>
+            <span className="text-sm font-bold text-white">Email Verification</span>
           </div>
           <p className="text-xs text-slate-400 leading-relaxed">
-            Enter your details to receive an SMS verification code. Step 2 activates your account with KES 200 via Paystack.
+            Enter your details to receive an email verification code. Step 2 activates your account with KES 200 via Paystack.
           </p>
         </div>
       </div>

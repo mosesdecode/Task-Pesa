@@ -700,7 +700,7 @@ export default function WalletPage() {
 
             <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-xs text-amber-300 space-y-1">
               <p className="font-extrabold text-amber-400">🔐 Security Verification Required</p>
-              <p>A 6-digit authorization code was sent to your registered phone number. Enter it below to confirm your withdrawal of <span className="font-bold text-white">KES {pendingWithdrawal?.amount}</span>.</p>
+              <p>A 6-digit authorization code was sent to your registered email address. Enter it below to confirm your withdrawal of <span className="font-bold text-white">KES {pendingWithdrawal?.amount}</span>.</p>
             </div>
 
             {withdrawalOtpMessage && (

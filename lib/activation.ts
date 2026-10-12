@@ -418,6 +418,7 @@ export async function completePendingRegistration(
           packageId: defaultPackage?.id,
           status: 'ACTIVE',
           isVerified: true,
+          phoneVerified: true,
           wallet: {
             create: { availableBalance: 0.0, pendingBalance: 0.0, totalEarned: 0.0, totalWithdrawn: 0.0 },
           },

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { initializePaystackTransaction, generatePaystackReference } from '@/lib/paystack';
-import { sendSmsOtp } from '@/lib/sms';
+import { sendEmailOtp } from '@/lib/email';
 
 const ACTIVATION_FEE = 200;
 
@@ -38,12 +38,22 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      const smsResult = await sendSmsOtp(pending.phone, newOtpCode, 'REGISTRATION');
+      const emailResult = await sendEmailOtp(pending.email, newOtpCode, 'REGISTRATION');
+
+      if (!emailResult.success && process.env.EMAIL_USER) {
+        console.error(`[REGISTER RESEND OTP FAILED] To: ${pending.email}, Error: ${emailResult.error}`);
+        return NextResponse.json(
+          {
+            error: `Failed to resend verification code to ${pending.email}. ${emailResult.error || 'Please try again later.'}`,
+          },
+          { status: 502 }
+        );
+      }
 
       return NextResponse.json({
         success: true,
-        message: `A new 6-digit verification code was sent to ${pending.phone}.`,
-        smsProvider: smsResult.provider,
+        message: `A new 6-digit verification code was sent to ${pending.email}.`,
+        emailProvider: emailResult.provider,
         demoCode: process.env.NODE_ENV !== 'production' ? newOtpCode : undefined,
       });
     }
@@ -126,7 +136,7 @@ export async function POST(req: NextRequest) {
       pendingId: pending.id,
       reference,
       authorizationUrl: paystackResult.authorizationUrl,
-      message: 'Phone verified! Redirecting to Paystack for KES 200 activation payment...',
+      message: 'Email verified! Redirecting to Paystack for KES 200 activation payment...',
     });
   } catch (error: any) {
     console.error('Verify registration OTP error:', error);

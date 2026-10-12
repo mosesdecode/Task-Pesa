@@ -47,7 +47,14 @@ export async function POST(req: NextRequest) {
     });
 
     if (type === 'PHONE' && user.phone) {
-      await sendSmsOtp(user.phone, code);
+      const smsResult = await sendSmsOtp(user.phone, code);
+      if (!smsResult.success && process.env.SMS_PROVIDER === 'africastalking') {
+        console.error(`[SEND-OTP DISPATCH FAILED] To: ${user.phone}, Error: ${smsResult.error}`);
+        return NextResponse.json(
+          { error: `Failed to deliver SMS verification code (${smsResult.error || 'Gateway error'}). Please try again.` },
+          { status: 502 }
+        );
+      }
     }
 
     return NextResponse.json({

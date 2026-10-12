@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
-import { sendSmsOtp } from '@/lib/sms';
+import { sendEmailOtp } from '@/lib/email';
 import { getWithdrawalEligibility } from '@/lib/wallet';
 
 export async function POST(req: NextRequest) {
@@ -80,14 +80,24 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Dispatch SMS via Africa's Talking
-    const smsResult = await sendSmsOtp(targetPhone, otpCode, 'WITHDRAWAL');
+    // Dispatch OTP via Email
+    const emailResult = await sendEmailOtp(user.email, otpCode, 'WITHDRAWAL', user.fullName);
+
+    if (!emailResult.success && process.env.EMAIL_USER) {
+      console.error(`[WITHDRAWAL OTP EMAIL FAILED] To: ${user.email}, Error: ${emailResult.error}`);
+      return NextResponse.json(
+        {
+          error: `Failed to send withdrawal authorization code to ${user.email} (${emailResult.error || 'Email gateway error'}). Please try again.`,
+        },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      message: `A 6-digit withdrawal authorization code was sent to ${targetPhone}.`,
-      phone: targetPhone,
-      smsProvider: smsResult.provider,
+      message: `A 6-digit withdrawal authorization code was sent to ${user.email}.`,
+      email: user.email,
+      emailProvider: emailResult.provider,
       demoCode: process.env.NODE_ENV !== 'production' ? otpCode : undefined,
     });
   } catch (error: any) {

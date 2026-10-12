@@ -24,7 +24,8 @@ export async function sendSmsOtp(
   purpose: 'REGISTRATION' | 'WITHDRAWAL' | 'VERIFICATION' = 'VERIFICATION'
 ): Promise<SendSmsResult> {
   const provider = process.env.SMS_PROVIDER || 'development';
-  const senderId = process.env.SMS_SENDER_ID || 'TaskMint';
+  // In live production, only send 'from' if an approved Alphanumeric Sender ID or Shortcode is explicitly configured
+  const senderId = process.env.SMS_SENDER_ID?.trim() || '';
   const targetPhone = normalizeKenyanPhone(phone);
 
   let messageText = `Your TaskMint verification code is: ${otpCode}. Valid for 10 minutes. Do not share this code.`;
@@ -34,11 +35,11 @@ export async function sendSmsOtp(
     messageText = `Your TaskMint withdrawal authorization code is: ${otpCode}. Valid for 10 minutes. NEVER share this code with anyone.`;
   }
 
-  // 1. Africa's Talking SMS Integration
+  // 1. Africa's Talking SMS Integration (Production & Sandbox)
   if (provider === 'africastalking' && process.env.AFRICASTALKING_API_KEY && process.env.AFRICASTALKING_USERNAME) {
     try {
-      const username = process.env.AFRICASTALKING_USERNAME;
-      const apiKey = process.env.AFRICASTALKING_API_KEY;
+      const username = process.env.AFRICASTALKING_USERNAME.trim();
+      const apiKey = process.env.AFRICASTALKING_API_KEY.trim();
       const isSandbox = username.toLowerCase() === 'sandbox';
       const endpoint = isSandbox
         ? 'https://api.sandbox.africastalking.com/version1/messaging'
@@ -48,6 +49,8 @@ export async function sendSmsOtp(
       formData.append('username', username);
       formData.append('to', targetPhone);
       formData.append('message', messageText);
+
+      // Only pass 'from' if explicitly set in environment and not on sandbox
       if (senderId && !isSandbox) {
         formData.append('from', senderId);
       }
@@ -62,19 +65,59 @@ export async function sendSmsOtp(
         body: formData.toString(),
       });
 
-      const data = await res.json();
+      // Handle non-200 responses safely (AT returns plain text on 401/403/500 errors)
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error(`[SMS ERROR Africa's Talking HTTP ${res.status}]:`, errorText);
+        let errorMsg = `Africa's Talking HTTP ${res.status}`;
+        if (res.status === 401) {
+          errorMsg = "Africa's Talking Authentication Failed: Please check your live AFRICASTALKING_USERNAME and AFRICASTALKING_API_KEY.";
+        } else if (res.status === 403) {
+          errorMsg = "Africa's Talking 403 Forbidden: Account suspended or unapproved Sender ID.";
+        } else if (errorText) {
+          errorMsg = `Africa's Talking: ${errorText}`;
+        }
+        return {
+          success: false,
+          provider: 'africastalking',
+          error: errorMsg,
+        };
+      }
+
+      // Safe JSON parsing
+      let data: any;
+      try {
+        data = await res.json();
+      } catch (parseErr) {
+        const rawBody = await res.text();
+        console.error("[SMS ERROR Africa's Talking Parse]:", rawBody);
+        return {
+          success: false,
+          provider: 'africastalking',
+          error: `Invalid response format from Africa's Talking: ${rawBody.slice(0, 100)}`,
+        };
+      }
+
       const recipientData = data?.SMSMessageData?.Recipients?.[0];
-      if (recipientData && (recipientData.status === 'Success' || recipientData.statusCode === 101)) {
+      const isSuccess = recipientData && (recipientData.status === 'Success' || recipientData.statusCode === 101);
+
+      if (isSuccess) {
         return {
           success: true,
           provider: 'africastalking',
           messageId: recipientData.messageId,
         };
       } else {
+        const statusMsg = recipientData?.status || data?.SMSMessageData?.Message || 'Failed to dispatch via Africa\'s Talking';
+        console.error('[SMS FAILED Africa\'s Talking Recipient]:', {
+          status: statusMsg,
+          statusCode: recipientData?.statusCode,
+          recipient: recipientData,
+        });
         return {
           success: false,
           provider: 'africastalking',
-          error: recipientData?.status || 'Failed to dispatch via Africa\'s Talking',
+          error: `SMS Delivery Failed (${statusMsg})`,
         };
       }
     } catch (err: any) {
@@ -84,7 +127,7 @@ export async function sendSmsOtp(
   }
 
   // 2. Development & Staging Fallback
-  // Logs to secure server console so verification can be tested immediately in dev/staging environments
+  // Logs to server console for non-production environments
   console.log(`[SMS OTP DISPATCH] Provider: ${provider} | To: ${phone} | Text: "${messageText}" | Code: ${otpCode}`);
 
   return {

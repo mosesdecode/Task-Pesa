@@ -118,7 +118,17 @@ export async function POST(req: NextRequest) {
     });
 
     // Dispatch SMS via provider abstraction
-    await sendSmsOtp(normalizedPhone, code);
+    const smsResult = await sendSmsOtp(normalizedPhone, code);
+
+    if (!smsResult.success && process.env.SMS_PROVIDER === 'africastalking') {
+      console.error(`[PASSWORD RESET OTP DISPATCH FAILED] To: ${normalizedPhone}, Error: ${smsResult.error}`);
+      return NextResponse.json(
+        {
+          error: `Failed to deliver reset code via SMS (${smsResult.error || 'Gateway error'}). Please try again.`,
+        },
+        { status: 502 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
