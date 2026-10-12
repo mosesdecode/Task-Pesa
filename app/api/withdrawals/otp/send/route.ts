@@ -33,8 +33,12 @@ export async function POST(req: NextRequest) {
 
     // Check withdrawal eligibility rules
     const eligibility = await getWithdrawalEligibility(user.id);
-    if (!eligibility.eligible) {
-      return NextResponse.json({ error: eligibility.reason || 'You are not eligible to withdraw at this time.' }, { status: 400 });
+    if (!eligibility.isEligible) {
+      const failedChecks = Object.entries(eligibility.checks)
+        .filter(([, v]) => !v.met)
+        .map(([k]) => k)
+        .join(', ');
+      return NextResponse.json({ error: `You are not eligible to withdraw yet. Pending: ${failedChecks || 'requirements not met'}.` }, { status: 400 });
     }
 
     const targetPhone = mpesaNumber || user.mpesaNumber || user.phone;
