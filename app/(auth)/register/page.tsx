@@ -16,6 +16,8 @@ import {
   ShieldCheck,
   ArrowLeft,
   RotateCw,
+  Mail,
+  Inbox,
 } from 'lucide-react';
 
 type Step = 'form' | 'otp' | 'waiting' | 'success' | 'failed';
@@ -47,6 +49,7 @@ function RegisterForm() {
   const [otpCode, setOtpCode] = useState('');
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const [resendingOtp, setResendingOtp] = useState(false);
+  const [resendMsg, setResendMsg] = useState<string | null>(null);
   const [otpCooldown, setOtpCooldown] = useState(60);
   const cooldownTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -132,6 +135,7 @@ function RegisterForm() {
   const handleInitiate = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setResendMsg(null);
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
@@ -182,6 +186,7 @@ function RegisterForm() {
 
     setVerifyingOtp(true);
     setError(null);
+    setResendMsg(null);
 
     try {
       const res = await fetch('/api/auth/register/verify-otp', {
@@ -209,12 +214,13 @@ function RegisterForm() {
     }
   };
 
-  // Resend OTP via Africa's Talking
+  // Resend OTP via Email
   const handleResendOtp = async () => {
     if (otpCooldown > 0 || resendingOtp || !pendingId) return;
 
     setResendingOtp(true);
     setError(null);
+    setResendMsg(null);
 
     try {
       const res = await fetch('/api/auth/register/verify-otp', {
@@ -227,6 +233,7 @@ function RegisterForm() {
       if (!res.ok) throw new Error(data.error || 'Failed to resend OTP');
 
       if (data.demoCode) setDemoCode(data.demoCode);
+      setResendMsg(data.message || 'A fresh 6-digit code has been sent to your email.');
       setOtpCooldown(60);
     } catch (err: any) {
       setError(err.message);
@@ -238,23 +245,51 @@ function RegisterForm() {
   // ── STEP 2: OTP VERIFICATION SCREEN ──
   if (step === 'otp') {
     return (
-      <div className="w-full max-w-xl glass-card rounded-3xl p-8 sm:p-12 space-y-8 border border-slate-700/80 shadow-2xl text-center">
+      <div className="w-full max-w-xl glass-card rounded-3xl p-8 sm:p-12 space-y-7 border border-slate-700/80 shadow-2xl text-center">
         <div className="flex flex-col items-center gap-4">
           <span className="px-3 py-1 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-300 text-xs font-bold uppercase tracking-wider">
             Step 1 of 2 · Email Verification
           </span>
           <div className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center shadow-xl shadow-brand-500/20">
-            <ShieldCheck className="w-10 h-10 text-white" />
+            <Mail className="w-10 h-10 text-white" />
           </div>
           <div>
             <h2 className="text-2xl font-black text-white">Check Your Email</h2>
             <p className="text-sm text-slate-400 mt-1">
               Enter the 6-digit verification code sent to{' '}
-              <strong className="text-emerald-400 font-mono">{sentEmail}</strong>
+              <strong className="text-emerald-400 font-mono break-all">{sentEmail}</strong>
             </p>
-            <p className="text-xs text-slate-500 mt-1">Check your inbox and spam/junk folder.</p>
           </div>
         </div>
+
+        {/* Guidance Card: What to do while waiting */}
+        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-left space-y-2 text-xs text-slate-300 shadow-inner">
+          <p className="font-bold text-slate-200 flex items-center gap-2 text-[12px]">
+            <Inbox className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>What to do while waiting:</span>
+          </p>
+          <ul className="space-y-1.5 text-slate-400 pl-1 text-[11px] leading-relaxed">
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-400 font-bold">•</span>
+              <span>Open the inbox for <strong className="text-slate-200">{sentEmail}</strong>.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-amber-400 font-bold">•</span>
+              <span><strong className="text-amber-300">Check Spam or Junk folder</strong> if the email does not show in primary inbox within 30 seconds.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-emerald-400 font-bold">•</span>
+              <span>Enter the 6-digit code below to proceed to your KES 200 account activation.</span>
+            </li>
+          </ul>
+        </div>
+
+        {resendMsg && (
+          <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 text-left">
+            <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+            <span>{resendMsg}</span>
+          </div>
+        )}
 
         {demoCode && (
           <div className="p-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs">
@@ -290,7 +325,10 @@ function RegisterForm() {
             className="w-full py-4 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 font-black text-sm shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
           >
             {verifyingOtp ? (
-              <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+              <div className="flex items-center gap-2">
+                <Loader2 className="w-5 h-5 text-slate-950 animate-spin" />
+                <span>Verifying code & preparing Paystack...</span>
+              </div>
             ) : (
               <>
                 <CreditCard className="w-4 h-4" />
@@ -303,7 +341,7 @@ function RegisterForm() {
         <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
           <button
             type="button"
-            onClick={() => { setStep('form'); setError(null); }}
+            onClick={() => { setStep('form'); setError(null); setResendMsg(null); }}
             className="inline-flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
@@ -317,7 +355,7 @@ function RegisterForm() {
             className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-semibold disabled:opacity-40 disabled:no-underline cursor-pointer"
           >
             <RotateCw className={`w-3.5 h-3.5 ${resendingOtp ? 'animate-spin' : ''}`} />
-            <span>{otpCooldown > 0 ? `Resend Code (${otpCooldown}s)` : 'Resend Code'}</span>
+            <span>{resendingOtp ? 'Sending fresh code...' : otpCooldown > 0 ? `Resend Code (${otpCooldown}s)` : 'Resend Code'}</span>
           </button>
         </div>
       </div>
@@ -428,7 +466,7 @@ function RegisterForm() {
 
       {/* Step notice */}
       <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3">
-        <Smartphone className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
+        <Mail className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
         <div className="space-y-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold uppercase tracking-wider">
@@ -490,6 +528,7 @@ function RegisterForm() {
             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
           />
+          <p className="text-[10px] text-emerald-400">Your 6-digit verification code will be sent here</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -503,7 +542,7 @@ function RegisterForm() {
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
             />
-            <p className="text-[10px] text-slate-500">Will receive verification SMS code</p>
+            <p className="text-[10px] text-slate-500">For M-Pesa payouts and account notifications</p>
           </div>
           <div className="space-y-1">
             <label className="text-xs font-semibold text-gray-300">M-Pesa Number (for Payouts)</label>
@@ -592,11 +631,14 @@ function RegisterForm() {
           className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 font-black text-sm shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 mt-4 cursor-pointer"
         >
           {loading ? (
-            <div className="w-5 h-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-5 h-5 text-slate-950 animate-spin" />
+              <span>Sending verification code to your email...</span>
+            </div>
           ) : (
             <>
-              <Smartphone className="w-4 h-4" />
-              <span>Verify Phone & Continue</span>
+              <Mail className="w-4 h-4" />
+              <span>Verify Email & Continue</span>
             </>
           )}
         </button>
