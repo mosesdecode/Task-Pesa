@@ -14,20 +14,12 @@ const navItems = [
   { label: 'Admin', href: '/admin', icon: ShieldCheck },
 ];
 
+import { useMe } from '@/lib/useMe';
+
 export default function MobileNav() {
   const pathname = usePathname();
-  const [isAdmin, setIsAdmin] = React.useState(false);
-
-  React.useEffect(() => {
-    fetch('/api/auth/me')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.user?.role === 'ADMIN') {
-          setIsAdmin(true);
-        }
-      })
-      .catch(() => {});
-  }, [pathname]);
+  const { user } = useMe();
+  const isAdmin = user?.role === 'ADMIN';
 
   if (pathname === '/admin/login') return null;
 

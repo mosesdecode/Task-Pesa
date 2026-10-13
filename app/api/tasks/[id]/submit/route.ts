@@ -45,7 +45,14 @@ export async function POST(
       },
     });
 
-    const dailyLimit = user.package?.taskLimitDaily || 10;
+    let dailyLimit = 10;
+    if (user.packageId) {
+      const pkg = await prisma.membershipPackage.findUnique({
+        where: { id: user.packageId },
+        select: { taskLimitDaily: true },
+      });
+      if (pkg?.taskLimitDaily) dailyLimit = pkg.taskLimitDaily;
+    }
     if (todaySubmissionsCount >= dailyLimit) {
       return NextResponse.json(
         { error: `Daily task limit reached (${dailyLimit} tasks) for your account package. Upgrade your package to submit more tasks today!` },

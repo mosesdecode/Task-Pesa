@@ -22,17 +22,17 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Validate size (max 5MB for screenshots and avatars)
-    const MAX_SIZE = 5 * 1024 * 1024;
+    const { searchParams } = new URL(req.url);
+    const isProof = searchParams.get('type') === 'proof';
+
+    // Validate size (max 5MB for task proof screenshots; max 350KB for compressed profile avatars)
+    const MAX_SIZE = isProof ? 5 * 1024 * 1024 : 350 * 1024;
     if (file.size > MAX_SIZE) {
       return NextResponse.json(
-        { error: 'File size exceeds 5MB limit. Please choose a smaller image.' },
+        { error: isProof ? 'File size exceeds 5MB limit.' : 'Profile photo exceeds 350KB limit. Please choose a smaller photo.' },
         { status: 400 }
       );
     }
-
-    const { searchParams } = new URL(req.url);
-    const isProof = searchParams.get('type') === 'proof';
 
     const bytes = await file.arrayBuffer();
     const base64 = Buffer.from(bytes).toString('base64');
@@ -57,15 +57,17 @@ export async function POST(req: NextRequest) {
         username: true,
         email: true,
         phone: true,
-        profilePhoto: true,
         phoneVerified: true,
+        updatedAt: true,
       },
     });
+
+    const avatarUrl = `/api/users/${user.id}/avatar?v=${Date.now()}`;
 
     return NextResponse.json({
       success: true,
       message: 'Profile photo updated successfully!',
-      profilePhoto: dataUrl,
+      profilePhoto: avatarUrl,
       user: updatedUser,
     });
   } catch (error: any) {

@@ -36,7 +36,16 @@ export async function POST(
       PLATINUM: 4,
     };
 
-    const userTierRank = TIER_RANKS[user.package?.name || 'BRONZE'] || 1;
+    let userPackageName = 'BRONZE';
+    if (user.packageId) {
+      const pkg = await prisma.membershipPackage.findUnique({
+        where: { id: user.packageId },
+        select: { name: true },
+      });
+      if (pkg?.name) userPackageName = pkg.name;
+    }
+
+    const userTierRank = TIER_RANKS[userPackageName] || 1;
     const requiredTierRank = TIER_RANKS[campaign.minPackageTier || 'BRONZE'] || 1;
 
     if (userTierRank < requiredTierRank) {

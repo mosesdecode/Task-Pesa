@@ -20,7 +20,28 @@ export async function GET(req: NextRequest) {
             ],
           }
         : undefined,
-      include: {
+      select: {
+        id: true,
+        fullName: true,
+        username: true,
+        email: true,
+        phone: true,
+        mpesaNumber: true,
+        role: true,
+        status: true,
+        referralCode: true,
+        firstName: true,
+        surname: true,
+        isBanned: true,
+        banReason: true,
+        isFlagged: true,
+        flagReason: true,
+        isVerified: true,
+        phoneVerified: true,
+        emailVerified: true,
+        country: true,
+        createdAt: true,
+        updatedAt: true,
         package: true,
         wallet: true,
         deviceLogs: { take: 1, orderBy: { createdAt: 'desc' } },
@@ -29,7 +50,12 @@ export async function GET(req: NextRequest) {
       take: 100,
     });
 
-    return NextResponse.json({ users });
+    const mappedUsers = users.map((u) => ({
+      ...u,
+      profilePhoto: `/api/users/${u.id}/avatar?v=${u.updatedAt ? new Date(u.updatedAt).getTime() : 1}`,
+    }));
+
+    return NextResponse.json({ users: mappedUsers });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 403 });
   }

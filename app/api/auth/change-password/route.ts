@@ -23,7 +23,16 @@ export async function POST(req: NextRequest) {
     }
 
     // Verify current password
-    const isMatch = await verifyPassword(currentPassword, user.passwordHash);
+    const userWithHash = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { passwordHash: true },
+    });
+
+    if (!userWithHash) {
+      return NextResponse.json({ error: 'User account not found.' }, { status: 404 });
+    }
+
+    const isMatch = await verifyPassword(currentPassword, userWithHash.passwordHash);
     if (!isMatch) {
       return NextResponse.json(
         { error: 'Current password provided is incorrect.' },

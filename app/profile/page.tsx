@@ -85,31 +85,72 @@ export default function ProfilePage() {
     fetchUser();
   }, []);
 
+  // Client-side avatar compressor (max 400px JPEG, ~30-50 kB)
+  const compressAvatar = (file: File, maxDim = 400): Promise<File> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.round(img.width * scale);
+          canvas.height = Math.round(img.height * scale);
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve(file);
+            return;
+          }
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob(
+            (blob) => {
+              if (!blob) {
+                resolve(file);
+                return;
+              }
+              const compressedFile = new File([blob], file.name.replace(/\.[^.]+$/, '.jpg'), {
+                type: 'image/jpeg',
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            },
+            'image/jpeg',
+            0.8
+          );
+        };
+        img.onerror = () => resolve(file);
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => resolve(file);
+      reader.readAsDataURL(file);
+    });
+  };
+
   // Handle direct file upload for profile photo
   const handleAvatarSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
-    // Validate size (< 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Selected image exceeds the 5MB size limit. Please choose a smaller photo.');
+    // Validate size (< 10MB input before compression)
+    if (rawFile.size > 10 * 1024 * 1024) {
+      setError('Selected image exceeds the 10MB size limit. Please choose a smaller photo.');
       return;
     }
-
-    // Preview
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      setAvatarPreview(event.target?.result as string);
-    };
-    reader.readAsDataURL(file);
 
     setError('');
     setGlobalSuccessMsg('');
     setUploadingAvatar(true);
 
     try {
+      // Compress to lightweight 400px JPEG
+      const compressedFile = await compressAvatar(rawFile, 400);
+
+      // Local preview
+      const previewUrl = URL.createObjectURL(compressedFile);
+      setAvatarPreview(previewUrl);
+
       const formData = new FormData();
-      formData.append('avatar', file);
+      formData.append('avatar', compressedFile);
 
       const res = await fetch('/api/profile/avatar', {
         method: 'POST',

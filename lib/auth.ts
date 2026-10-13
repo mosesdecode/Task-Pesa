@@ -29,8 +29,26 @@ export async function getSessionUser(req: NextRequest) {
 
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    include: {
-      package: true,
+    select: {
+      id: true,
+      fullName: true,
+      username: true,
+      email: true,
+      phone: true,
+      mpesaNumber: true,
+      role: true,
+      status: true,
+      referralCode: true,
+      firstName: true,
+      surname: true,
+      phoneVerified: true,
+      emailVerified: true,
+      country: true,
+      packageId: true,
+      isBanned: true,
+      isFlagged: true,
+      createdAt: true,
+      updatedAt: true,
       wallet: true,
     },
   });

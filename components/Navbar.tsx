@@ -17,6 +17,7 @@ import {
   Users,
 } from 'lucide-react';
 import InactivityTimeout from '@/components/InactivityTimeout';
+import { useMe, invalidateMe } from '@/lib/useMe';
 
 const navLinks = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -29,25 +30,11 @@ const navLinks = [
 export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { user, mutate } = useMe();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const [logoutLoading, setLogoutLoading] = useState(false);
   const [logoutError, setLogoutError] = useState('');
-
-  const fetchUser = async () => {
-    try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-      } else {
-        setUser(null);
-      }
-    } catch (e) {
-      setUser(null);
-    }
-  };
 
   const fetchNotifications = async () => {
     try {
@@ -60,7 +47,6 @@ export default function Navbar() {
   };
 
   useEffect(() => {
-    fetchUser();
     fetchNotifications();
   }, [pathname]);
 
@@ -82,7 +68,7 @@ export default function Navbar() {
       }
       // Clear local state before navigating
       sessionStorage.removeItem('taskmint_tab_active');
-      setUser(null);
+      invalidateMe();
       // replace() removes the page from history so Back cannot restore it
       window.location.replace('/login');
     } catch (e: any) {
@@ -191,6 +177,9 @@ export default function Navbar() {
                           src={user.profilePhoto}
                           alt={user.fullName || user.username}
                           className="w-full h-full object-cover"
+                          onError={(e) => {
+                            (e.currentTarget as HTMLElement).style.display = 'none';
+                          }}
                         />
                       ) : (
                         <div className="w-full h-full bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-white text-xs">

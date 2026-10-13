@@ -10,6 +10,8 @@ export async function GET(req: NextRequest) {
       return response;
     }
 
+    const avatarUrl = `/api/users/${user.id}/avatar?v=${user.updatedAt ? new Date(user.updatedAt).getTime() : 1}`;
+
     const response = NextResponse.json({
       user: {
         id: user.id,
@@ -23,7 +25,7 @@ export async function GET(req: NextRequest) {
         referralCode: user.referralCode,
         firstName: user.firstName,
         surname: user.surname,
-        profilePhoto: user.profilePhoto,
+        profilePhoto: avatarUrl,
         phoneVerified: user.phoneVerified,
         emailVerified: user.emailVerified,
         country: user.country || 'KE',
