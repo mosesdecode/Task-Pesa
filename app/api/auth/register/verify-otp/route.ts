@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
 
     if (storedCode !== code.trim()) {
       return NextResponse.json(
-        { error: 'Incorrect verification code. Please check your SMS and try again.' },
+        { error: 'Incorrect verification code. Please check your email and try again.' },
         { status: 400 }
       );
     }
