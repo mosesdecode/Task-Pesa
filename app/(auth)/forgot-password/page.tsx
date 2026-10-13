@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
   KeyRound,
-  Phone,
+  Mail,
   Lock,
   Eye,
   EyeOff,
@@ -16,20 +16,21 @@ import {
   ArrowRight,
   ShieldCheck,
 } from 'lucide-react';
-import { normalizeKenyanPhone, isSafaricomNumber, formatKenyanPhoneDisplay } from '@/lib/phone';
 
 function ForgotPasswordForm() {
   const router = useRouter();
 
-  // Step: 1 = Phone, 2 = OTP, 3 = New Password, 4 = Success
+  // Step: 1 = Email, 2 = OTP, 3 = New Password, 4 = Success
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
 
   // Form states
-  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [sentEmail, setSentEmail] = useState('');
   const [otpCode, setOtpCode] = useState('');
   const [resetToken, setResetToken] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [demoOtp, setDemoOtp] = useState<string | null>(null);
 
   // Password visibility
   const [showNew, setShowNew] = useState(false);
@@ -50,20 +51,21 @@ function ForgotPasswordForm() {
     return () => clearInterval(interval);
   }, [cooldown]);
 
-  // Step 1: Send OTP
+  // Step 1: Send OTP to Email
   const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setSuccessMsg(null);
+    setDemoOtp(null);
 
-    if (!phone.trim()) {
-      setError('Please enter your registered Safaricom phone number.');
+    const trimmed = email.trim();
+    if (!trimmed) {
+      setError('Please enter your registered email address.');
       return;
     }
 
-    const normalized = normalizeKenyanPhone(phone.trim());
-    if (!isSafaricomNumber(normalized)) {
-      setError('Please enter a valid Kenyan Safaricom phone number (07XX or 011X).');
+    if (!trimmed.includes('@')) {
+      setError('Please enter a valid email address.');
       return;
     }
 
@@ -72,7 +74,7 @@ function ForgotPasswordForm() {
       const res = await fetch('/api/auth/forgot-password/request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: normalized }),
+        body: JSON.stringify({ email: trimmed.toLowerCase() }),
       });
 
       const data = await res.json();
@@ -81,7 +83,9 @@ function ForgotPasswordForm() {
         throw new Error(data.error || 'Failed to send reset code');
       }
 
-      setSuccessMsg(data.message || 'Verification code sent!');
+      setSentEmail(data.email || trimmed.toLowerCase());
+      if (data.demoCode) setDemoOtp(data.demoCode);
+      setSuccessMsg(data.message || 'Verification code sent to your email!');
       setCooldown(60);
       setStep(2);
     } catch (err: any) {
@@ -108,7 +112,7 @@ function ForgotPasswordForm() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          phone: normalizeKenyanPhone(phone.trim()),
+          email: sentEmail || email.trim().toLowerCase(),
           code: otpCode.trim(),
         }),
       });
@@ -178,7 +182,7 @@ function ForgotPasswordForm() {
         </Link>
         <h1 className="text-2xl font-black text-white">Reset Account Password</h1>
         <p className="text-xs text-gray-400">
-          Recover access to your TaskMint account using your verified Safaricom phone number.
+          Recover access to your TaskMint account using your registered email address.
         </p>
       </div>
 
@@ -212,26 +216,26 @@ function ForgotPasswordForm() {
         </div>
       )}
 
-      {/* STEP 1: Enter Safaricom Phone Number */}
+      {/* STEP 1: Enter Registered Email */}
       {step === 1 && (
         <form onSubmit={handleSendCode} className="space-y-4">
           <div className="space-y-1">
             <label className="text-xs font-semibold text-gray-300 uppercase">
-              Safaricom Phone Number
+              Registered Email Address
             </label>
             <div className="relative">
               <input
-                type="tel"
+                type="email"
                 required
-                placeholder="07XXXXXXXX or 011XXXXXXX"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                className="w-full px-4 py-3 pl-11 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono text-sm focus:outline-none focus:border-brand-500"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 pl-11 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
               />
-              <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+              <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
             </div>
             <p className="text-[11px] text-gray-400 mt-1">
-              We will send a 6-digit verification code to this phone number.
+              We will send a 6-digit verification code to your email.
             </p>
           </div>
 
@@ -286,8 +290,21 @@ function ForgotPasswordForm() {
               className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white font-mono tracking-[0.5em] text-center text-xl font-bold focus:outline-none focus:border-brand-500"
             />
             <p className="text-[11px] text-gray-400 mt-1">
-              Sent to <strong className="font-mono text-white">{formatKenyanPhoneDisplay(phone)}</strong>.
+              Sent to <strong className="font-mono text-white">{sentEmail || email}</strong>. Please check your inbox or spam folder.
             </p>
+
+            {demoOtp && (
+              <div className="mt-2 p-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs flex items-center justify-between font-mono">
+                <span>Dev Code: <strong>{demoOtp}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => setOtpCode(demoOtp)}
+                  className="text-[11px] underline text-amber-400 hover:text-white"
+                >
+                  Auto-fill
+                </button>
+              </div>
+            )}
           </div>
 
           <button
@@ -310,7 +327,7 @@ function ForgotPasswordForm() {
             onClick={() => setStep(1)}
             className="w-full text-center text-xs text-gray-400 hover:text-white pt-2 cursor-pointer"
           >
-            Change Phone Number
+            Change Email Address
           </button>
         </form>
       )}

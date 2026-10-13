@@ -1,52 +1,53 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { normalizeKenyanPhone, isSafaricomNumber, formatKenyanPhoneDisplay } from '@/lib/phone';
-import { sendSmsOtp } from '@/lib/sms';
+import { sendEmailOtp } from '@/lib/email';
+import { normalizeKenyanPhone } from '@/lib/phone';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { phone } = body;
+    const { email, phone } = body;
 
-    if (!phone || typeof phone !== 'string') {
+    const rawInput = (email || phone || '').toString().trim();
+    if (!rawInput) {
       return NextResponse.json(
-        { error: 'Please enter your registered Safaricom phone number' },
+        { error: 'Please enter your registered email address.' },
         { status: 400 }
       );
     }
 
-    const normalizedPhone = normalizeKenyanPhone(phone.trim());
+    let user = null;
 
-    if (!isSafaricomNumber(normalizedPhone)) {
-      return NextResponse.json(
-        {
-          error: 'Please enter a valid Kenyan Safaricom phone number (e.g. 07XXXXXXXX or 011XXXXXXX).',
+    if (rawInput.includes('@')) {
+      const normalizedEmail = rawInput.toLowerCase();
+      user = await prisma.user.findFirst({
+        where: {
+          email: { equals: normalizedEmail, mode: 'insensitive' },
         },
-        { status: 400 }
-      );
+      });
+    } else {
+      // Fallback: match by phone variants if user entered phone
+      const normalizedPhone = normalizeKenyanPhone(rawInput);
+      const rawDigits = normalizedPhone.replace(/^\+/, '');
+      const phoneVariants = [
+        normalizedPhone,
+        rawDigits,
+        rawDigits.startsWith('254') ? `0${rawDigits.slice(3)}` : rawDigits,
+      ];
+
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            ...phoneVariants.map(p => ({ phone: p })),
+            ...phoneVariants.map(p => ({ mpesaNumber: p })),
+          ],
+        },
+      });
     }
-
-    // Prepare phone format variations for resilient matching
-    const rawDigits = normalizedPhone.replace(/^\+/, '');
-    const phoneVariants = [
-      normalizedPhone,
-      rawDigits,
-      rawDigits.startsWith('254') ? `0${rawDigits.slice(3)}` : rawDigits,
-    ];
-
-    // Find account by phone or mpesaNumber matching any variant
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          ...phoneVariants.map(p => ({ phone: p })),
-          ...phoneVariants.map(p => ({ mpesaNumber: p })),
-        ],
-      },
-    });
 
     if (!user) {
       return NextResponse.json(
-        { error: 'No account found with this Safaricom phone number. Please check the number or register.' },
+        { error: 'No account found with this email address. Please check the address or create a new account.' },
         { status: 404 }
       );
     }
@@ -117,14 +118,14 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    // Dispatch SMS via provider abstraction
-    const smsResult = await sendSmsOtp(normalizedPhone, code);
+    // Dispatch OTP via Email
+    const emailResult = await sendEmailOtp(user.email, code, 'PASSWORD_RESET', user.fullName);
 
-    if (!smsResult.success && process.env.SMS_PROVIDER === 'africastalking') {
-      console.error(`[PASSWORD RESET OTP DISPATCH FAILED] To: ${normalizedPhone}, Error: ${smsResult.error}`);
+    if (!emailResult.success && process.env.EMAIL_USER) {
+      console.error(`[PASSWORD RESET OTP DISPATCH FAILED] To: ${user.email}, Error: ${emailResult.error}`);
       return NextResponse.json(
         {
-          error: `Failed to deliver reset code via SMS (${smsResult.error || 'Gateway error'}). Please try again.`,
+          error: `Failed to deliver reset code to ${user.email} (${emailResult.error || 'Email gateway error'}). Please try again.`,
         },
         { status: 502 }
       );
@@ -132,8 +133,9 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Verification code sent to ${formatKenyanPhoneDisplay(normalizedPhone)}.`,
-      phone: normalizedPhone,
+      message: `A 6-digit verification code has been sent to ${user.email}.`,
+      email: user.email,
+      demoCode: process.env.NODE_ENV !== 'production' ? code : undefined,
     });
   } catch (error: any) {
     console.error('Password reset request error:', error);

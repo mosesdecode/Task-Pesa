@@ -30,13 +30,13 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
 
   // Active Tab
-  const [activeTab, setActiveTab] = useState<'PROFILE' | 'VERIFICATION' | 'SECURITY'>('PROFILE');
+  const [activeTab, setActiveTab] = useState<'PROFILE' | 'SECURITY'>('PROFILE');
 
   // Profile fields
   const [firstName, setFirstName] = useState('');
   const [surname, setSurname] = useState('');
   const [profilePhoto, setProfilePhoto] = useState('');
-  const [phoneInput, setPhoneInput] = useState('');
+  const [mpesaInput, setMpesaInput] = useState('');
 
   // Password fields
   const [currentPassword, setCurrentPassword] = useState('');
@@ -46,13 +46,6 @@ export default function ProfilePage() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // Phone OTP Verification
-  const [otpCode, setOtpCode] = useState('');
-  const [otpSent, setOtpSent] = useState(false);
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const [cooldown, setCooldown] = useState(0);
-
   // Avatar upload
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
@@ -60,23 +53,9 @@ export default function ProfilePage() {
 
   // Status & Feedback
   const [submitting, setSubmitting] = useState(false);
+  const [profileSaved, setProfileSaved] = useState(false);
   const [error, setError] = useState('');
-  const [successMsg, setSuccessMsg] = useState('');
-
-  // Cooldown countdown timer
-  useEffect(() => {
-    if (cooldown <= 0) return;
-    const interval = setInterval(() => {
-      setCooldown((prev) => {
-        if (prev <= 1) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-    return () => clearInterval(interval);
-  }, [cooldown]);
+  const [globalSuccessMsg, setGlobalSuccessMsg] = useState(''); // avatar upload, password change
 
   const fetchUser = async () => {
     try {
@@ -93,7 +72,7 @@ export default function ProfilePage() {
         setFirstName(data.user.firstName || '');
         setSurname(data.user.surname || '');
         setProfilePhoto(data.user.profilePhoto || '');
-        setPhoneInput(data.user.phone || '');
+        setMpesaInput(data.user.mpesaNumber || data.user.phone || '');
       }
     } catch (e) {
       console.error('Failed to load profile:', e);
@@ -125,7 +104,7 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
 
     setError('');
-    setSuccessMsg('');
+    setGlobalSuccessMsg('');
     setUploadingAvatar(true);
 
     try {
@@ -144,7 +123,7 @@ export default function ProfilePage() {
 
       setProfilePhoto(data.profilePhoto);
       setUser((prev: any) => ({ ...prev, profilePhoto: data.profilePhoto }));
-      setSuccessMsg('Profile photo uploaded and updated successfully!');
+      setGlobalSuccessMsg('Profile photo uploaded and updated successfully!');
     } catch (err: any) {
       setError(err.message || 'Avatar upload failed');
       setAvatarPreview(null);
@@ -158,7 +137,8 @@ export default function ProfilePage() {
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccessMsg('');
+    setGlobalSuccessMsg('');
+    setProfileSaved(false);
     setSubmitting(true);
 
     try {
@@ -169,13 +149,23 @@ export default function ProfilePage() {
           firstName,
           surname,
           profilePhoto,
+          mpesaNumber: mpesaInput.trim(),
         }),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update profile');
 
-      setSuccessMsg('Profile information updated successfully!');
+      if (data.user) {
+        setUser(data.user);
+        setFirstName(data.user.firstName || '');
+        setSurname(data.user.surname || '');
+        setProfilePhoto(data.user.profilePhoto || '');
+        setMpesaInput(data.user.mpesaNumber || data.user.phone || '');
+      }
+
+      setProfileSaved(true);
+      setTimeout(() => setProfileSaved(false), 3500);
       fetchUser();
     } catch (err: any) {
       setError(err.message || 'Failed to update profile');
@@ -184,88 +174,11 @@ export default function ProfilePage() {
     }
   };
 
-  // Handle Send Safaricom OTP
-  const handleSendPhoneOtp = async () => {
-    setError('');
-    setSuccessMsg('');
-
-    const targetPhone = phoneInput.trim() || user?.phone;
-    if (!targetPhone) {
-      setError('Please provide a valid Safaricom phone number to verify.');
-      return;
-    }
-
-    const normalized = normalizeKenyanPhone(targetPhone);
-    if (!isSafaricomNumber(normalized)) {
-      setError('Please enter a valid Kenyan Safaricom phone number (07XX or 011X).');
-      return;
-    }
-
-    setSendingOtp(true);
-    try {
-      const res = await fetch('/api/auth/otp/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: normalized }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        if (data.retryAfter) {
-          setCooldown(data.retryAfter);
-        }
-        throw new Error(data.error || 'Failed to dispatch verification code');
-      }
-
-      setOtpSent(true);
-      setCooldown(60); // 60-second cooldown
-      setSuccessMsg(`Verification code sent to ${formatKenyanPhoneDisplay(normalized)}!`);
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setSendingOtp(false);
-    }
-  };
-
-  // Handle Verify Phone OTP
-  const handleVerifyPhoneOtp = async () => {
-    if (!otpCode || otpCode.trim().length !== 6) {
-      setError('Please enter the complete 6-digit numeric verification code.');
-      return;
-    }
-
-    setError('');
-    setSuccessMsg('');
-    setVerifyingOtp(true);
-
-    try {
-      const res = await fetch('/api/auth/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: otpCode.trim() }),
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || 'Verification failed. Please check the code.');
-      }
-
-      setSuccessMsg(data.message || 'Phone number verified successfully!');
-      setOtpSent(false);
-      setOtpCode('');
-      fetchUser();
-    } catch (err: any) {
-      setError(err.message);
-    } finally {
-      setVerifyingOtp(false);
-    }
-  };
-
   // Handle Change Password
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setSuccessMsg('');
+    setGlobalSuccessMsg('');
 
     if (newPassword !== confirmPassword) {
       setError('New password and confirm password do not match.');
@@ -288,7 +201,7 @@ export default function ProfilePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update password');
 
-      setSuccessMsg(data.message || 'Password changed successfully!');
+      setGlobalSuccessMsg(data.message || 'Password changed successfully!');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -311,7 +224,7 @@ export default function ProfilePage() {
             Account & Profile Settings
           </h1>
           <p className="text-slate-400 text-sm mt-1">
-            Manage your personal profile, Safaricom phone verification, and security credentials.
+            Manage your personal profile, M-Pesa payouts, and security credentials.
           </p>
         </div>
 
@@ -323,10 +236,10 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {successMsg && (
+        {globalSuccessMsg && (
           <div className="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 flex items-center gap-3 animate-in fade-in duration-200">
             <Sparkles className="w-5 h-5 shrink-0 text-emerald-400" />
-            <span className="text-sm font-medium">{successMsg}</span>
+            <span className="text-sm font-medium">{globalSuccessMsg}</span>
           </div>
         )}
 
@@ -475,21 +388,15 @@ export default function ProfilePage() {
 
                     <div className="flex items-center justify-between">
                       <span className="text-slate-400 flex items-center gap-1.5">
-                        <Phone className="w-3.5 h-3.5 text-slate-400" /> Safaricom Phone Number
+                        <Phone className="w-3.5 h-3.5 text-slate-400" /> M-Pesa Payout Number
                       </span>
                       <div className="flex items-center gap-1.5">
                         <span className="font-mono text-white">
-                          {formatKenyanPhoneDisplay(user.phone)}
+                          {formatKenyanPhoneDisplay(user.mpesaNumber || user.phone)}
                         </span>
-                        {user.phoneVerified ? (
-                          <span className="flex items-center text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
-                            <Check className="w-3 h-3 mr-0.5" /> Verified
-                          </span>
-                        ) : (
-                          <span className="text-[10px] text-amber-400 font-bold bg-amber-500/10 px-1.5 py-0.5 rounded border border-amber-500/20">
-                            Unverified
-                          </span>
-                        )}
+                        <span className="flex items-center text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                          <Check className="w-3 h-3 mr-0.5" /> Ready
+                        </span>
                       </div>
                     </div>
 
@@ -529,17 +436,6 @@ export default function ProfilePage() {
                 Personal Details
               </button>
               <button
-                onClick={() => setActiveTab('VERIFICATION')}
-                className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                  activeTab === 'VERIFICATION'
-                    ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30 shadow-md'
-                    : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <ShieldCheck className="w-4 h-4" />
-                Phone Verification
-              </button>
-              <button
                 onClick={() => setActiveTab('SECURITY')}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   activeTab === 'SECURITY'
@@ -551,6 +447,41 @@ export default function ProfilePage() {
               </button>
             </div>
 
+            {/* Tab Content: skeleton while loading, tabs when ready */}
+            {loading ? (
+              <div className="bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-md animate-pulse">
+                <div className="border-b border-dark-800 pb-4 space-y-2">
+                  <Skeleton className="w-44 h-5" />
+                  <Skeleton className="w-72 h-3" />
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Skeleton className="w-20 h-3" />
+                    <Skeleton className="w-full h-11 rounded-xl" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="w-16 h-3" />
+                    <Skeleton className="w-full h-11 rounded-xl" />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="w-32 h-3" />
+                  <Skeleton className="w-full h-11 rounded-xl" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="w-40 h-3" />
+                  <Skeleton className="w-full h-11 rounded-xl" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="w-36 h-3" />
+                  <Skeleton className="w-full h-11 rounded-xl" />
+                  <Skeleton className="w-64 h-3" />
+                </div>
+                <Skeleton className="w-full h-12 rounded-xl" />
+              </div>
+            ) : (
+              <>
+
             {/* TAB 1: PERSONAL DETAILS */}
             {activeTab === 'PROFILE' && (
               <div className="bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-md">
@@ -559,7 +490,7 @@ export default function ProfilePage() {
                     <UserIcon className="w-5 h-5 text-brand-400" /> Edit Profile Details
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">
-                    Update your display name and public account representation.
+                    Update your display name, public profile, and M-Pesa withdrawal line.
                   </p>
                 </div>
 
@@ -615,136 +546,53 @@ export default function ProfilePage() {
                     />
                   </div>
 
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+                      M-Pesa Payout Number
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="tel"
+                        placeholder="0712345678"
+                        value={mpesaInput}
+                        onChange={(e) => setMpesaInput(e.target.value)}
+                        className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white font-mono focus:outline-none focus:border-brand-500 text-sm pl-11 transition-colors"
+                      />
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    </div>
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Withdrawals and task earnings are sent to this registered M-Pesa line.
+                    </p>
+                  </div>
+
+                  {/* Inline Success Notice */}
+                  {profileSaved && (
+                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span className="font-semibold">Profile details and payout line saved successfully!</span>
+                    </div>
+                  )}
+
                   <button
                     type="submit"
                     disabled={submitting}
                     className="w-full py-3.5 rounded-xl bg-gradient-to-r from-brand-600 via-brand-500 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-dark-950 font-bold text-sm shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
-                    {submitting ? 'Saving Profile...' : 'Save Profile Changes'}
+                    {submitting ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-dark-950 border-t-transparent rounded-full animate-spin" />
+                        <span>Saving Profile...</span>
+                      </div>
+                    ) : profileSaved ? (
+                      <div className="flex items-center gap-2">
+                        <Check className="w-4 h-4 text-dark-950" />
+                        <span>Changes Saved Successfully!</span>
+                      </div>
+                    ) : (
+                      'Save Profile Changes'
+                    )}
                   </button>
                 </form>
-              </div>
-            )}
-
-            {/* TAB 2: SAFARICOM PHONE VERIFICATION */}
-            {activeTab === 'VERIFICATION' && (
-              <div className="bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-md">
-                <div className="border-b border-dark-800 pb-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                        <ShieldCheck className="w-5 h-5 text-emerald-400" /> Safaricom Phone Verification
-                      </h3>
-                      <p className="text-xs text-slate-400 mt-1">
-                        Verify your Kenyan Safaricom phone number (07XX / 011X) to enable instant M-Pesa withdrawals and task payouts.
-                      </p>
-                    </div>
-
-                    {user?.phoneVerified && (
-                      <span className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
-                        <CheckCircle2 className="w-4 h-4" /> Verified
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                {user?.phoneVerified ? (
-                  <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 space-y-2">
-                    <div className="flex items-center gap-2 font-bold text-base text-emerald-400">
-                      <CheckCircle2 className="w-5 h-5" />
-                      Safaricom Phone Number Verified
-                    </div>
-                    <p className="text-xs text-slate-300">
-                      Your registered phone <strong className="font-mono text-white">{formatKenyanPhoneDisplay(user.phone)}</strong> is confirmed and verified. You have full access to M-Pesa automatic withdrawals and marketplace rewards.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {/* Step 1: Input / Confirm Phone */}
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
-                        Kenyan Safaricom Phone Number
-                      </label>
-                      <div className="flex gap-2">
-                        <div className="relative flex-1">
-                          <input
-                            type="tel"
-                            placeholder="0712345678 or 0112345678"
-                            value={phoneInput}
-                            onChange={(e) => setPhoneInput(e.target.value)}
-                            disabled={otpSent}
-                            className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white font-mono focus:outline-none focus:border-brand-500 text-sm pl-11"
-                          />
-                          <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-                        </div>
-
-                        <button
-                          type="button"
-                          onClick={handleSendPhoneOtp}
-                          disabled={sendingOtp || cooldown > 0}
-                          className="px-5 py-3 rounded-xl bg-brand-500 hover:bg-brand-400 text-dark-950 font-bold text-xs shrink-0 disabled:opacity-50 transition-all flex items-center gap-2 cursor-pointer shadow-md shadow-brand-500/10"
-                        >
-                          {sendingOtp ? (
-                            'Sending Code...'
-                          ) : cooldown > 0 ? (
-                            <>
-                              <Clock className="w-3.5 h-3.5" /> Wait {cooldown}s
-                            </>
-                          ) : (
-                            'Send Verification Code'
-                          )}
-                        </button>
-                      </div>
-                      <p className="text-[11px] text-slate-400 mt-1.5">
-                        Accepts standard Safaricom formats: 07XXXXXXXX, 011XXXXXXX, or +254XXXXXXXXX.
-                      </p>
-                    </div>
-
-                    {/* Step 2: Enter 6-digit OTP */}
-                    {otpSent && (
-                      <div className="p-5 rounded-2xl bg-brand-500/5 border border-brand-500/30 space-y-4 animate-in fade-in duration-200">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-brand-300 uppercase tracking-wider">
-                            Enter 6-Digit Verification Code
-                          </span>
-                          {cooldown > 0 ? (
-                            <span className="text-xs text-slate-400 flex items-center gap-1 font-mono">
-                              <Clock className="w-3 h-3 text-brand-400" /> Resend in {cooldown}s
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={handleSendPhoneOtp}
-                              disabled={sendingOtp}
-                              className="text-xs text-brand-400 hover:underline flex items-center gap-1 cursor-pointer font-medium"
-                            >
-                              <RotateCcw className="w-3 h-3" /> Resend Code
-                            </button>
-                          )}
-                        </div>
-
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            maxLength={6}
-                            placeholder="••••••"
-                            value={otpCode}
-                            onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, ''))}
-                            className="flex-1 px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white font-mono tracking-[0.5em] text-center text-xl font-bold focus:outline-none focus:border-brand-500"
-                          />
-                          <button
-                            type="button"
-                            onClick={handleVerifyPhoneOtp}
-                            disabled={verifyingOtp || otpCode.length !== 6}
-                            className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-dark-950 font-bold text-sm shrink-0 disabled:opacity-50 transition-all cursor-pointer shadow-lg shadow-emerald-500/20"
-                          >
-                            {verifyingOtp ? 'Verifying...' : 'Verify Phone'}
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             )}
 
@@ -846,6 +694,8 @@ export default function ProfilePage() {
                   </button>
                 </form>
               </div>
+            )}
+              </>
             )}
           </div>
         </div>

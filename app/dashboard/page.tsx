@@ -90,9 +90,8 @@ export default function UserDashboard() {
         {/* Welcome banner skeleton — mirrors gradient card with badge chips, title, desc, button */}
         <div className="p-6 sm:p-8 rounded-3xl bg-slate-900/80 border border-slate-700/50 flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative overflow-hidden">
           <div className="space-y-3 flex-1 relative z-10">
-            {/* Two badge chips side-by-side (Phone Verified + Account Active) */}
+            {/* Account Active badge chip */}
             <div className="flex items-center gap-2">
-              <Skeleton className="w-28 h-6 rounded-full" />
               <Skeleton className="w-28 h-6 rounded-full" />
             </div>
             {/* Large greeting h1 */}
@@ -280,12 +279,12 @@ export default function UserDashboard() {
             </div>
           </div>
           <p className="text-xl font-black text-white">
-            {user.phoneVerified ? 'Verified' : 'Unverified'}
+            {user.emailVerified ? 'Verified' : 'Active'}
           </p>
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-gray-400">Payouts: Enabled</span>
+            <span className="text-gray-400">Email: Verified</span>
             <Link href="/profile" className="text-brand-400 font-bold hover:underline">
-              {user.phoneVerified ? 'View Profile →' : 'Verify Phone →'}
+              View Profile →
             </Link>
           </div>
         </div>

@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
         data: {
           userId: otpRecord.userId,
           title: 'Password Changed Successfully 🔒',
-          message: 'Your TaskMint account password was successfully reset using your verified Safaricom phone number.',
+          message: 'Your TaskMint account password was successfully reset.',
           type: 'SUCCESS',
         },
       }),

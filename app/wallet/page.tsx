@@ -7,7 +7,6 @@ import {
   Clock,
   CheckCircle2,
   AlertTriangle,
-  Smartphone,
   Calendar,
   History,
   ShieldCheck,
@@ -28,14 +27,7 @@ export default function WalletPage() {
   const [redeeming, setRedeeming] = useState(false);
   const [redeemMessage, setRedeemMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Phone OTP Verification (for eligibility check)
-  const [showOtpModal, setShowOtpModal] = useState(false);
-  const [otpCode, setOtpCode] = useState('');
-  const [sendingOtp, setSendingOtp] = useState(false);
-  const [verifyingOtp, setVerifyingOtp] = useState(false);
-  const [otpMessage, setOtpMessage] = useState<string | null>(null);
-
-  // Withdrawal OTP 2FA state
+  // Withdrawal Email OTP 2FA state
   const [showWithdrawalOtpModal, setShowWithdrawalOtpModal] = useState(false);
   const [withdrawalOtpCode, setWithdrawalOtpCode] = useState('');
   const [sendingWithdrawalOtp, setSendingWithdrawalOtp] = useState(false);
@@ -89,47 +81,8 @@ export default function WalletPage() {
     fetchWallet();
   }, []);
 
-  const handleSendOtp = async () => {
-    setSendingOtp(true);
-    setOtpMessage(null);
-    try {
-      const res = await fetch('/api/auth/otp/send', { method: 'POST' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to send OTP');
-      setOtpMessage(data.message);
-      setShowOtpModal(true);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setSendingOtp(false);
-    }
-  };
 
-  const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setVerifyingOtp(true);
-    setOtpMessage(null);
-    try {
-      const res = await fetch('/api/auth/otp/verify', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code: otpCode }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Verification failed');
-      setOtpMessage(data.message);
-      setTimeout(() => {
-        setShowOtpModal(false);
-        fetchWallet();
-      }, 1500);
-    } catch (err: any) {
-      setOtpMessage(`Error: ${err.message}`);
-    } finally {
-      setVerifyingOtp(false);
-    }
-  };
-
-  // Step 1: validate form and request withdrawal OTP via SMS
+  // Step 1: validate form and request withdrawal Email OTP
   const handleWithdrawalRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
@@ -267,7 +220,7 @@ export default function WalletPage() {
       <div className="space-y-2 text-center sm:text-left">
         <h1 className="text-3xl sm:text-4xl font-black text-white">Wallet & M-Pesa Withdrawals</h1>
         <p className="text-xs sm:text-sm text-gray-400">
-          Track earnings, verify your Safaricom phone number, and submit payout requests (Min KES 500).
+          Track your earnings, manage your M-Pesa payout wallet, and submit withdrawal requests (Min KES 500).
         </p>
       </div>
 
@@ -395,32 +348,10 @@ export default function WalletPage() {
             <p className="font-mono text-white font-bold">{checks.nonReferralBalance?.met ? 'Verified (Tasks Done)' : 'Requires Task Earnings'}</p>
           </div>
 
-          {/* Rule 5: Phone OTP Verification */}
-          <div className={`p-4 rounded-2xl border ${checks.phoneVerified?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-300' : 'bg-slate-900 border-slate-800 text-gray-300'} space-y-2`}>
-            <div className="flex items-center justify-between font-bold">
-              <span>5. Safaricom Phone OTP</span>
-              {checks.phoneVerified?.met ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <XCircle className="w-4 h-4 text-rose-400" />}
-            </div>
-            {checks.phoneVerified?.met ? (
-              <p className="text-emerald-400 text-[11px] font-bold flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Safaricom Phone Verified
-              </p>
-            ) : (
-              <button
-                onClick={handleSendOtp}
-                disabled={sendingOtp}
-                className="w-full py-1.5 px-3 rounded-lg bg-brand-600 hover:bg-brand-500 text-white text-[11px] font-bold flex items-center justify-center gap-1"
-              >
-                <KeyRound className="w-3 h-3" />
-                {sendingOtp ? 'Sending OTP...' : 'Verify Phone via OTP'}
-              </button>
-            )}
-          </div>
-
-          {/* Rule 6: 48hr Rate Limit */}
+          {/* Rule 5: 48hr Rate Limit */}
           <div className={`p-4 rounded-2xl border ${checks.rateLimit?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-300' : 'bg-slate-900 border-slate-800 text-gray-300'} space-y-1`}>
             <div className="flex items-center justify-between font-bold">
-              <span>6. 48h Payout Cooldown</span>
+              <span>5. 48h Payout Cooldown</span>
               {checks.rateLimit?.met ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <XCircle className="w-4 h-4 text-rose-400" />}
             </div>
             <p className="text-gray-400 text-[11px]">Maximum 1 withdrawal per 48 hours</p>
@@ -438,7 +369,7 @@ export default function WalletPage() {
           <div className="p-6 sm:p-8 rounded-3xl glass-card border-brand-500/30 space-y-6">
           <div className="space-y-1">
             <h3 className="text-xl font-black text-white flex items-center gap-2">
-              <Smartphone className="w-5 h-5 text-brand-400" />
+              <Wallet className="w-5 h-5 text-brand-400" />
               Request Withdrawal
             </h3>
             <p className="text-xs text-gray-400">Safaricom M-Pesa Payout (Fixed Fee KES 10)</p>
@@ -501,9 +432,9 @@ export default function WalletPage() {
               }`}
             >
               {sendingWithdrawalOtp
-                ? 'Sending OTP...'
+                ? 'Sending Code to Email...'
                 : availableBalance >= 500
-                ? 'Continue — Verify via OTP'
+                ? 'Continue — Verify via Email'
                 : 'Min KES 500 Required'}
             </button>
           </form>
@@ -628,60 +559,7 @@ export default function WalletPage() {
         </div>
       </div>
 
-      {/* Phone OTP Verification Modal (eligibility check) */}
-      {showOtpModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-          <div className="max-w-md w-full p-6 sm:p-8 rounded-3xl glass-card border-brand-500/40 space-y-6 relative">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-white flex items-center gap-2">
-                <KeyRound className="w-5 h-5 text-brand-400" />
-                Safaricom OTP Verification
-              </h3>
-              <button
-                onClick={() => setShowOtpModal(false)}
-                className="text-gray-400 hover:text-white text-sm font-bold"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-gray-300 leading-relaxed">
-              An OTP verification code was sent to your phone. Enter the 6-digit code below to confirm your Safaricom line for withdrawals.
-            </p>
-
-            {otpMessage && (
-              <div className="p-3 rounded-xl bg-brand-500/10 border border-brand-500/30 text-brand-300 text-xs font-semibold">
-                {otpMessage}
-              </div>
-            )}
-
-            <form onSubmit={handleVerifyOtp} className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-gray-300">Enter 6-Digit Code</label>
-                <input
-                  type="text"
-                  maxLength={6}
-                  required
-                  placeholder="123456"
-                  value={otpCode}
-                  onChange={(e) => setOtpCode(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-center font-mono text-xl tracking-widest focus:outline-none focus:border-brand-500"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={verifyingOtp || otpCode.length !== 6}
-                className="w-full py-3.5 rounded-xl font-extrabold text-xs bg-gradient-to-r from-brand-600 to-emerald-500 text-white shadow-lg hover:scale-105 disabled:opacity-50"
-              >
-                {verifyingOtp ? 'Verifying...' : 'Verify Phone Number'}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Withdrawal 2FA OTP Modal */}
+      {/* Withdrawal 2FA OTP Modal (Email) */}
       {showWithdrawalOtpModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-md w-full p-6 sm:p-8 rounded-3xl glass-card border-amber-500/40 space-y-6 relative">

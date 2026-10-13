@@ -11,6 +11,7 @@ export async function GET(req: NextRequest) {
         id: true,
         email: true,
         phone: true,
+        mpesaNumber: true,
         username: true,
         firstName: true,
         surname: true,
@@ -38,12 +39,15 @@ export async function POST(req: NextRequest) {
   try {
     const authUser = await requireAuth(req);
     const body = await req.json();
-    const { firstName, surname, profilePhoto } = body;
+    const { firstName, surname, profilePhoto, mpesaNumber } = body;
 
     const dataToUpdate: any = {};
     if (typeof firstName === 'string') dataToUpdate.firstName = firstName.trim();
     if (typeof surname === 'string') dataToUpdate.surname = surname.trim();
     if (typeof profilePhoto === 'string') dataToUpdate.profilePhoto = profilePhoto.trim();
+    if (typeof mpesaNumber === 'string' && mpesaNumber.trim()) {
+      dataToUpdate.mpesaNumber = mpesaNumber.trim();
+    }
 
     if (dataToUpdate.firstName || dataToUpdate.surname) {
       const fName = dataToUpdate.firstName || authUser.firstName || '';
@@ -58,6 +62,7 @@ export async function POST(req: NextRequest) {
         id: true,
         email: true,
         phone: true,
+        mpesaNumber: true,
         username: true,
         firstName: true,
         surname: true,

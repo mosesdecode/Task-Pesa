@@ -118,7 +118,6 @@ export async function getWithdrawalEligibility(userId: string) {
     accountAge: { met: accountAgeDays >= 5, current: accountAgeDays, target: 5 },
     activeReferrals: { met: activeReferralsCount >= 5, current: activeReferralsCount, target: 5 },
     nonReferralBalance: { met: hasNonReferralWork, message: 'Must have earnings from completed tasks/ads/promotions' },
-    phoneVerified: { met: user.phoneVerified, message: 'Phone number verified via OTP' },
     rateLimit: { met: isWithinRateLimit, nextAllowedAt: recentWithdrawal ? new Date(recentWithdrawal.requestedAt.getTime() + 48 * 60 * 60 * 1000) : null },
   };
 
@@ -127,14 +126,12 @@ export async function getWithdrawalEligibility(userId: string) {
     checks.accountAge.met &&
     checks.activeReferrals.met &&
     checks.nonReferralBalance.met &&
-    checks.phoneVerified.met &&
     checks.rateLimit.met;
 
   return {
     isEligible,
     checks,
     userPhone: user.phone,
-    phoneVerified: user.phoneVerified,
   };
 }
 
@@ -148,9 +145,6 @@ export async function requestWithdrawal(userId: string, mpesaNumber: string, amo
 
   const eligibility = await getWithdrawalEligibility(userId);
   if (!eligibility.isEligible) {
-    if (!eligibility.checks.phoneVerified.met) {
-      throw new Error('Please verify your Safaricom phone number via OTP before requesting a withdrawal.');
-    }
     if (!eligibility.checks.rateLimit.met) {
       throw new Error('Withdrawal limit reached: You can only make 1 withdrawal request every 48 hours.');
     }

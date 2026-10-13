@@ -40,7 +40,7 @@ function getTransporter(): Transporter {
 // ── HTML email template ──
 function buildOtpEmail(
   otp: string,
-  purpose: 'REGISTRATION' | 'WITHDRAWAL' | 'VERIFICATION',
+  purpose: 'REGISTRATION' | 'WITHDRAWAL' | 'VERIFICATION' | 'PASSWORD_RESET',
   recipientName?: string
 ): { subject: string; html: string; text: string } {
   const greeting = recipientName ? `Hello ${recipientName},` : 'Hello,';
@@ -61,6 +61,12 @@ function buildOtpEmail(
       subject: 'TaskMint — Email Verification Code',
       action: 'verify your email address',
       notice: 'If you did not request this code, you can safely ignore this email.',
+    },
+    PASSWORD_RESET: {
+      subject: 'TaskMint — Password Reset Verification Code',
+      action: 'reset your account login password',
+      notice:
+        'If you did not request a password reset, please ignore this email or review your security settings immediately.',
     },
   };
 
@@ -152,7 +158,7 @@ function buildOtpEmail(
 export async function sendEmailOtp(
   email: string,
   otpCode: string,
-  purpose: 'REGISTRATION' | 'WITHDRAWAL' | 'VERIFICATION' = 'VERIFICATION',
+  purpose: 'REGISTRATION' | 'WITHDRAWAL' | 'VERIFICATION' | 'PASSWORD_RESET' = 'VERIFICATION',
   recipientName?: string
 ): Promise<SendEmailOtpResult> {
   // Fallback: development mode with no email config

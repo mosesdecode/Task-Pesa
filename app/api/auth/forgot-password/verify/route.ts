@@ -6,36 +6,47 @@ import crypto from 'crypto';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { phone, code } = body;
+    const { email, phone, code } = body;
 
-    if (!phone || !code || typeof code !== 'string' || code.trim().length !== 6) {
+    const rawInput = (email || phone || '').toString().trim();
+    const cleanCode = (code || '').toString().trim();
+
+    if (!rawInput || !cleanCode || cleanCode.length !== 6) {
       return NextResponse.json(
-        { error: 'Please provide both your Safaricom phone number and the 6-digit code' },
+        { error: 'Please provide both your registered email and the 6-digit verification code.' },
         { status: 400 }
       );
     }
 
-    const normalizedPhone = normalizeKenyanPhone(phone.trim());
-    const cleanCode = code.trim();
+    let user = null;
 
-    const rawDigits = normalizedPhone.replace(/^\+/, '');
-    const phoneVariants = [
-      normalizedPhone,
-      rawDigits,
-      rawDigits.startsWith('254') ? `0${rawDigits.slice(3)}` : rawDigits,
-    ];
+    if (rawInput.includes('@')) {
+      user = await prisma.user.findFirst({
+        where: {
+          email: { equals: rawInput.toLowerCase(), mode: 'insensitive' },
+        },
+      });
+    } else {
+      const normalizedPhone = normalizeKenyanPhone(rawInput);
+      const rawDigits = normalizedPhone.replace(/^\+/, '');
+      const phoneVariants = [
+        normalizedPhone,
+        rawDigits,
+        rawDigits.startsWith('254') ? `0${rawDigits.slice(3)}` : rawDigits,
+      ];
 
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [
-          ...phoneVariants.map(p => ({ phone: p })),
-          ...phoneVariants.map(p => ({ mpesaNumber: p })),
-        ],
-      },
-    });
+      user = await prisma.user.findFirst({
+        where: {
+          OR: [
+            ...phoneVariants.map(p => ({ phone: p })),
+            ...phoneVariants.map(p => ({ mpesaNumber: p })),
+          ],
+        },
+      });
+    }
 
     if (!user) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+      return NextResponse.json({ error: 'User account not found.' }, { status: 404 });
     }
 
     const otpRecord = await prisma.otpCode.findFirst({
