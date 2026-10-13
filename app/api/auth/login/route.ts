@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { verifyPassword, signToken } from '@/lib/auth';
+import { normalizeKenyanPhone, isValidKenyanPhone } from '@/lib/phone';
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,13 +12,19 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Please enter your email/phone and password' }, { status: 400 });
     }
 
+    const trimmedIdentifier = identifier.trim();
+    const normalizedPhone = isValidKenyanPhone(trimmedIdentifier) ? normalizeKenyanPhone(trimmedIdentifier) : null;
+    const phoneWithoutPlus = normalizedPhone?.startsWith('+') ? normalizedPhone.slice(1) : null;
+
     const user = await prisma.user.findFirst({
       where: {
         OR: [
-          { email: identifier },
-          { phone: identifier },
-          { username: identifier },
-        ],
+          { email: trimmedIdentifier.toLowerCase() },
+          { username: trimmedIdentifier.toLowerCase() },
+          { phone: trimmedIdentifier },
+          normalizedPhone ? { phone: normalizedPhone } : undefined,
+          phoneWithoutPlus ? { phone: phoneWithoutPlus } : undefined,
+        ].filter(Boolean) as any,
       },
     });
 

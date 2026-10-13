@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const normalizedPhone = normalizeKenyanPhone(phone);
     if (!isSafaricomNumber(normalizedPhone)) {
       return NextResponse.json(
-        { error: 'Please enter a valid Kenyan Safaricom phone number (e.g. 07XXXXXXXX or 011XXXXXXX).' },
+        { error: 'Please enter a valid Kenyan Safaricom phone number (e.g. 07XXXXXXXX or 01XXXXXXXX).' },
         { status: 400 }
       );
     }

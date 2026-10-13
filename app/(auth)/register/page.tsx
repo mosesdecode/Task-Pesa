@@ -537,7 +537,7 @@ function RegisterForm() {
             <input
               type="tel"
               required
-              placeholder="0712345678"
+              placeholder="e.g. 07XXXXXXXX or 01XXXXXXXX"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
