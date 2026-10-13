@@ -29,7 +29,10 @@ export async function GET(req: NextRequest) {
 
       const unrecordedTaskSubs = await prisma.taskSubmission.findMany({
         where: { status: 'APPROVED', rewardPaid: true },
-        include: { task: true, user: true },
+        include: {
+          task: true,
+          user: { select: { id: true, username: true } },
+        },
         take: 100,
       });
 
@@ -60,7 +63,10 @@ export async function GET(req: NextRequest) {
 
       const unrecordedWaSubs = await prisma.whatsappSubmission.findMany({
         where: { status: 'APPROVED' },
-        include: { campaign: true, user: true },
+        include: {
+          campaign: true,
+          user: { select: { id: true, username: true } },
+        },
         take: 100,
       });
 

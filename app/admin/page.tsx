@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { getMe } from '@/lib/useMe';
 import {
   Shield,
   PlusCircle,
@@ -586,47 +587,39 @@ function AdminDashboardInner() {
     setCheckingAuth(true);
     setError('');
     try {
-      const res = await fetch('/api/auth/me');
-      if (res.ok) {
-        const data = await res.json();
-        if (data?.user?.role === 'ADMIN') {
-          sessionExpiredHandled.current = false;
-          setIsAdminAuthed(true);
-          setAdminUser(data.user);
-          
-          try {
-            await loadAll();
-          } catch (e) {
-            console.error("Data load failed:", e);
-          }
-          
-          setCheckingAuth(false);
-          return;
-        } else {
-          // Logged in user is not an admin
-          await handle401Expired();
-          setCheckingAuth(false);
-          return;
+      const u = await getMe();
+      if (u?.role === 'ADMIN') {
+        sessionExpiredHandled.current = false;
+        setIsAdminAuthed(true);
+        setAdminUser(u);
+        
+        try {
+          await loadAll();
+        } catch (e) {
+          console.error("Data load failed:", e);
         }
-      } else if (res.status === 401) {
-        // Explicit 401 from /api/auth/me -> trigger 401 logout-and-redirect
+        
+        setCheckingAuth(false);
+        return;
+      } else if (u) {
+        // Logged in but not admin
         await handle401Expired();
         setCheckingAuth(false);
         return;
       } else {
-        // Network error / 500 status -> show retry banner, DO NOT log admin out
-        setError("Couldn't verify admin session. Check your connection.");
-        setIsAdminAuthed(true);
+        // No session / 401
+        await handle401Expired();
         setCheckingAuth(false);
         return;
       }
-    } catch (e) {
-      console.error("Auth check failed:", e);
-      setError("Network error verifying session. Check your connection.");
+    } catch {
+      // Network error -> show retry, keep admin in
+      setError("Couldn't verify admin session. Check your connection.");
       setIsAdminAuthed(true);
       setCheckingAuth(false);
     }
   };
+
 
   // Banners Handlers
   const handleCreateBanner = async (e: React.FormEvent) => {

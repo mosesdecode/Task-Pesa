@@ -15,6 +15,7 @@ import {
   Lock,
 } from 'lucide-react';
 import { Skeleton } from '@/components/Skeleton';
+import { getMe } from '@/lib/useMe';
 
 export default function WalletPage() {
   const [walletData, setWalletData] = useState<any>(null);
@@ -39,17 +40,12 @@ export default function WalletPage() {
 
   const fetchWallet = async () => {
     try {
-      const meRes = await fetch('/api/auth/me');
-      if (!meRes.ok) {
+      const u = await getMe();
+      if (!u) {
         window.location.href = '/login?redirect=/wallet';
         return;
       }
-      const meData = await meRes.json();
-      if (!meData.user) {
-        window.location.href = '/login?redirect=/wallet';
-        return;
-      }
-      setUser(meData.user);
+      setUser(u);
 
       const [wRes, reqRes] = await Promise.all([
         fetch('/api/wallet'),

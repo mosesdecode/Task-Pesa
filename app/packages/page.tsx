@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { getMe } from '@/lib/useMe';
 import {
   Sparkles,
   CheckCircle2,
@@ -31,17 +32,16 @@ export default function PackagesPage() {
 
   const fetchUserAndPackages = async () => {
     try {
-      const [resPkg, resUser] = await Promise.all([
+      const [resPkg, u] = await Promise.all([
         fetch('/api/packages'),
-        fetch('/api/auth/me'),
+        getMe(),
       ]);
       const dataPkg = await resPkg.json();
-      const dataUser = await resUser.json();
 
       setPackages(dataPkg.packages || []);
-      if (dataUser?.user) {
-        setUser(dataUser.user);
-        setMpesaPhone(dataUser.user.mpesaNumber || dataUser.user.phone || '');
+      if (u) {
+        setUser(u);
+        setMpesaPhone(u.mpesaNumber || u.phone || '');
       }
     } catch (e) {
       console.error(e);

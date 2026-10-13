@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { getMe } from '@/lib/useMe';
 import {
   Wallet,
   Clock,
@@ -26,26 +27,23 @@ export default function UserDashboard() {
   const [checkInMessage, setCheckInMessage] = useState('');
 
   useEffect(() => {
-    fetch('/api/auth/me')
-      .then((res) => res.json())
-      .then((data) => {
-        if (!data.user) {
-          window.location.href = '/login?redirect=/dashboard';
-          return;
-        }
-        setUser(data.user);
-
-        fetch('/api/wallet')
-          .then((res) => res.json())
-          .then((wData) => {
-            setWallet(wData.wallet);
-            setRecentTransactions(wData.transactions || []);
-          })
-          .finally(() => setLoading(false));
-      })
-      .catch(() => {
+    getMe().then((u) => {
+      if (!u) {
         window.location.href = '/login?redirect=/dashboard';
-      });
+        return;
+      }
+      setUser(u);
+
+      fetch('/api/wallet')
+        .then((res) => res.json())
+        .then((wData) => {
+          setWallet(wData.wallet);
+          setRecentTransactions(wData.transactions || []);
+        })
+        .finally(() => setLoading(false));
+    }).catch(() => {
+      window.location.href = '/login?redirect=/dashboard';
+    });
   }, [router]);
 
   const handleCheckIn = async () => {

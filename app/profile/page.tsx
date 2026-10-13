@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { normalizeKenyanPhone, isSafaricomNumber, formatKenyanPhoneDisplay } from '@/lib/phone';
 import { Skeleton } from '@/components/Skeleton';
+import { getMe, mutateMe } from '@/lib/useMe';
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -59,21 +60,16 @@ export default function ProfilePage() {
 
   const fetchUser = async () => {
     try {
-      const res = await fetch('/api/auth/me', {
-        headers: { 'Cache-Control': 'no-cache' },
-      });
-      if (res.status === 401) {
+      const u = await getMe(true); // force-refresh to bypass 30s cache
+      if (!u) {
         router.push('/login?redirect=/profile');
         return;
       }
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-        setFirstName(data.user.firstName || '');
-        setSurname(data.user.surname || '');
-        setProfilePhoto(data.user.profilePhoto || '');
-        setMpesaInput(data.user.mpesaNumber || data.user.phone || '');
-      }
+      setUser(u);
+      setFirstName(u.firstName || '');
+      setSurname(u.surname || '');
+      setProfilePhoto(u.profilePhoto || '');
+      setMpesaInput(u.mpesaNumber || u.phone || '');
     } catch (e) {
       console.error('Failed to load profile:', e);
     } finally {
@@ -164,6 +160,8 @@ export default function ProfilePage() {
 
       setProfilePhoto(data.profilePhoto);
       setUser((prev: any) => ({ ...prev, profilePhoto: data.profilePhoto }));
+      // Push new avatar URL into Navbar/MobileNav immediately via shared cache
+      mutateMe({ ...(user || {}), profilePhoto: data.profilePhoto } as any);
       setGlobalSuccessMsg('Profile photo uploaded and updated successfully!');
     } catch (err: any) {
       setError(err.message || 'Avatar upload failed');

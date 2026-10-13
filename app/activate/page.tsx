@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { getMe } from '@/lib/useMe';
 import {
   Smartphone,
   ShieldCheck,
@@ -37,24 +38,21 @@ export default function ActivatePage() {
       })
       .catch(() => setFeeKES(200));
 
-    fetch('/api/auth/me')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data.user) {
-          setUser(data.user);
-          setStkPhone(data.user.mpesaNumber || data.user.phone || '');
-          if (data.user.role === 'ADMIN') {
-            router.push('/admin');
-            return;
-          }
-          if (data.user.status === 'ACTIVE') {
-            setIsActivated(true);
-          }
-        } else {
-          router.push('/login');
+    getMe().then((u) => {
+      if (u) {
+        setUser(u);
+        setStkPhone(u.mpesaNumber || u.phone || '');
+        if (u.role === 'ADMIN') {
+          router.push('/admin');
+          return;
         }
-      })
-      .catch(() => router.push('/login'));
+        if (u.status === 'ACTIVE') {
+          setIsActivated(true);
+        }
+      } else {
+        router.push('/login');
+      }
+    }).catch(() => router.push('/login'));
   }, [router]);
 
   // Polling for activation completion
@@ -63,9 +61,8 @@ export default function ActivatePage() {
 
     const interval = setInterval(async () => {
       try {
-        const res = await fetch('/api/auth/me');
-        const data = await res.json();
-        if (data.user && data.user.status === 'ACTIVE') {
+        const u = await getMe(true); // force-refresh to detect status change
+        if (u && u.status === 'ACTIVE') {
           setPaymentProcessing(false);
           setIsActivated(true);
           setStatusMessage('✓ Account successfully activated! Redirecting to tasks...');

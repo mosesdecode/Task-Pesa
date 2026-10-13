@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { getMe } from '@/lib/useMe';
 import {
   BrainCircuit,
   CheckSquare,
@@ -63,17 +64,12 @@ export default function TasksPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const meRes = await fetch('/api/auth/me');
-      if (!meRes.ok) {
+      const u = await getMe();
+      if (!u) {
         window.location.href = '/login?redirect=/tasks';
         return;
       }
-      const meData = await meRes.json();
-      if (!meData.user) {
-        window.location.href = '/login?redirect=/tasks';
-        return;
-      }
-      setUser(meData.user);
+      setUser(u);
 
       // Single request replaces three separate /api/tasks, /api/ads, /api/whatsapp calls
       const dashRes = await fetch('/api/dashboard');

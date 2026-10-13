@@ -128,7 +128,10 @@ export async function POST(req: NextRequest) {
     if (submissionType === 'TASK' || !submissionType) {
       const sub = await prisma.taskSubmission.findUnique({
         where: { id: submissionId },
-        include: { task: true, user: true },
+        include: {
+          task: true,
+          user: { select: { id: true, username: true, email: true, phone: true, packageId: true } },
+        },
       });
 
       if (!sub) {
@@ -317,7 +320,10 @@ export async function POST(req: NextRequest) {
     if (submissionType === 'WHATSAPP') {
       const sub = await prisma.whatsappSubmission.findUnique({
         where: { id: submissionId },
-        include: { campaign: true, user: true },
+        include: {
+          campaign: true,
+          user: { select: { id: true, username: true, email: true, phone: true, packageId: true } },
+        },
       });
 
       if (!sub) {
@@ -438,7 +444,7 @@ export async function POST(req: NextRequest) {
     if (submissionType === 'COIN_REDEMPTION') {
       const redemption = await (prisma as any).coinRedemption.findUnique({
         where: { id: submissionId },
-        include: { user: true },
+        include: { user: { select: { id: true, username: true, email: true, phone: true } } },
       });
 
       if (!redemption) {
