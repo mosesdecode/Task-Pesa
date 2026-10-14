@@ -134,10 +134,11 @@ export default function TasksPage() {
   const rejectedWa = whatsappCampaigns.filter((c) => c.submissions?.[0]?.status === 'REJECTED');
   const totalRejected = rejectedTasks.length + rejectedWa.length;
 
-  // Only show tasks that are truly available: not yet acted on by the user, with slots open
+  // Only show tasks that are truly available: not yet completed or submitted by this user
+  // Includes unstarted tasks with open slots AND tasks currently in progress by this user
   const availableTasks = tasks.filter((t) => {
     const status = t.userStatus || 'NOT_STARTED';
-    return status === 'NOT_STARTED' && t.remainingSlots > 0;
+    return (status === 'NOT_STARTED' && t.remainingSlots > 0) || status === 'IN_PROGRESS';
   });
 
   // Filter available tasks based on search & category (for AVAILABLE view)
@@ -155,6 +156,10 @@ export default function TasksPage() {
 
     return matchesCategory && matchesSearch;
   });
+
+  // Separate tasks currently in progress from unstarted available tasks
+  const filteredInProgress = filteredTasks.filter((t) => t.userStatus === 'IN_PROGRESS');
+  const filteredUnstarted = filteredTasks.filter((t) => t.userStatus !== 'IN_PROGRESS');
 
   // Clean regular categories list (excluding separate custom tabs)
   const standardCategories = categories.filter(
@@ -494,121 +499,222 @@ export default function TasksPage() {
               <div>
                 {/* Section A: Regular Tasks */}
                 {selectedCategory !== 'watch-ads' && selectedCategory !== 'whatsapp-promotions' && (
-                  <div>
-                    {filteredTasks.length === 0 ? (
-                      <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
-                        <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 mx-auto">
-                          <CheckSquare className="w-6 h-6" />
+                  <div className="space-y-8">
+                    {/* Group 1: Continue / In Progress Tasks */}
+                    {filteredInProgress.length > 0 && (
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
+                          <div className="flex items-center gap-2">
+                            <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />
+                            <h3 className="text-sm font-black uppercase tracking-wider text-amber-400 flex items-center gap-2">
+                              <Clock className="w-4 h-4 text-amber-400" />
+                              <span>Continue Working ({filteredInProgress.length})</span>
+                            </h3>
+                          </div>
+                          <span className="text-xs text-amber-300/80 font-medium hidden sm:inline">
+                            You started these tasks. Complete and submit proof to earn rewards!
+                          </span>
                         </div>
-                        <h3 className="text-base font-bold text-white">No Tasks Available in this Selection</h3>
-                        <p className="text-xs text-slate-400 max-w-md mx-auto">
-                          New microtasks and annotation jobs are published regularly. Select another category box above.
-                        </p>
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {filteredTasks.map((task) => {
-                          const status = task.userStatus || 'NOT_STARTED';
-                          const sub = task.userSubmission;
 
-                          return (
-                            <div
-                              key={task.id}
-                              className="bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-3xl p-6 flex flex-col justify-between space-y-5 transition-all shadow-lg group backdrop-blur-md"
-                            >
-                              <div className="space-y-3">
-                                {/* Top Category Badge & Slots */}
-                                <div className="flex items-center justify-between">
-                                  <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20">
-                                    {task.category?.name || 'Task'}
-                                  </span>
-                                  <span className="text-[11px] font-mono text-slate-400">
-                                    {task.remainingSlots} / {task.totalSlots} slots
-                                  </span>
-                                </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {filteredInProgress.map((task) => {
+                            const status = task.userStatus || 'NOT_STARTED';
+                            const sub = task.userSubmission;
 
-                                {/* Title & Instructions */}
-                                <div>
-                                  <h3 className="text-base font-bold text-white group-hover:text-brand-300 transition-colors">
-                                    {task.title}
-                                  </h3>
-                                  <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
-                                    {task.description || task.instructions}
-                                  </p>
-                                </div>
-
-                                {/* Rejection Feedback if any */}
-                                {status === 'REJECTED' && sub?.rejectionReason && (
-                                  <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs space-y-1">
-                                    <span className="font-bold block text-[10px] uppercase tracking-wider text-rose-400">
-                                      Rejection Feedback:
+                            return (
+                              <div
+                                key={task.id}
+                                className="bg-slate-900/90 border-2 border-amber-500/40 hover:border-amber-400 rounded-3xl p-6 flex flex-col justify-between space-y-5 transition-all shadow-lg shadow-amber-500/5 group backdrop-blur-md"
+                              >
+                                <div className="space-y-3">
+                                  {/* Top Category Badge & Slots */}
+                                  <div className="flex items-center justify-between">
+                                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
+                                      <Clock className="w-3 h-3 text-amber-400 animate-pulse" />
+                                      <span>In Progress</span>
                                     </span>
-                                    <p className="line-clamp-2 italic">"{sub.rejectionReason}"</p>
+                                    <span className="text-[11px] font-mono text-slate-400">
+                                      {task.remainingSlots} / {task.totalSlots} slots
+                                    </span>
                                   </div>
-                                )}
-                              </div>
 
-                              {/* Bottom Reward & Action */}
-                              <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
-                                <div>
-                                  <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block">
-                                    Reward
-                                  </span>
-                                  <span className="text-lg font-black text-brand-400">
-                                    KES {task.reward.toFixed(2)}
-                                  </span>
+                                  {/* Title & Instructions */}
+                                  <div>
+                                    <h3 className="text-base font-bold text-white group-hover:text-amber-300 transition-colors">
+                                      {task.title}
+                                    </h3>
+                                    <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                                      {task.description || task.instructions}
+                                    </p>
+                                  </div>
+
+                                  {/* Rejection Feedback if any */}
+                                  {status === 'REJECTED' && sub?.rejectionReason && (
+                                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs space-y-1">
+                                      <span className="font-bold block text-[10px] uppercase tracking-wider text-rose-400">
+                                        Rejection Feedback:
+                                      </span>
+                                      <p className="line-clamp-2 italic">"{sub.rejectionReason}"</p>
+                                    </div>
+                                  )}
                                 </div>
 
-                                {/* User Action Buttons */}
-                                {status === 'NOT_STARTED' && (
-                                  <button
-                                    onClick={() => handleStartTask(task)}
-                                    disabled={startingTaskId === task.id || task.remainingSlots <= 0}
-                                    className="px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-md shadow-brand-500/10 cursor-pointer disabled:opacity-50"
-                                  >
-                                    <span>{startingTaskId === task.id ? 'Starting...' : 'Start Task'}</span>
-                                    <ArrowRight className="w-3.5 h-3.5" />
-                                  </button>
-                                )}
+                                {/* Bottom Reward & Action */}
+                                <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
+                                  <div>
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block">
+                                      Reward
+                                    </span>
+                                    <span className="text-lg font-black text-amber-400">
+                                      KES {task.reward.toFixed(2)}
+                                    </span>
+                                  </div>
 
-                                {status === 'IN_PROGRESS' && (
                                   <button
                                     onClick={() => openTaskModal(task, 'TASK')}
-                                    className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/10 cursor-pointer"
+                                    className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/20 cursor-pointer"
                                   >
                                     <span>Submit Proof</span>
                                     <ArrowRight className="w-3.5 h-3.5" />
                                   </button>
-                                )}
-
-                                {status === 'UNDER_REVIEW' && (
-                                  <div className="px-3 py-1.5 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-bold flex items-center gap-1.5">
-                                    <Clock className="w-3.5 h-3.5 text-blue-400 animate-spin" />
-                                    <span>Under Review</span>
-                                  </div>
-                                )}
-
-                                {status === 'APPROVED' && (
-                                  <div className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
-                                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                                    <span>Approved</span>
-                                  </div>
-                                )}
-
-                                {status === 'REJECTED' && (
-                                  <button
-                                    onClick={() => openTaskModal(task, 'TASK')}
-                                    className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 text-xs font-bold transition-colors cursor-pointer"
-                                  >
-                                    Resubmit
-                                  </button>
-                                )}
+                                </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
                     )}
+
+                    {/* Group 2: New Available Tasks */}
+                    <div className="space-y-4">
+                      {filteredInProgress.length > 0 && filteredUnstarted.length > 0 && (
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                          <h3 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                            <Zap className="w-4 h-4 text-brand-400" />
+                            <span>New Tasks ({filteredUnstarted.length})</span>
+                          </h3>
+                        </div>
+                      )}
+
+                      {filteredTasks.length === 0 ? (
+                        <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
+                          <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 mx-auto">
+                            <CheckSquare className="w-6 h-6" />
+                          </div>
+                          <h3 className="text-base font-bold text-white">No Tasks Available in this Selection</h3>
+                          <p className="text-xs text-slate-400 max-w-md mx-auto">
+                            New microtasks and annotation jobs are published regularly. Select another category box above.
+                          </p>
+                        </div>
+                      ) : filteredUnstarted.length === 0 ? (
+                        <div className="p-6 text-center rounded-2xl bg-slate-900/40 border border-slate-800 text-xs text-slate-400">
+                          All available tasks in this selection are currently in progress above.
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {filteredUnstarted.map((task) => {
+                            const status = task.userStatus || 'NOT_STARTED';
+                            const sub = task.userSubmission;
+
+                            return (
+                              <div
+                                key={task.id}
+                                className="bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-3xl p-6 flex flex-col justify-between space-y-5 transition-all shadow-lg group backdrop-blur-md"
+                              >
+                                <div className="space-y-3">
+                                  {/* Top Category Badge & Slots */}
+                                  <div className="flex items-center justify-between">
+                                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                                      {task.category?.name || 'Task'}
+                                    </span>
+                                    <span className="text-[11px] font-mono text-slate-400">
+                                      {task.remainingSlots} / {task.totalSlots} slots
+                                    </span>
+                                  </div>
+
+                                  {/* Title & Instructions */}
+                                  <div>
+                                    <h3 className="text-base font-bold text-white group-hover:text-brand-300 transition-colors">
+                                      {task.title}
+                                    </h3>
+                                    <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
+                                      {task.description || task.instructions}
+                                    </p>
+                                  </div>
+
+                                  {/* Rejection Feedback if any */}
+                                  {status === 'REJECTED' && sub?.rejectionReason && (
+                                    <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs space-y-1">
+                                      <span className="font-bold block text-[10px] uppercase tracking-wider text-rose-400">
+                                        Rejection Feedback:
+                                      </span>
+                                      <p className="line-clamp-2 italic">"{sub.rejectionReason}"</p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Bottom Reward & Action */}
+                                <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between gap-3">
+                                  <div>
+                                    <span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold block">
+                                      Reward
+                                    </span>
+                                    <span className="text-lg font-black text-brand-400">
+                                      KES {task.reward.toFixed(2)}
+                                    </span>
+                                  </div>
+
+                                  {/* User Action Buttons */}
+                                  {status === 'NOT_STARTED' && (
+                                    <button
+                                      onClick={() => handleStartTask(task)}
+                                      disabled={startingTaskId === task.id || task.remainingSlots <= 0}
+                                      className="px-4 py-2.5 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-md shadow-brand-500/10 cursor-pointer disabled:opacity-50"
+                                    >
+                                      <span>{startingTaskId === task.id ? 'Starting...' : 'Start Task'}</span>
+                                      <ArrowRight className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+
+                                  {status === 'IN_PROGRESS' && (
+                                    <button
+                                      onClick={() => openTaskModal(task, 'TASK')}
+                                      className="px-4 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs transition-all flex items-center gap-1.5 shadow-md shadow-amber-500/10 cursor-pointer"
+                                    >
+                                      <span>Submit Proof</span>
+                                      <ArrowRight className="w-3.5 h-3.5" />
+                                    </button>
+                                  )}
+
+                                  {status === 'UNDER_REVIEW' && (
+                                    <div className="px-3 py-1.5 rounded-xl bg-blue-500/15 border border-blue-500/30 text-blue-300 text-xs font-bold flex items-center gap-1.5">
+                                      <Clock className="w-3.5 h-3.5 text-blue-400 animate-spin" />
+                                      <span>Under Review</span>
+                                    </div>
+                                  )}
+
+                                  {status === 'APPROVED' && (
+                                    <div className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
+                                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                                      <span>Approved</span>
+                                    </div>
+                                  )}
+
+                                  {status === 'REJECTED' && (
+                                    <button
+                                      onClick={() => openTaskModal(task, 'TASK')}
+                                      className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 text-xs font-bold transition-colors cursor-pointer"
+                                    >
+                                      Resubmit
+                                    </button>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 )}
 
