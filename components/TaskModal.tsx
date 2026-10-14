@@ -19,6 +19,10 @@ import {
   Check,
   Image as ImageIcon,
   Trash2,
+  HelpCircle,
+  XCircle,
+  Award,
+  Zap,
 } from 'lucide-react';
 
 interface TaskModalProps {
@@ -38,12 +42,11 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
   const [adTimerStarted, setAdTimerStarted] = useState(false);
   const [adCompleted, setAdCompleted] = useState(false);
 
-  // Task Form state
+  // Standard Task Form state
   const [proofText, setProofText] = useState('');
   const [proofUrl, setProofUrl] = useState('');
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [annotationAnswers, setAnnotationAnswers] = useState<Record<string, string>>({});
 
   // WhatsApp Proof state
   const [whatsappProofUrl, setWhatsappProofUrl] = useState('');
@@ -52,6 +55,92 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
   const whatsappFileInputRef = useRef<HTMLInputElement>(null);
   const [copiedCaption, setCopiedCaption] = useState(false);
 
+  // Structured Quiz State
+  const [taskDetail, setTaskDetail] = useState<any>(null);
+  const [taskDetailLoading, setTaskDetailLoading] = useState(type === 'TASK');
+  const [quizAnswers, setQuizAnswers] = useState<Record<string, string>>({});
+  const answersRef = useRef<Record<string, string>>({});
+  const serverOffsetRef = useRef<number>(0);
+  const [quizTimer, setQuizTimer] = useState<number>(0);
+  const [quizDeadline, setQuizDeadline] = useState<Date | null>(null);
+  const [quizStarted, setQuizStarted] = useState(false);
+  const [quizFinished, setQuizFinished] = useState(false);
+  const [quizScore, setQuizScore] = useState<number | null>(null);
+  const [quizResults, setQuizResults] = useState<Record<string, boolean> | null>(null);
+  const [quizPassed, setQuizPassed] = useState<boolean | null>(null);
+  const [autosaving, setAutosaving] = useState(false);
+
+  // Fetch full task data on open if it is a task
+  useEffect(() => {
+    if (type !== 'TASK' || !item?.id) return;
+    let isMounted = true;
+
+    async function fetchTaskDetails() {
+      try {
+        setTaskDetailLoading(true);
+        const res = await fetch(`/api/tasks/${item.id}`);
+        const data = await res.json();
+        if (!isMounted) return;
+
+        if (res.ok && data.task) {
+          setTaskDetail(data.task);
+
+          // If quiz attempt exists:
+          if (data.userSubmission) {
+            const sub = data.userSubmission;
+            if (sub.serverTime) {
+              serverOffsetRef.current = new Date(sub.serverTime).getTime() - Date.now();
+            }
+            if (sub.savedAnswers) {
+              answersRef.current = sub.savedAnswers;
+              setQuizAnswers(sub.savedAnswers);
+            }
+
+            if (sub.status === 'IN_PROGRESS' && sub.deadline) {
+              const deadlineDate = new Date(sub.deadline);
+              setQuizDeadline(deadlineDate);
+              setQuizStarted(true);
+            } else if (sub.status === 'UNDER_REVIEW' || sub.status === 'REJECTED' || sub.status === 'APPROVED') {
+              setQuizFinished(true);
+              setQuizScore(sub.score ?? null);
+              setQuizResults(sub.results ?? null);
+              setQuizPassed(sub.passed ?? (sub.status === 'APPROVED' || sub.status === 'UNDER_REVIEW'));
+            }
+          }
+        }
+      } catch (err: any) {
+        console.error('Failed to load task details:', err);
+      } finally {
+        if (isMounted) setTaskDetailLoading(false);
+      }
+    }
+
+    fetchTaskDetails();
+    return () => {
+      isMounted = false;
+    };
+  }, [type, item?.id]);
+
+  // Quiz Countdown Timer
+  useEffect(() => {
+    if (!quizDeadline || quizFinished) return;
+
+    const interval = setInterval(() => {
+      const now = Date.now() + serverOffsetRef.current;
+      const diff = Math.max(0, Math.floor((quizDeadline.getTime() - now) / 1000));
+      setQuizTimer(diff);
+
+      if (diff <= 0) {
+        clearInterval(interval);
+        // Time expired! Auto-submit
+        handleSubmitQuiz(true);
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [quizDeadline, quizFinished]);
+
+  // Handle WhatsApp Image Upload
   const handleWhatsappImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -85,6 +174,195 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
     }
   };
 
+  // Standard Task Image Upload
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File exceeds 5MB size limit.');
+      return;
+    }
+
+    setUploadingImage(true);
+    setError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch('/api/profile/avatar?type=proof', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to upload screenshot proof');
+
+      setProofUrl(data.profilePhoto);
+      setSuccessMsg('Screenshot uploaded successfully!');
+    } catch (err: any) {
+      setError(err.message || 'Image upload failed');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  // Standard Task Submit
+  const handleSubmitTask = async () => {
+    if (!proofText.trim() && !proofUrl.trim()) {
+      setError('Please provide proof of completion (written summary, screenshot, or URL).');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      let finalProofUrl = proofUrl.trim() || undefined;
+      if (finalProofUrl && !finalProofUrl.startsWith('http') && !finalProofUrl.startsWith('data:image')) {
+        finalProofUrl = `https://${finalProofUrl}`;
+      }
+
+      const res = await fetch(`/api/tasks/${item.id}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          proofText: proofText.trim() || undefined,
+          proofUrl: finalProofUrl,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Task submission failed');
+
+      setSuccessMsg('Task submitted successfully! It is now under quality review.');
+      setTimeout(() => {
+        onSuccess();
+      }, 1000);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Start Quiz (Confirm Modal)
+  const handleConfirmStartQuiz = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/tasks/${item.id}/start`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to start quiz');
+
+      const duration = taskDetail?.durationSeconds || item.durationSeconds || 300;
+      const deadline = new Date(Date.now() + duration * 1000);
+      setQuizDeadline(deadline);
+      setQuizTimer(duration);
+      setQuizStarted(true);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Select Option & Autosave
+  const handleSelectQuizOption = async (questionId: string, option: string) => {
+    if (quizFinished) return;
+    const updated = { ...answersRef.current, [questionId]: option };
+    answersRef.current = updated;
+    setQuizAnswers(updated);
+
+    setAutosaving(true);
+    try {
+      const res = await fetch(`/api/tasks/${item.id}/progress`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: updated }),
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        if (errData.error?.includes('expired')) {
+          handleSubmitQuiz(true);
+        }
+      }
+    } catch (e) {
+      console.error('Autosave error:', e);
+    } finally {
+      setTimeout(() => setAutosaving(false), 300);
+    }
+  };
+
+  // Submit Quiz for Grading
+  const handleSubmitQuiz = async (isAutoExpired = false) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/tasks/${item.id}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers: answersRef.current }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to submit quiz');
+
+      setQuizFinished(true);
+      setQuizScore(data.score ?? null);
+      setQuizResults(data.results ?? null);
+      setQuizPassed(data.passed ?? false);
+
+      if (data.passed) {
+        setSuccessMsg(data.message || 'Quiz passed! Your submission is now awaiting admin approval.');
+      } else {
+        setError(data.message || 'Quiz score was below 80%. Retries are not permitted.');
+      }
+
+      if (onSuccess) {
+        setTimeout(() => onSuccess(), 3000);
+      }
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // WhatsApp Submit
+  const handleSubmitWhatsappProof = async () => {
+    if (!whatsappProofUrl) {
+      setError('Please provide proof of status update (upload screenshot or paste link).');
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      let finalProofUrl = whatsappProofUrl.trim();
+      if (!finalProofUrl.startsWith('http') && !finalProofUrl.startsWith('data:image')) {
+        finalProofUrl = `https://${finalProofUrl}`;
+      }
+
+      const res = await fetch(`/api/whatsapp/${item.id}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ proofUrl: finalProofUrl }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Proof submission failed');
+
+      setSuccessMsg('WhatsApp campaign proof submitted! Reward will be credited upon approval.');
+      setTimeout(() => {
+        onSuccess();
+      }, 1000);
+    } catch (e: any) {
+      setError(e.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Ads logic
   useEffect(() => {
     let interval: any;
     if (type === 'AD' && adTimerStarted && adTimer > 0) {
@@ -118,106 +396,10 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to verify ad reward');
 
-      onSuccess();
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File exceeds 5MB size limit.');
-      return;
-    }
-
-    setUploadingImage(true);
-    setError(null);
-
-    try {
-      const formData = new FormData();
-      formData.append('avatar', file); // reuses clean avatar/image storage endpoint
-
-      const res = await fetch('/api/profile/avatar?type=proof', {
-        method: 'POST',
-        body: formData,
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to upload screenshot proof');
-
-      setProofUrl(data.profilePhoto);
-      setSuccessMsg('Screenshot uploaded successfully!');
-    } catch (err: any) {
-      setError(err.message || 'Image upload failed');
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
-  const handleSubmitTask = async () => {
-    if (!proofText.trim() && !proofUrl.trim() && Object.keys(annotationAnswers).length === 0) {
-      setError('Please provide proof of completion (written summary, screenshot, or URL).');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      let finalProofUrl = proofUrl.trim() || undefined;
-      if (finalProofUrl && !finalProofUrl.startsWith('http') && !finalProofUrl.startsWith('data:image')) {
-        finalProofUrl = `https://${finalProofUrl}`;
-      }
-
-      const res = await fetch(`/api/tasks/${item.id}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          proofText: proofText.trim() || undefined,
-          proofUrl: finalProofUrl,
-          submissionDataJson: Object.keys(annotationAnswers).length > 0 ? annotationAnswers : undefined,
-        }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Task submission failed');
-
-      setSuccessMsg('Task submitted successfully! It is now under quality review.');
+      setSuccessMsg('Reward claimed successfully! KES ' + item.reward?.toFixed(2) + ' added to your wallet.');
       setTimeout(() => {
         onSuccess();
       }, 1000);
-    } catch (e: any) {
-      setError(e.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSubmitWhatsappProof = async () => {
-    if (!whatsappProofUrl) {
-      setError('Please provide a screenshot proof link or upload');
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    try {
-      let finalWhatsappUrl = whatsappProofUrl.trim();
-      if (finalWhatsappUrl && !finalWhatsappUrl.startsWith('http') && !finalWhatsappUrl.startsWith('data:image')) {
-        finalWhatsappUrl = `https://${finalWhatsappUrl}`;
-      }
-
-      const res = await fetch(`/api/whatsapp/${item.id}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proofUrl: finalWhatsappUrl }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Proof submission failed');
-
-      onSuccess();
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -231,12 +413,8 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
     setTimeout(() => setCopiedCaption(false), 2000);
   };
 
-  let payloadData: any = {};
-  if (type === 'TASK' && item?.dataPayloadJson) {
-    try {
-      payloadData = JSON.parse(item.dataPayloadJson);
-    } catch (e) {}
-  }
+  const isQuiz = taskDetail?.isQuiz || false;
+  const quizQuestions = taskDetail?.formPayload?.questions || [];
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
@@ -246,7 +424,9 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
           <div className="space-y-1">
             <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
               {type === 'TASK'
-                ? item.category?.name || 'Task Assignment'
+                ? isQuiz
+                  ? 'Digital Skills Exam (MCQ)'
+                  : item.category?.name || 'Task Assignment'
                 : type === 'AD'
                 ? 'Sponsored Video Ad'
                 : 'WhatsApp Status Campaign'}
@@ -275,7 +455,9 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
           </div>
         )}
 
-        {/* MODE A: WATCH ADS */}
+        {/* ══════════════════════════════════════════════════════════
+            MODE A: WATCH ADS
+        ══════════════════════════════════════════════════════════ */}
         {type === 'AD' && (
           <div className="space-y-6">
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center group">
@@ -320,8 +502,263 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
           </div>
         )}
 
-        {/* MODE B: GENERAL & ANNOTATION TASKS */}
-        {type === 'TASK' && (
+        {/* ══════════════════════════════════════════════════════════
+            MODE B1: STRUCTURED QUIZ (Interactive Exam)
+        ══════════════════════════════════════════════════════════ */}
+        {type === 'TASK' && isQuiz && (
+          <div className="space-y-6">
+            {taskDetailLoading ? (
+              <div className="p-12 text-center text-slate-400 space-y-2">
+                <Clock className="w-8 h-8 text-brand-400 animate-spin mx-auto" />
+                <p className="text-xs">Loading exam parameters...</p>
+              </div>
+            ) : quizFinished ? (
+              /* State 3: Quiz Finished / Graded */
+              <div className="space-y-6 animate-in fade-in duration-300">
+                <div
+                  className={`p-6 rounded-3xl border text-center space-y-3 ${
+                    quizPassed
+                      ? 'bg-emerald-500/10 border-emerald-500/30'
+                      : 'bg-rose-500/10 border-rose-500/30'
+                  }`}
+                >
+                  <div
+                    className={`w-14 h-14 rounded-2xl mx-auto flex items-center justify-center font-black text-xl ${
+                      quizPassed
+                        ? 'bg-emerald-500/20 text-emerald-400'
+                        : 'bg-rose-500/20 text-rose-400'
+                    }`}
+                  >
+                    {quizScore !== null ? `${quizScore}%` : quizPassed ? 'PASS' : 'FAIL'}
+                  </div>
+                  <div>
+                    <h4 className="text-lg font-extrabold text-white">
+                      {quizPassed ? 'Congratulations! You Passed! 🎉' : 'Quiz Not Passed'}
+                    </h4>
+                    <p className="text-xs text-slate-300 mt-1 max-w-md mx-auto">
+                      {quizPassed
+                        ? `You achieved ${quizScore}%, exceeding the 80% passing mark. Your submission has entered the admin review queue. KES ${item.reward?.toFixed(2)} will be credited upon approval.`
+                        : `You scored ${quizScore}%. The passing threshold is 80%. This quiz had one attempt and cannot be retaken.`}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Per-Question Right/Wrong Breakdown (Zero Answer Key Leak) */}
+                <div className="space-y-3">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    Question Results Summary:
+                  </h5>
+                  <div className="space-y-2">
+                    {quizQuestions.map((q: any, idx: number) => {
+                      const isCorrect = quizResults ? quizResults[q.id] : null;
+                      const userChoice = quizAnswers[q.id];
+
+                      return (
+                        <div
+                          key={q.id || idx}
+                          className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs"
+                        >
+                          <div className="space-y-0.5">
+                            <span className="font-bold text-white block">
+                              Question #{idx + 1}: {q.prompt}
+                            </span>
+                            <span className="text-slate-400 text-[11px]">
+                              Your Selection: <strong className="text-slate-200">{userChoice || 'None'}</strong>
+                            </span>
+                          </div>
+                          <div>
+                            {isCorrect === true ? (
+                              <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1 text-[11px]">
+                                <CheckCircle2 className="w-3.5 h-3.5" /> Correct
+                              </span>
+                            ) : isCorrect === false ? (
+                              <span className="px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 font-bold flex items-center gap-1 text-[11px]">
+                                <XCircle className="w-3.5 h-3.5" /> Incorrect
+                              </span>
+                            ) : null}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div className="pt-2">
+                  <button
+                    onClick={onClose}
+                    className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Close Exam Screen
+                  </button>
+                </div>
+              </div>
+            ) : !quizStarted ? (
+              /* State 1: Pre-Start Confirmation Screen */
+              <div className="space-y-6">
+                <div className="p-6 rounded-3xl bg-slate-800/40 border border-slate-700/60 space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-500/20 text-brand-400 flex items-center justify-center">
+                      <BrainCircuit className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-extrabold text-white">Quiz Instructions & Rules</h4>
+                      <p className="text-xs text-slate-400">Please review before launching the exam timer.</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-3 pt-2">
+                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Questions</span>
+                      <span className="text-base font-black text-white">{quizQuestions.length}</span>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Time Limit</span>
+                      <span className="text-base font-black text-amber-400">
+                        {Math.ceil((taskDetail?.durationSeconds || item.durationSeconds || 300) / 60)} Mins
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                      <span className="text-[10px] uppercase font-bold text-slate-500 block">Pass Mark</span>
+                      <span className="text-base font-black text-emerald-400">80%</span>
+                    </div>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-1.5 leading-relaxed">
+                    <div className="font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-amber-400">
+                      <Clock className="w-4 h-4" /> Exam Clock Policy
+                    </div>
+                    <p>• The exam clock is strictly unpausable and synchronized to the server.</p>
+                    <p>• If you navigate away or close the page, the timer keeps running.</p>
+                    <p>• You have exactly <strong>one attempt</strong>. Failed quizzes cannot be retaken.</p>
+                    <p>• Answers autosave continuously as you select each option.</p>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between pt-2">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Passing Reward</span>
+                    <span className="text-xl font-black text-brand-400">KES {item.reward?.toFixed(2)}</span>
+                  </div>
+                  <button
+                    disabled={loading}
+                    onClick={handleConfirmStartQuiz}
+                    className="px-6 py-3.5 rounded-2xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-sm shadow-xl shadow-brand-500/20 transition-all hover:scale-105 cursor-pointer disabled:opacity-50"
+                  >
+                    {loading ? 'Initiating Exam...' : 'I Am Ready — Start Quiz'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* State 2: Active Exam in Progress */
+              <div className="space-y-6">
+                {/* Floating Timer & Autosave Bar */}
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+                  <div className="flex items-center gap-2">
+                    <Clock
+                      className={`w-4 h-4 ${quizTimer < 60 ? 'text-rose-400 animate-spin' : 'text-amber-400'}`}
+                    />
+                    <span className="text-xs text-slate-400">Time Remaining:</span>
+                    <span
+                      className={`font-mono text-sm font-black ${
+                        quizTimer < 60 ? 'text-rose-400 animate-pulse' : 'text-amber-400'
+                      }`}
+                    >
+                      {Math.floor(quizTimer / 60)}:{(quizTimer % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
+                  <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                    {autosaving ? (
+                      <span className="text-amber-400 animate-pulse flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Autosaving...
+                      </span>
+                    ) : (
+                      <span className="text-emerald-400 flex items-center gap-1">
+                        <Check className="w-3.5 h-3.5" /> Answers saved
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Question Cards */}
+                <div className="space-y-6">
+                  {quizQuestions.map((q: any, qIdx: number) => {
+                    const selected = quizAnswers[q.id];
+
+                    return (
+                      <div
+                        key={q.id || qIdx}
+                        className="p-5 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-4 shadow-md"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 shrink-0">
+                            Question #{qIdx + 1}
+                          </span>
+                          <span className="text-[10px] text-slate-500 font-mono">
+                            {selected ? 'Answered' : 'Pending'}
+                          </span>
+                        </div>
+
+                        <h4 className="text-sm font-bold text-white leading-relaxed">{q.prompt}</h4>
+
+                        {/* Options A, B, C, D */}
+                        <div className="space-y-2 pt-1">
+                          {(q.options || []).map((opt: string, optIdx: number) => {
+                            const isChosen = selected === opt;
+                            const optionLetter = String.fromCharCode(65 + optIdx); // A, B, C, D
+
+                            return (
+                              <button
+                                key={optIdx}
+                                type="button"
+                                onClick={() => handleSelectQuizOption(q.id, opt)}
+                                className={`w-full p-3.5 rounded-2xl border text-left text-xs font-semibold transition-all flex items-center gap-3 cursor-pointer ${
+                                  isChosen
+                                    ? 'bg-brand-500/20 border-brand-500 text-brand-200 shadow-md shadow-brand-500/10'
+                                    : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:border-slate-700'
+                                }`}
+                              >
+                                <span
+                                  className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
+                                    isChosen
+                                      ? 'bg-brand-500 text-slate-950'
+                                      : 'bg-slate-800 text-slate-400'
+                                  }`}
+                                >
+                                  {optionLetter}
+                                </span>
+                                <span className="flex-1 leading-relaxed">{opt}</span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Submit Quiz Bar */}
+                <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-4">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Target Reward</span>
+                    <span className="text-lg font-black text-brand-400">KES {item.reward?.toFixed(2)}</span>
+                  </div>
+                  <button
+                    disabled={loading || quizTimer <= 0}
+                    onClick={() => handleSubmitQuiz(false)}
+                    className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-brand-600 via-brand-500 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-slate-950 font-black text-sm shadow-xl shadow-brand-500/20 transition-all hover:scale-105 cursor-pointer disabled:opacity-50"
+                  >
+                    {loading ? 'Submitting & Grading...' : 'Submit Quiz for Grading'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════
+            MODE B2: STANDARD MICROTASK
+        ══════════════════════════════════════════════════════════ */}
+        {type === 'TASK' && !isQuiz && (
           <div className="space-y-6">
             {/* Instructions Box */}
             <div className="p-4 sm:p-5 rounded-2xl bg-slate-800/40 border border-slate-700/50 space-y-3">
@@ -356,36 +793,6 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                 </div>
               )}
             </div>
-
-            {/* Interactive Annotation Questions if payload exists */}
-            {payloadData?.items?.map((taskItem: any, idx: number) => (
-              <div key={idx} className="p-4 rounded-2xl bg-slate-800/30 border border-slate-700/40 space-y-3">
-                <p className="text-xs font-bold text-brand-400">Question #{idx + 1}</p>
-                {taskItem.url && (
-                  <img
-                    src={taskItem.url}
-                    alt={`Task item ${idx}`}
-                    className="w-full h-48 object-cover rounded-xl border border-slate-700"
-                  />
-                )}
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  {taskItem.options?.map((opt: string) => (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() => setAnnotationAnswers({ ...annotationAnswers, [`item_${idx}`]: opt })}
-                      className={`p-3 rounded-xl text-xs font-semibold border transition-all text-left cursor-pointer ${
-                        annotationAnswers[`item_${idx}`] === opt
-                          ? 'bg-brand-500/20 border-brand-500 text-brand-300'
-                          : 'bg-slate-800/60 border-slate-700 text-gray-300 hover:bg-slate-800'
-                      }`}
-                    >
-                      {opt}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
 
             {/* Proof of Work Submission Section */}
             <div className="space-y-4 border-t border-slate-800 pt-4">
@@ -504,7 +911,9 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
           </div>
         )}
 
-        {/* MODE C: WHATSAPP CAMPAIGN */}
+        {/* ══════════════════════════════════════════════════════════
+            MODE C: WHATSAPP CAMPAIGN
+        ══════════════════════════════════════════════════════════ */}
         {type === 'WHATSAPP' && (
           <div className="space-y-6">
             <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50 space-y-3">

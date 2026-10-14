@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getSessionUser } from '@/lib/auth';
+import { sweepExpiredQuizAttempts } from '@/lib/quizSweep';
 
 /**
  * GET /api/dashboard
@@ -12,6 +13,9 @@ import { getSessionUser } from '@/lib/auth';
  */
 export async function GET(req: NextRequest) {
   try {
+    // Run lazy finalization sweep of expired quiz attempts to release slots
+    await sweepExpiredQuizAttempts();
+
     // One auth check — reused across all three data fetches below
     const user = await getSessionUser(req);
     const now = new Date();

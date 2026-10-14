@@ -74,6 +74,7 @@ export async function POST(req: NextRequest) {
       externalUrl,
       startDate,
       endDate,
+      dataPayloadJson,
     } = body;
 
     if (!title || !instructions) {
@@ -120,6 +121,7 @@ export async function POST(req: NextRequest) {
         externalUrl: externalUrl?.trim() || null,
         startDate: startDate ? new Date(startDate) : null,
         endDate: endDate ? new Date(endDate) : null,
+        dataPayloadJson: dataPayloadJson ? (typeof dataPayloadJson === 'string' ? dataPayloadJson : JSON.stringify(dataPayloadJson)) : null,
       },
       include: { category: true },
     });
@@ -169,6 +171,7 @@ export async function PUT(req: NextRequest) {
       remainingSlots,
       status,
       externalUrl,
+      dataPayloadJson,
     } = body;
 
     if (!id) {
@@ -188,6 +191,9 @@ export async function PUT(req: NextRequest) {
     if (remainingSlots !== undefined) updateData.remainingSlots = parseInt(remainingSlots);
     if (status !== undefined) updateData.status = status; // DRAFT, PUBLISHED, PAUSED, CLOSED
     if (externalUrl !== undefined) updateData.externalUrl = externalUrl.trim() || null;
+    if (dataPayloadJson !== undefined) {
+      updateData.dataPayloadJson = dataPayloadJson ? (typeof dataPayloadJson === 'string' ? dataPayloadJson : JSON.stringify(dataPayloadJson)) : null;
+    }
 
     const task = await prisma.task.update({
       where: { id },

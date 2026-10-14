@@ -29,7 +29,28 @@ export async function POST(
       return NextResponse.json({ error: 'This task is not currently open for submissions.' }, { status: 400 });
     }
 
-    if (task.remainingSlots <= 0) {
+    let isQuiz = false;
+    let quizPayload: any = null;
+    if (task.dataPayloadJson) {
+      try {
+        const parsed = JSON.parse(task.dataPayloadJson);
+        if (parsed.mode === 'QUIZ' || (Array.isArray(parsed.questions) && parsed.questions.length > 0)) {
+          isQuiz = true;
+          quizPayload = parsed;
+        }
+      } catch (e) {}
+    }
+
+    // Check if user already has an existing task submission record
+    const existing = await prisma.taskSubmission.findFirst({
+      where: { taskId, userId: user.id },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const hasExistingInProgress = existing && existing.status === 'IN_PROGRESS';
+
+    // Slots check: started tasks (and quizzes whose slots were reserved at start) are honored
+    if (task.remainingSlots <= 0 && !hasExistingInProgress) {
       return NextResponse.json({ error: 'Task slot capacity reached. No slots remaining.' }, { status: 400 });
     }
 
@@ -60,14 +81,6 @@ export async function POST(
       );
     }
 
-    // Check if user already has an existing task submission record
-    const existing = await prisma.taskSubmission.findFirst({
-      where: { taskId, userId: user.id },
-      orderBy: { createdAt: 'desc' },
-    });
-
-    let submission;
-
     if (existing) {
       if (existing.status === 'UNDER_REVIEW') {
         return NextResponse.json(
@@ -83,7 +96,176 @@ export async function POST(
         );
       }
 
-      // If IN_PROGRESS or REJECTED: update to UNDER_REVIEW
+      if (isQuiz && existing.status === 'REJECTED') {
+        return NextResponse.json(
+          { error: 'You have already attempted this quiz. Retries are not permitted.' },
+          { status: 400 }
+        );
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // BRANCH A: INTERACTIVE QUIZ SUBMISSION (Server-Side Graded)
+    // ─────────────────────────────────────────────────────────────
+    if (isQuiz) {
+      if (!existing || existing.status !== 'IN_PROGRESS') {
+        return NextResponse.json(
+          { error: 'No active quiz session found. Please start the quiz first.' },
+          { status: 400 }
+        );
+      }
+
+      const now = new Date();
+      const duration = task.durationSeconds || 300;
+      const deadline = new Date(existing.startedAt.getTime() + duration * 1000 + 15000); // 15s grace
+      const isExpired = now > deadline;
+
+      // Merge answers from body and existing autosaved answers
+      let existingAnswers: Record<string, any> = {};
+      try {
+        if (existing.submissionDataJson) {
+          existingAnswers = JSON.parse(existing.submissionDataJson).answers || {};
+        }
+      } catch (e) {}
+
+      const submittedAnswers: Record<string, any> = {
+        ...existingAnswers,
+        ...(body.answers || (typeof submissionDataJson === 'object' ? submissionDataJson.answers || submissionDataJson : {})),
+      };
+
+      const questions = quizPayload.questions || [];
+      let correctCount = 0;
+      const results: Record<string, boolean> = {};
+
+      questions.forEach((q: any) => {
+        const userAns = submittedAnswers[q.id];
+        const isCorrect = userAns && q.correctAnswer && String(userAns).trim() === String(q.correctAnswer).trim();
+        results[q.id] = !!isCorrect;
+        if (isCorrect) correctCount++;
+      });
+
+      const totalQuestions = questions.length;
+      const score = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+      const passMark = quizPayload.passScorePercent || 80;
+      const passed = !isExpired && score >= passMark;
+
+      // Atomic conditional update in transaction to guard against concurrent double-submits
+      const result = await prisma.$transaction(async (tx) => {
+        if (passed) {
+          // PASSED: Move to UNDER_REVIEW for mandatory admin approval before payout
+          // (Slot was already reserved at start, so remainingSlots is NOT decremented again)
+          const updated = await tx.taskSubmission.updateMany({
+            where: { id: existing.id, status: 'IN_PROGRESS' },
+            data: {
+              status: 'UNDER_REVIEW',
+              submittedAt: now,
+              submissionDataJson: JSON.stringify({
+                answers: submittedAnswers,
+                results,
+                score,
+                passed: true,
+                totalQuestions,
+                autoGraded: true,
+              }),
+            },
+          });
+
+          if (updated.count === 0) {
+            return { alreadyProcessed: true };
+          }
+
+          await tx.notification.create({
+            data: {
+              userId: user.id,
+              title: 'Quiz Passed! 🎓',
+              message: `Congratulations! You scored ${score}% on "${task.title}". Your submission has entered the admin review queue. KES ${task.reward.toFixed(2)} will be credited upon approval.`,
+              type: 'SUCCESS',
+            },
+          });
+
+          return { success: true, passed: true, score, results };
+        } else {
+          // FAILED or EXPIRED: Auto-mark as REJECTED and atomically release reserved slot back to the public pool
+          const rejectionReason = isExpired
+            ? `Time limit expired. Score: ${score}% (Passing mark is ${passMark}%). Retries are not permitted.`
+            : `Quiz score: ${score}%. Pass mark is ${passMark}%. Retries are not permitted.`;
+
+          const updated = await tx.taskSubmission.updateMany({
+            where: { id: existing.id, status: 'IN_PROGRESS' },
+            data: {
+              status: 'REJECTED',
+              rejectionReason,
+              submittedAt: now,
+              submissionDataJson: JSON.stringify({
+                answers: submittedAnswers,
+                results,
+                score,
+                passed: false,
+                totalQuestions,
+                autoGraded: true,
+                autoRejected: true,
+                expired: isExpired,
+              }),
+            },
+          });
+
+          if (updated.count === 0) {
+            return { alreadyProcessed: true };
+          }
+
+          // Release slot back
+          await tx.task.update({
+            where: { id: taskId },
+            data: { remainingSlots: { increment: 1 } },
+          });
+
+          await tx.notification.create({
+            data: {
+              userId: user.id,
+              title: isExpired ? 'Quiz Time Expired ⌛' : 'Quiz Result 📋',
+              message: isExpired
+                ? `Your time limit for "${task.title}" expired. Score: ${score}%. This quiz cannot be retaken.`
+                : `You scored ${score}% on "${task.title}". The passing mark is ${passMark}%. This quiz cannot be retaken.`,
+              type: 'INFO',
+            },
+          });
+
+          return { success: true, passed: false, score, results, rejectionReason };
+        }
+      });
+
+      if (result.alreadyProcessed) {
+        return NextResponse.json({
+          success: true,
+          message: 'Quiz attempt has already been submitted and processed.',
+        });
+      }
+
+      if (result.passed) {
+        return NextResponse.json({
+          success: true,
+          passed: true,
+          score: result.score,
+          results: result.results,
+          message: `Congratulations! You scored ${result.score}% (Pass mark: ${passMark}%). Your submission is now awaiting admin review.`,
+        });
+      } else {
+        return NextResponse.json({
+          success: true,
+          passed: false,
+          score: result.score,
+          results: result.results,
+          message: result.rejectionReason,
+        });
+      }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // BRANCH B: STANDARD TASKS SUBMISSION
+    // ─────────────────────────────────────────────────────────────
+    let submission;
+
+    if (existing) {
       submission = await prisma.taskSubmission.update({
         where: { id: existing.id },
         data: {
@@ -95,7 +277,6 @@ export async function POST(
         },
       });
     } else {
-      // Create new submission record in UNDER_REVIEW state
       submission = await prisma.taskSubmission.create({
         data: {
           taskId,
@@ -110,7 +291,7 @@ export async function POST(
       });
     }
 
-    // Decrement remaining slots safely
+    // Decrement remaining slots safely for standard tasks
     if (task.remainingSlots > 0) {
       await prisma.task.update({
         where: { id: taskId },

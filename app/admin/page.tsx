@@ -52,6 +52,7 @@ import {
   ToggleLeft,
   ToggleRight,
   Plus,
+  BrainCircuit,
 } from 'lucide-react';
 import { formatKenyanPhoneDisplay } from '@/lib/phone';
 import { Skeleton } from '@/components/Skeleton';
@@ -199,6 +200,8 @@ function AdminDashboardInner() {
     totalSlots: '100',
     externalUrl: '',
     status: 'DRAFT',
+    taskType: 'STANDARD' as 'STANDARD' | 'QUIZ',
+    quizQuestions: [] as Array<{ id: string; prompt: string; options: string[]; correctAnswer: string }>,
   });
   const [taskSubmitting, setTaskSubmitting] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
@@ -910,8 +913,45 @@ function AdminDashboardInner() {
       totalSlots: '100',
       externalUrl: '',
       status: 'DRAFT',
+      taskType: 'STANDARD',
+      quizQuestions: [],
     });
     setEditingTask(null);
+  };
+
+  const validateQuizQuestions = () => {
+    if (taskForm.taskType !== 'QUIZ') return null;
+    if (!taskForm.quizQuestions || taskForm.quizQuestions.length === 0) {
+      throw new Error('Please add at least one question to the quiz.');
+    }
+    for (let i = 0; i < taskForm.quizQuestions.length; i++) {
+      const q = taskForm.quizQuestions[i];
+      if (!q.prompt?.trim()) {
+        throw new Error(`Question #${i + 1} is missing its question text.`);
+      }
+      const validOpts = (q.options || []).map((o) => o.trim()).filter(Boolean);
+      if (validOpts.length < 2) {
+        throw new Error(`Question #${i + 1} must have at least 2 non-empty options.`);
+      }
+      if (!q.correctAnswer?.trim()) {
+        throw new Error(`Question #${i + 1} does not have a marked correct answer.`);
+      }
+      if (!validOpts.includes(q.correctAnswer.trim())) {
+        throw new Error(`The marked correct answer for Question #${i + 1} must match one of its options.`);
+      }
+    }
+
+    return JSON.stringify({
+      mode: 'QUIZ',
+      passScorePercent: 80,
+      questions: taskForm.quizQuestions.map((q, idx) => ({
+        id: q.id || `q_${idx + 1}`,
+        type: 'SINGLE_CHOICE',
+        prompt: q.prompt.trim(),
+        options: q.options.map((o) => o.trim()).filter(Boolean),
+        correctAnswer: q.correctAnswer.trim(),
+      })),
+    });
   };
 
   const handleCreateTask = async (e: React.FormEvent) => {
@@ -921,10 +961,17 @@ function AdminDashboardInner() {
     setTaskSubmitting(true);
 
     try {
+      const dataPayloadJson = validateQuizQuestions();
+
+      const payload = {
+        ...taskForm,
+        dataPayloadJson,
+      };
+
       const res = await fetch('/api/admin/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskForm),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
@@ -944,6 +991,24 @@ function AdminDashboardInner() {
 
   const handleEditTask = (task: any) => {
     setEditingTask(task);
+
+    let loadedType: 'STANDARD' | 'QUIZ' = 'STANDARD';
+    let loadedQuestions: any[] = [];
+    if (task.dataPayloadJson) {
+      try {
+        const parsed = JSON.parse(task.dataPayloadJson);
+        if (parsed.mode === 'QUIZ' || (Array.isArray(parsed.questions) && parsed.questions.length > 0)) {
+          loadedType = 'QUIZ';
+          loadedQuestions = (parsed.questions || []).map((q: any, i: number) => ({
+            id: q.id || `q_${i + 1}`,
+            prompt: q.prompt || '',
+            options: q.options || ['', '', '', ''],
+            correctAnswer: q.correctAnswer || '',
+          }));
+        }
+      } catch (e) {}
+    }
+
     setTaskForm({
       title: task.title || '',
       description: task.description || '',
@@ -956,6 +1021,8 @@ function AdminDashboardInner() {
       totalSlots: String(task.totalSlots ?? '100'),
       externalUrl: task.externalUrl || '',
       status: task.status || 'DRAFT',
+      taskType: loadedType,
+      quizQuestions: loadedQuestions,
     });
     router.push('/admin?tab=add-task');
   };
@@ -967,10 +1034,18 @@ function AdminDashboardInner() {
     setSuccessMsg('');
     setTaskSubmitting(true);
     try {
+      const dataPayloadJson = validateQuizQuestions();
+
+      const payload = {
+        id: editingTask.id,
+        ...taskForm,
+        dataPayloadJson,
+      };
+
       const res = await fetch('/api/admin/tasks', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: editingTask.id, ...taskForm }),
+        body: JSON.stringify(payload),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to update task');
@@ -2575,16 +2650,184 @@ function AdminDashboardInner() {
 
             <form onSubmit={editingTask ? handleUpdateTask : handleCreateTask} className="space-y-5 bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-300 uppercase">Task Title</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Kenya Wildlife Image Classification"
-                  value={taskForm.title}
-                  onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
-                  className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500"
-                />
+                <label className="text-xs font-semibold text-slate-300 uppercase">Task Format</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setTaskForm({ ...taskForm, taskType: 'STANDARD' })}
+                    className={`p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                      taskForm.taskType === 'STANDARD'
+                        ? 'bg-brand-500/20 border-brand-500 text-brand-300 shadow-md shadow-brand-500/10'
+                        : 'bg-dark-950 border-dark-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <FileText className="w-5 h-5 text-brand-400 shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold text-white">Standard Microtask</div>
+                      <div className="text-[10px] text-slate-400">Written instructions & manual proof upload</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const defaultQuestions = taskForm.quizQuestions.length > 0 ? taskForm.quizQuestions : [
+                        { id: 'q_1', prompt: '', options: ['', '', '', ''], correctAnswer: '' },
+                      ];
+                      setTaskForm({
+                        ...taskForm,
+                        taskType: 'QUIZ',
+                        durationSeconds: String(Math.max(300, defaultQuestions.length * 60)),
+                        instructions: taskForm.instructions || 'Answer all multiple-choice questions within the exam timer. You need 80% to pass and qualify for the reward.',
+                        quizQuestions: defaultQuestions,
+                      });
+                    }}
+                    className={`p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                      taskForm.taskType === 'QUIZ'
+                        ? 'bg-brand-500/20 border-brand-500 text-brand-300 shadow-md shadow-brand-500/10'
+                        : 'bg-dark-950 border-dark-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <BrainCircuit className="w-5 h-5 text-brand-400 shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold text-white">Interactive Quiz (MCQ)</div>
+                      <div className="text-[10px] text-slate-400">Graded choice questions with unpausable exam timer</div>
+                    </div>
+                  </button>
+                </div>
               </div>
+
+              {/* Quiz Questions Builder */}
+              {taskForm.taskType === 'QUIZ' && (
+                <div className="p-5 rounded-2xl bg-dark-950 border border-brand-500/30 space-y-5">
+                  <div className="flex items-center justify-between border-b border-dark-800 pb-3">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-brand-400 flex items-center gap-1.5">
+                        <BrainCircuit className="w-4 h-4" /> Quiz Questions Builder
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Configure questions, choices (A–D), and mark exactly one correct option per question.
+                      </p>
+                    </div>
+                    <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-300 border border-brand-500/20">
+                      {taskForm.quizQuestions.length} Questions ({taskForm.quizQuestions.length * 60}s recommended)
+                    </span>
+                  </div>
+
+                  <div className="space-y-6">
+                    {taskForm.quizQuestions.map((q, qIdx) => (
+                      <div key={q.id || qIdx} className="p-4 rounded-xl bg-dark-900 border border-dark-800 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white">Question #{qIdx + 1}</span>
+                          {taskForm.quizQuestions.length > 1 && (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const nextQuestions = taskForm.quizQuestions.filter((_, i) => i !== qIdx);
+                                setTaskForm({
+                                  ...taskForm,
+                                  quizQuestions: nextQuestions,
+                                  durationSeconds: String(Math.max(120, nextQuestions.length * 60)),
+                                });
+                              }}
+                              className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 cursor-pointer"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" /> Remove Question
+                            </button>
+                          )}
+                        </div>
+
+                        <div>
+                          <input
+                            type="text"
+                            required
+                            placeholder={`e.g. What is the primary purpose of data labeling in AI?`}
+                            value={q.prompt}
+                            onChange={(e) => {
+                              const nextQuestions = [...taskForm.quizQuestions];
+                              nextQuestions[qIdx].prompt = e.target.value;
+                              setTaskForm({ ...taskForm, quizQuestions: nextQuestions });
+                            }}
+                            className="w-full px-3.5 py-2.5 rounded-xl bg-dark-950 border border-dark-700 text-white text-xs focus:outline-none focus:border-brand-500"
+                          />
+                        </div>
+
+                        <div className="space-y-2 pt-1">
+                          <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                            Options (Select radio button to mark correct answer):
+                          </span>
+                          {(q.options || ['', '', '', '']).map((opt, optIdx) => {
+                            const optionLetter = String.fromCharCode(65 + optIdx);
+                            const isCorrect = Boolean(q.correctAnswer && q.correctAnswer === opt && opt.trim() !== '');
+
+                            return (
+                              <div key={optIdx} className="flex items-center gap-2">
+                                <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                                  <input
+                                    type="radio"
+                                    name={`correct_${qIdx}`}
+                                    checked={isCorrect}
+                                    onChange={() => {
+                                      const nextQuestions = [...taskForm.quizQuestions];
+                                      nextQuestions[qIdx].correctAnswer = opt;
+                                      setTaskForm({ ...taskForm, quizQuestions: nextQuestions });
+                                    }}
+                                    className="w-4 h-4 text-brand-500 focus:ring-brand-500 accent-brand-500 cursor-pointer"
+                                  />
+                                  <span className="text-xs font-mono font-bold text-slate-400 w-4">
+                                    {optionLetter}.
+                                  </span>
+                                </label>
+                                <input
+                                  type="text"
+                                  required={optIdx < 2}
+                                  placeholder={`Option ${optionLetter}`}
+                                  value={opt}
+                                  onChange={(e) => {
+                                    const nextQuestions = [...taskForm.quizQuestions];
+                                    const oldOpt = nextQuestions[qIdx].options[optIdx];
+                                    nextQuestions[qIdx].options[optIdx] = e.target.value;
+                                    if (nextQuestions[qIdx].correctAnswer === oldOpt) {
+                                      nextQuestions[qIdx].correctAnswer = e.target.value;
+                                    }
+                                    setTaskForm({ ...taskForm, quizQuestions: nextQuestions });
+                                  }}
+                                  className={`flex-1 px-3 py-2 rounded-xl bg-dark-950 border text-xs text-white focus:outline-none ${
+                                    isCorrect ? 'border-brand-500 bg-brand-500/10' : 'border-dark-700'
+                                  }`}
+                                />
+                                {isCorrect && (
+                                  <span className="text-[10px] font-bold text-brand-400 flex items-center gap-1 shrink-0 px-2 py-0.5 rounded-full bg-brand-500/15 border border-brand-500/30">
+                                    <Check className="w-3 h-3" /> Correct
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const nextQuestions = [
+                        ...taskForm.quizQuestions,
+                        { id: `q_${Date.now()}`, prompt: '', options: ['', '', '', ''], correctAnswer: '' },
+                      ];
+                      setTaskForm({
+                        ...taskForm,
+                        quizQuestions: nextQuestions,
+                        durationSeconds: String(nextQuestions.length * 60),
+                      });
+                    }}
+                    className="w-full py-2.5 rounded-xl border border-dashed border-brand-500/50 hover:bg-brand-500/10 text-brand-300 text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    + Add Another Question
+                  </button>
+                </div>
+              )}
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">

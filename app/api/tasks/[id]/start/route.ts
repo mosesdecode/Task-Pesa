@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
+import { sweepExpiredQuizAttempts } from '@/lib/quizSweep';
 
 export async function POST(
   req: NextRequest,
@@ -18,6 +19,9 @@ export async function POST(
       );
     }
 
+    // Lazy sweep any expired attempts for this task first to release slots
+    await sweepExpiredQuizAttempts(taskId);
+
     const task = await prisma.task.findUnique({
       where: { id: taskId },
       include: { category: true },
@@ -34,14 +38,17 @@ export async function POST(
       );
     }
 
-    if (task.remainingSlots <= 0) {
-      return NextResponse.json(
-        { error: 'Task slot capacity reached. No slots remaining.' },
-        { status: 400 }
-      );
+    let isQuiz = false;
+    if (task.dataPayloadJson) {
+      try {
+        const parsed = JSON.parse(task.dataPayloadJson);
+        if (parsed.mode === 'QUIZ' || (Array.isArray(parsed.questions) && parsed.questions.length > 0)) {
+          isQuiz = true;
+        }
+      } catch (e) {}
     }
 
-    // Check existing submissions/starts
+    // Check existing submissions/starts for this user
     const existing = await prisma.taskSubmission.findFirst({
       where: { taskId, userId: user.id },
       orderBy: { createdAt: 'desc' },
@@ -49,10 +56,43 @@ export async function POST(
 
     if (existing) {
       if (existing.status === 'IN_PROGRESS') {
+        if (isQuiz) {
+          const duration = task.durationSeconds || 300;
+          const deadline = new Date(existing.startedAt.getTime() + duration * 1000 + 15000);
+          if (new Date() > deadline) {
+            // Expired attempt: lazy finalize as REJECTED and release slot
+            await prisma.$transaction(async (tx) => {
+              const updated = await tx.taskSubmission.updateMany({
+                where: { id: existing.id, status: 'IN_PROGRESS' },
+                data: {
+                  status: 'REJECTED',
+                  rejectionReason: 'Time limit expired. Attempt closed automatically.',
+                  submissionDataJson: JSON.stringify({
+                    autoGraded: true,
+                    autoRejected: true,
+                    passed: false,
+                    expired: true,
+                  }),
+                },
+              });
+              if (updated.count > 0) {
+                await tx.task.update({
+                  where: { id: taskId },
+                  data: { remainingSlots: { increment: 1 } },
+                });
+              }
+            });
+            return NextResponse.json(
+              { error: 'Your quiz time limit has expired. You had one attempt.' },
+              { status: 400 }
+            );
+          }
+        }
         return NextResponse.json({
           success: true,
-          message: 'Task is already in progress.',
+          message: isQuiz ? 'Quiz is currently in progress.' : 'Task is already in progress.',
           submission: existing,
+          isQuiz,
         });
       }
 
@@ -69,23 +109,104 @@ export async function POST(
           { status: 400 }
         );
       }
+
+      if (existing.status === 'REJECTED') {
+        if (isQuiz) {
+          return NextResponse.json(
+            { error: 'You have already attempted this quiz. Retries are not permitted.' },
+            { status: 400 }
+          );
+        }
+
+        // For STANDARD tasks: Check if slots are available before restarting
+        if (task.remainingSlots <= 0) {
+          return NextResponse.json(
+            { error: 'Task slot capacity reached. No slots remaining.' },
+            { status: 400 }
+          );
+        }
+
+        // Reuse the existing rejected row (reset to IN_PROGRESS)
+        // to maintain retry capability while respecting @@unique([taskId, userId])
+        const reusedSubmission = await prisma.taskSubmission.update({
+          where: { id: existing.id },
+          data: {
+            status: 'IN_PROGRESS',
+            startedAt: new Date(),
+            submittedAt: null,
+            rejectionReason: null,
+            proofText: null,
+            proofUrl: null,
+            submissionDataJson: null,
+          },
+        });
+
+        return NextResponse.json({
+          success: true,
+          message: 'Task restarted! Please complete instructions and resubmit.',
+          submission: reusedSubmission,
+          isQuiz: false,
+        });
+      }
     }
 
-    // Create a new task tracking record with IN_PROGRESS status
-    const submission = await prisma.taskSubmission.create({
-      data: {
-        taskId,
-        userId: user.id,
-        status: 'IN_PROGRESS',
-        startedAt: new Date(),
-      },
-    });
+    // Starting a brand new attempt:
+    // Slot check and atomic reservation
+    if (task.remainingSlots <= 0) {
+      return NextResponse.json(
+        { error: 'Task slot capacity reached. No slots remaining.' },
+        { status: 400 }
+      );
+    }
 
-    return NextResponse.json({
-      success: true,
-      message: 'Task started! You may now complete the instructions and submit your proof.',
-      submission,
-    });
+    try {
+      const submission = await prisma.$transaction(async (tx) => {
+        if (isQuiz) {
+          // Atomically reserve slot at quiz start
+          const slotReserve = await tx.task.updateMany({
+            where: { id: taskId, remainingSlots: { gt: 0 } },
+            data: { remainingSlots: { decrement: 1 } },
+          });
+
+          if (slotReserve.count === 0) {
+            throw new Error('SLOT_FULL');
+          }
+        }
+
+        // Create a new task tracking record with IN_PROGRESS status
+        return await tx.taskSubmission.create({
+          data: {
+            taskId,
+            userId: user.id,
+            status: 'IN_PROGRESS',
+            startedAt: new Date(),
+          },
+        });
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: isQuiz
+          ? 'Quiz started! The exam timer is now running.'
+          : 'Task started! You may now complete the instructions and submit your proof.',
+        submission,
+        isQuiz,
+      });
+    } catch (txErr: any) {
+      if (txErr.message === 'SLOT_FULL') {
+        return NextResponse.json(
+          { error: 'Task slot capacity reached. No slots remaining.' },
+          { status: 400 }
+        );
+      }
+      if (txErr.code === 'P2002') {
+        return NextResponse.json(
+          { error: 'An active or submitted attempt already exists for this task.' },
+          { status: 400 }
+        );
+      }
+      throw txErr;
+    }
   } catch (error: any) {
     if (error.message?.includes('Unauthorized')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });

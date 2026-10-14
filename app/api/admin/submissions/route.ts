@@ -9,7 +9,13 @@ export async function GET(req: NextRequest) {
     const statusFilter = searchParams.get('status') || 'ALL'; // ALL, UNDER_REVIEW, APPROVED, REJECTED
     const search = searchParams.get('search') || '';
 
-    const whereClause: any = {};
+    const whereClause: any = {
+      NOT: [
+        { submissionDataJson: { contains: '"autoGraded":true' } },
+        { rejectionReason: { contains: 'Quiz score' } },
+        { rejectionReason: { contains: 'Time limit expired' } },
+      ],
+    };
     if (statusFilter !== 'ALL') {
       whereClause.status = statusFilter;
     }
@@ -79,7 +85,16 @@ export async function GET(req: NextRequest) {
         (prisma as any).coinRedemption.count({ where: { status: 'PENDING' } }),
         prisma.taskSubmission.count({ where: { status: 'APPROVED' } }),
         (prisma as any).coinRedemption.count({ where: { status: 'APPROVED' } }),
-        prisma.taskSubmission.count({ where: { status: 'REJECTED' } }),
+        prisma.taskSubmission.count({
+          where: {
+            status: 'REJECTED',
+            NOT: [
+              { submissionDataJson: { contains: '"autoGraded":true' } },
+              { rejectionReason: { contains: 'Quiz score' } },
+              { rejectionReason: { contains: 'Time limit expired' } },
+            ],
+          },
+        }),
         (prisma as any).coinRedemption.count({ where: { status: 'REJECTED' } }),
       ]),
     ]);

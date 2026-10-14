@@ -163,10 +163,10 @@ model TaskSubmission {
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 
+  @@unique([taskId, userId])
   @@index([userId])
   @@index([taskId])
   @@index([status])
-  @@index([userId, taskId])
   @@index([userId, status])
 }
 
