@@ -64,24 +64,27 @@ export default function TasksPage() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const u = await getMe();
+      // Parallelize auth check and dashboard queries — cuts initial page load time in half
+      const [u, dashRes] = await Promise.all([
+        getMe(),
+        fetch('/api/dashboard'),
+      ]);
+
       if (!u) {
         window.location.href = '/login?redirect=/tasks';
         return;
       }
       setUser(u);
 
-      // Single request replaces three separate /api/tasks, /api/ads, /api/whatsapp calls
-      const dashRes = await fetch('/api/dashboard');
-      const dashData = await dashRes.json();
-
-      if (dashData.tasks) setTasks(dashData.tasks);
-      if (dashData.categories) setCategories(dashData.categories);
-      if (dashData.ads) setAds(dashData.ads);
-      if (dashData.campaigns) setWhatsappCampaigns(dashData.campaigns);
+      if (dashRes.ok) {
+        const dashData = await dashRes.json();
+        if (dashData.tasks) setTasks(dashData.tasks);
+        if (dashData.categories) setCategories(dashData.categories);
+        if (dashData.ads) setAds(dashData.ads);
+        if (dashData.campaigns) setWhatsappCampaigns(dashData.campaigns);
+      }
     } catch (e) {
-      console.error(e);
-      window.location.href = '/login?redirect=/tasks';
+      console.error('Tasks page fetch error:', e);
     } finally {
       setLoading(false);
     }

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getSessionUser } from '@/lib/auth';
+import { verifyToken } from '@/lib/jwt';
 import { sweepExpiredQuizAttempts } from '@/lib/quizSweep';
 
 /**
@@ -13,22 +13,26 @@ import { sweepExpiredQuizAttempts } from '@/lib/quizSweep';
  */
 export async function GET(req: NextRequest) {
   try {
-    // Run lazy finalization sweep of expired quiz attempts to release slots
-    await sweepExpiredQuizAttempts();
+    // Run lazy finalization sweep in background — never block the dashboard response
+    sweepExpiredQuizAttempts().catch((err) => console.error('Background sweep error:', err));
 
-    // One auth check — reused across all three data fetches below
-    const user = await getSessionUser(req);
+    // Get userId directly from JWT token — eliminates an extra round-trip DB query for user profile
+    const token =
+      req.cookies.get('taskmint_token')?.value ||
+      req.cookies.get('taskpesa_token')?.value ||
+      req.headers.get('authorization')?.replace('Bearer ', '');
+
+    const payload = token ? await verifyToken(token) : null;
+    const userId = payload?.userId || null;
     const now = new Date();
 
-    // Fetch categories first (tiny, indexed table) to resolve slugs in-memory
-    const categories = await prisma.taskCategory.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true, slug: true, icon: true, description: true, isActive: true },
-    });
-
-    // Run all three heavy queries in parallel — no waterfall
-    const [tasks, ads, campaigns] = await Promise.all([
+    // Run ALL queries in parallel — single round trip
+    const [categories, tasks, ads, campaigns] = await Promise.all([
+      prisma.taskCategory.findMany({
+        where: { isActive: true },
+        orderBy: { name: 'asc' },
+        select: { id: true, name: true, slug: true, icon: true, description: true, isActive: true },
+      }),
       prisma.task.findMany({
         where: {
           AND: [
@@ -40,7 +44,7 @@ export async function GET(req: NextRequest) {
                   OR: [{ endDate: null }, { endDate: { gt: now } }],
                   AND: [{ OR: [{ deadline: null }, { deadline: { gt: now } }] }],
                 },
-                ...(user ? [{ submissions: { some: { userId: user.id } } }] : []),
+                ...(userId ? [{ submissions: { some: { userId } } }] : []),
               ],
             },
           ],
@@ -62,15 +66,14 @@ export async function GET(req: NextRequest) {
           status: true,
           proofRequired: true,
           externalUrl: true,
-          // dataPayloadJson excluded — only needed when a task is opened individually
           createdAt: true,
           updatedAt: true,
           category: {
             select: { id: true, name: true, slug: true, icon: true },
           },
-          submissions: user
+          submissions: userId
             ? {
-                where: { userId: user.id },
+                where: { userId },
                 orderBy: { createdAt: 'desc' },
                 take: 1,
                 select: {
@@ -89,7 +92,6 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: 'desc' },
         take: 100,
       }),
-
       prisma.advertisement.findMany({
         where: {
           status: 'ACTIVE',
@@ -108,23 +110,22 @@ export async function GET(req: NextRequest) {
           minPackageTier: true,
           status: true,
           createdAt: true,
-          views: user
-            ? { where: { userId: user.id }, select: { id: true, rewarded: true, viewedAt: true } }
+          views: userId
+            ? { where: { userId }, select: { id: true, rewarded: true, viewedAt: true } }
             : false,
         },
         orderBy: { createdAt: 'desc' },
         take: 50,
       }),
-
       prisma.whatsappCampaign.findMany({
-        where: user
+        where: userId
           ? {
               OR: [
                 {
                   status: 'ACTIVE',
                   OR: [{ deadline: null }, { deadline: { gt: now } }],
                 },
-                { submissions: { some: { userId: user.id } } },
+                { submissions: { some: { userId } } },
               ],
             }
           : {
@@ -143,9 +144,9 @@ export async function GET(req: NextRequest) {
           deadline: true,
           status: true,
           createdAt: true,
-          submissions: user
+          submissions: userId
             ? {
-                where: { userId: user.id },
+                where: { userId },
                 orderBy: { submittedAt: 'desc' },
                 take: 1,
                 select: { id: true, status: true, proofUrl: true, adminNotes: true, submittedAt: true },
