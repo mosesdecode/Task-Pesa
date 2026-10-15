@@ -961,6 +961,12 @@ function AdminDashboardInner() {
     setTaskSubmitting(true);
 
     try {
+      if (!taskForm.title?.trim()) {
+        throw new Error('Please provide a task title.');
+      }
+      if (!taskForm.instructions?.trim()) {
+        throw new Error('Please provide detailed instructions.');
+      }
       const dataPayloadJson = validateQuizQuestions();
 
       const payload = {
@@ -1034,6 +1040,12 @@ function AdminDashboardInner() {
     setSuccessMsg('');
     setTaskSubmitting(true);
     try {
+      if (!taskForm.title?.trim()) {
+        throw new Error('Please provide a task title.');
+      }
+      if (!taskForm.instructions?.trim()) {
+        throw new Error('Please provide detailed instructions.');
+      }
       const dataPayloadJson = validateQuizQuestions();
 
       const payload = {
@@ -2649,6 +2661,36 @@ function AdminDashboardInner() {
             </div>
 
             <form onSubmit={editingTask ? handleUpdateTask : handleCreateTask} className="space-y-5 bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8">
+              {/* Task Title & Short Description */}
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">
+                    Task Title <span className="text-rose-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Digital Skills Quiz or Website Feedback"
+                    value={taskForm.title}
+                    onChange={(e) => setTaskForm({ ...taskForm, title: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500 font-medium placeholder-slate-600"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-300 uppercase">
+                    Short Description <span className="text-slate-500 text-[10px]">(Optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Brief summary of what this task entails..."
+                    value={taskForm.description}
+                    onChange={(e) => setTaskForm({ ...taskForm, description: e.target.value })}
+                    className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white text-sm focus:outline-none focus:border-brand-500 placeholder-slate-600"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-300 uppercase">Task Format</label>
                 <div className="grid grid-cols-2 gap-3">
