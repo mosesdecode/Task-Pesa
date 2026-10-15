@@ -255,9 +255,20 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
       if (!res.ok) throw new Error(data.error || 'Failed to start quiz');
 
       const duration = taskDetail?.durationSeconds || item.durationSeconds || 300;
-      const deadline = new Date(Date.now() + duration * 1000);
-      setQuizDeadline(deadline);
-      setQuizTimer(duration);
+
+      // Use the server's startedAt to compute deadline so users cannot game the
+      // timer by delaying between clicking "Start Task" (card) and "I Am Ready" (modal).
+      // Falls back to Date.now() only if the server response omits startedAt.
+      const startedAt = data.submission?.startedAt
+        ? new Date(data.submission.startedAt).getTime()
+        : Date.now();
+      const serverOffset = serverOffsetRef.current || 0;
+      const adjustedNow = Date.now() + serverOffset;
+      const deadlineTs = startedAt + duration * 1000;
+      const remainingSecs = Math.max(0, Math.floor((deadlineTs - adjustedNow) / 1000));
+
+      setQuizDeadline(new Date(deadlineTs));
+      setQuizTimer(remainingSecs);
       setQuizStarted(true);
     } catch (e: any) {
       setError(e.message);

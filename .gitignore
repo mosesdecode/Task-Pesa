@@ -48,3 +48,4 @@ diff*.txt
 create_shadow_db.js
 *.sql
 !prisma/migrations/**/*.sql
+scratch/

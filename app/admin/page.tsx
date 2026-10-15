@@ -3250,13 +3250,26 @@ function AdminDashboardInner() {
                     description={`No ${submissionFilter === 'UNDER_REVIEW' ? 'pending' : submissionFilter.toLowerCase()} task submissions.`}
                   />
                 ) : (
-                  submissionsList.map((sub) => (
+                  submissionsList.map((sub) => {
+                    // Parse quiz data once per card
+                    let quizData: any = null;
+                    try { if (sub.submissionDataJson) quizData = JSON.parse(sub.submissionDataJson); } catch {}
+                    const isQuizSub = quizData?.autoGraded === true;
+
+                    return (
                     <div key={sub.id} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4 shadow-lg">
                       <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
                         <div>
-                          <span className="text-[10px] text-slate-500 uppercase font-mono block">
-                            Submission ID: {sub.id.slice(0, 8)}...
-                          </span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] text-slate-500 uppercase font-mono block">
+                              Submission ID: {sub.id.slice(0, 8)}...
+                            </span>
+                            {isQuizSub && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30">
+                                MCQ Quiz
+                              </span>
+                            )}
+                          </div>
                           <h3 className="text-base font-bold text-white mt-0.5">{sub.task?.title}</h3>
                           <div className="flex items-center gap-2 mt-1 text-xs text-slate-400">
                             <span>Worker: <strong className="text-white">@{sub.user?.username}</strong></span>
@@ -3275,19 +3288,51 @@ function AdminDashboardInner() {
                         </span>
                       </div>
                       <div className="p-4 rounded-xl bg-dark-950 border border-dark-800/80 space-y-2 text-xs">
-                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Submitted Proof of Work:</span>
-                        {sub.proofText && <p className="text-slate-200 whitespace-pre-wrap">{sub.proofText}</p>}
-                        {sub.proofUrl && (
-                          <div className="pt-2 flex flex-col gap-2">
-                            {sub.proofUrl.startsWith('data:image') ? (
-                              <img src={sub.proofUrl} alt="Proof" className="w-full max-w-sm rounded-xl border border-dark-800 shadow-md" />
-                            ) : (
-                              <a href={sub.proofUrl.startsWith('http') ? sub.proofUrl : `https://${sub.proofUrl}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-mono">
-                                <span>Open Proof Attachment</span>
-                                <ExternalLink className="w-3.5 h-3.5" />
-                              </a>
-                            )}
+                        {isQuizSub ? (
+                          <div className="space-y-3">
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Quiz Auto-Graded Result:</span>
+                            <div className="flex items-center gap-3">
+                              <div className={`px-4 py-2 rounded-xl text-center font-black text-xl border ${
+                                quizData.passed
+                                  ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
+                                  : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
+                              }`}>
+                                {quizData.score ?? '—'}%
+                              </div>
+                              <div>
+                                <p className={`font-bold text-sm ${quizData.passed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {quizData.passed ? '✓ PASSED (≥80%)' : '✗ FAILED (<80%)'}
+                                </p>
+                                <p className="text-slate-400 text-[11px] mt-0.5">
+                                  Score verified server-side against answer key
+                                </p>
+                              </div>
+                            </div>
+                            <p className="text-slate-400 text-[11px] leading-relaxed">
+                              Approve to credit KES {sub.task?.reward?.toFixed(2)} to this worker.
+                              Reject if you suspect any integrity violation.
+                            </p>
                           </div>
+                        ) : (
+                          <>
+                            <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Submitted Proof of Work:</span>
+                            {sub.proofText && <p className="text-slate-200 whitespace-pre-wrap">{sub.proofText}</p>}
+                            {sub.proofUrl && (
+                              <div className="pt-2 flex flex-col gap-2">
+                                {sub.proofUrl.startsWith('data:image') ? (
+                                  <img src={sub.proofUrl} alt="Proof" className="w-full max-w-sm rounded-xl border border-dark-800 shadow-md" />
+                                ) : (
+                                  <a href={sub.proofUrl.startsWith('http') ? sub.proofUrl : `https://${sub.proofUrl}`} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-brand-400 hover:underline font-mono">
+                                    <span>Open Proof Attachment</span>
+                                    <ExternalLink className="w-3.5 h-3.5" />
+                                  </a>
+                                )}
+                              </div>
+                            )}
+                            {!sub.proofText && !sub.proofUrl && (
+                              <p className="text-slate-500 italic">No proof text or URL provided.</p>
+                            )}
+                          </>
                         )}
                         {sub.rejectionReason && (
                           <div className="pt-2 text-rose-400 font-medium"><strong>Rejection Reason:</strong> {sub.rejectionReason}</div>
@@ -3312,7 +3357,8 @@ function AdminDashboardInner() {
                         </div>
                       )}
                     </div>
-                  ))
+                    );
+                  })
                 )}
               </div>
             )}

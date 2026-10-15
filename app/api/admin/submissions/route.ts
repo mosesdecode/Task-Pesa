@@ -9,9 +9,13 @@ export async function GET(req: NextRequest) {
     const statusFilter = searchParams.get('status') || 'ALL'; // ALL, UNDER_REVIEW, APPROVED, REJECTED
     const search = searchParams.get('search') || '';
 
+    // Exclude auto-rejected quiz failures from the admin review queue.
+    // NOTE: We do NOT exclude autoGraded:true globally — quiz submissions that
+    // PASSED (score ≥ pass mark) are set to UNDER_REVIEW with autoGraded:true
+    // and MUST appear here for the admin to approve/reject them.
+    // The rejectionReason filters below are sufficient to hide auto-failed attempts.
     const whereClause: any = {
       NOT: [
-        { submissionDataJson: { contains: '"autoGraded":true' } },
         { rejectionReason: { contains: 'Quiz score' } },
         { rejectionReason: { contains: 'Time limit expired' } },
       ],
@@ -80,16 +84,25 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: 'desc' },
       }),
       Promise.all([
-        prisma.taskSubmission.count({ where: { status: 'UNDER_REVIEW' } }),
+        // Pending task submissions — same NOT filter as the list query for consistency
+        prisma.taskSubmission.count({
+          where: {
+            status: 'UNDER_REVIEW',
+            NOT: [
+              { rejectionReason: { contains: 'Quiz score' } },
+              { rejectionReason: { contains: 'Time limit expired' } },
+            ],
+          },
+        }),
         prisma.whatsappSubmission.count({ where: { status: 'PENDING' } }),
         (prisma as any).coinRedemption.count({ where: { status: 'PENDING' } }),
         prisma.taskSubmission.count({ where: { status: 'APPROVED' } }),
         (prisma as any).coinRedemption.count({ where: { status: 'APPROVED' } }),
+        // Rejected count — excludes auto-graded quiz failures (same filter as list)
         prisma.taskSubmission.count({
           where: {
             status: 'REJECTED',
             NOT: [
-              { submissionDataJson: { contains: '"autoGraded":true' } },
               { rejectionReason: { contains: 'Quiz score' } },
               { rejectionReason: { contains: 'Time limit expired' } },
             ],
