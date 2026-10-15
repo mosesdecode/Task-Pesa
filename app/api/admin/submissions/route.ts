@@ -14,23 +14,45 @@ export async function GET(req: NextRequest) {
     // PASSED (score ≥ pass mark) are set to UNDER_REVIEW with autoGraded:true
     // and MUST appear here for the admin to approve/reject them.
     // The rejectionReason filters below are sufficient to hide auto-failed attempts.
-    const whereClause: any = {
-      NOT: [
-        { rejectionReason: { contains: 'Quiz score' } },
-        { rejectionReason: { contains: 'Time limit expired' } },
-      ],
-    };
+    // Base whereClause: filter by status
+    const whereClause: any = {};
     if (statusFilter !== 'ALL') {
       whereClause.status = statusFilter;
     }
 
-    if (search.trim()) {
-      whereClause.OR = [
-        { task: { title: { contains: search.trim(), mode: 'insensitive' } } },
-        { user: { username: { contains: search.trim(), mode: 'insensitive' } } },
-        { user: { fullName: { contains: search.trim(), mode: 'insensitive' } } },
-        { user: { phone: { contains: search.trim(), mode: 'insensitive' } } },
+    // Only exclude auto-graded quiz failures when inspecting REJECTED submissions
+    if (statusFilter === 'REJECTED') {
+      whereClause.NOT = [
+        { rejectionReason: { contains: 'Quiz score' } },
+        { rejectionReason: { contains: 'Time limit expired' } },
       ];
+    } else if (statusFilter === 'ALL') {
+      // In ALL view, ensure NULL rejectionReason (pending/approved) is included
+      whereClause.OR = [
+        { rejectionReason: null },
+        {
+          NOT: [
+            { rejectionReason: { contains: 'Quiz score' } },
+            { rejectionReason: { contains: 'Time limit expired' } },
+          ],
+        },
+      ];
+    }
+
+    if (search.trim()) {
+      const searchCondition = {
+        OR: [
+          { task: { title: { contains: search.trim(), mode: 'insensitive' } } },
+          { user: { username: { contains: search.trim(), mode: 'insensitive' } } },
+          { user: { fullName: { contains: search.trim(), mode: 'insensitive' } } },
+          { user: { phone: { contains: search.trim(), mode: 'insensitive' } } },
+        ],
+      };
+      if (whereClause.OR) {
+        whereClause.AND = [searchCondition];
+      } else {
+        whereClause.OR = searchCondition.OR;
+      }
     }
 
     const [taskSubmissions, whatsappSubmissions, coinRedemptions, counts] = await Promise.all([
@@ -84,14 +106,10 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: 'desc' },
       }),
       Promise.all([
-        // Pending task submissions — same NOT filter as the list query for consistency
+        // Pending task submissions
         prisma.taskSubmission.count({
           where: {
             status: 'UNDER_REVIEW',
-            NOT: [
-              { rejectionReason: { contains: 'Quiz score' } },
-              { rejectionReason: { contains: 'Time limit expired' } },
-            ],
           },
         }),
         prisma.whatsappSubmission.count({ where: { status: 'PENDING' } }),
