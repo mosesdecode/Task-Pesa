@@ -24,7 +24,7 @@ export default function MobileNav() {
   if (pathname === '/admin/login') return null;
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-nav border-t border-slate-800/80 px-2 py-1.5">
+    <div className="md:hidden fixed bottom-0 left-0 right-0 z-50 glass-nav border-t border-slate-200 dark:border-slate-800/80 px-2 py-1.5 transition-colors">
       <div className="flex items-center justify-around">
         {navItems
           .filter((item) => item.href !== '/admin' || isAdmin)
@@ -38,11 +38,11 @@ export default function MobileNav() {
                 prefetch={false}
                 className={`flex flex-col items-center gap-1 px-3 py-1.5 rounded-xl transition-all ${
                   isActive
-                    ? 'text-brand-400 font-bold bg-brand-500/10 border border-brand-500/20'
-                    : 'text-gray-400 hover:text-gray-200'
+                    ? 'text-brand-500 dark:text-brand-400 font-bold bg-brand-500/10 border border-brand-500/20'
+                    : 'text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-gray-200'
                 }`}
               >
-                <Icon className={`w-5 h-5 ${isActive ? 'text-brand-400' : 'text-gray-400'}`} />
+                <Icon className={`w-5 h-5 ${isActive ? 'text-brand-500 dark:text-brand-400' : 'text-slate-400 dark:text-gray-400'}`} />
                 <span className="text-[10px] tracking-tight">{item.label}</span>
               </Link>
             );

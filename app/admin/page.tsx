@@ -2058,23 +2058,23 @@ function AdminDashboardInner() {
   // IF NOT AUTHENTICATED AS ADMIN
   if (!isAdminAuthed) {
     return (
-      <div className="min-h-screen bg-dark-950 text-slate-100 flex items-center justify-center p-4">
-        <div className="w-full max-w-md bg-dark-900 border border-dark-800 rounded-3xl p-8 space-y-6 shadow-2xl text-center">
+      <div className="min-h-screen bg-slate-50 dark:bg-dark-950 text-slate-900 dark:text-slate-100 flex items-center justify-center p-4">
+        <div className="w-full max-w-md bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 rounded-3xl p-8 space-y-6 shadow-2xl text-center">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-brand-500 to-emerald-400 p-0.5 shadow-xl shadow-amber-500/10 mx-auto">
-            <div className="w-full h-full bg-dark-900 rounded-[14px] flex items-center justify-center">
-              <Shield className="w-7 h-7 text-amber-400 fill-amber-400/20" />
+            <div className="w-full h-full bg-slate-100 dark:bg-dark-900 rounded-[14px] flex items-center justify-center">
+              <Shield className="w-7 h-7 text-amber-500 dark:text-amber-400 fill-amber-400/20" />
             </div>
           </div>
-          <h1 className="text-2xl font-extrabold text-white">TaskMint Admin Portal</h1>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">TaskMint Admin Portal</h1>
           {error && (
-            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center justify-between gap-3 text-left">
+            <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs flex items-center justify-between gap-3 text-left">
               <div className="flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0" />
                 <span>{error}</span>
               </div>
               <button
                 onClick={() => checkAdminAuth()}
-                className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 font-bold transition-colors shrink-0 flex items-center gap-1"
+                className="px-3 py-1.5 rounded-lg bg-rose-500/20 hover:bg-rose-500/30 text-rose-600 dark:text-rose-300 font-bold transition-colors shrink-0 flex items-center gap-1"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Retry
@@ -2133,15 +2133,15 @@ function AdminDashboardInner() {
         {activeTab === 'overview' && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <ErrorBanner error={statsError} onRetry={fetchStats} onDismiss={() => setStatsError('')} />
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-dark-800 pb-5">
               <div>
-                <h1 className="text-2xl font-black text-white tracking-tight">Administrative Overview</h1>
-                <p className="text-xs text-slate-400 mt-0.5">Real-time platform metrics and activity summary.</p>
+                <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Administrative Overview</h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Real-time platform metrics and activity summary.</p>
               </div>
 
               <button
                 onClick={loadAll}
-                className="px-4 py-2 rounded-xl bg-dark-900 border border-dark-800 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 self-start cursor-pointer"
+                className="px-4 py-2 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 self-start cursor-pointer shadow-sm transition-colors"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Refresh Data
               </button>
@@ -2301,9 +2301,9 @@ function AdminDashboardInner() {
         {/* TAB: ADMINISTRATIVE ACTIONS */}
         {activeTab === 'admin-actions' && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <div className="border-b border-dark-800 pb-5">
-              <h1 className="text-2xl font-black text-white tracking-tight">Administrative Actions</h1>
-              <p className="text-xs text-slate-400 mt-0.5">Quick access to core platform management tasks.</p>
+            <div className="border-b border-slate-200 dark:border-dark-800 pb-5">
+              <h1 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Administrative Actions</h1>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Quick access to core platform management tasks.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -2356,10 +2356,10 @@ function AdminDashboardInner() {
         {activeTab === 'earnings' && (
           <div className="space-y-6 animate-in fade-in duration-200">
             <ErrorBanner error={earningsError} onRetry={fetchEarnings} onDismiss={() => setEarningsError('')} />
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-dark-800 pb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-dark-800 pb-5">
               <div>
-                <h1 className="text-2xl font-black text-white">Platform Revenue & Financial Ledger</h1>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <h1 className="text-2xl font-black text-slate-900 dark:text-white">Platform Revenue &amp; Financial Ledger</h1>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Real-time ledger accounting for activation fees, admin revenue, referral payouts, and platform reserves.
                 </p>
               </div>
@@ -2367,7 +2367,7 @@ function AdminDashboardInner() {
               <button
                 onClick={fetchEarnings}
                 disabled={earningsLoading}
-                className="px-4 py-2 rounded-xl bg-dark-900 border border-dark-800 text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2 self-start cursor-pointer disabled:opacity-50"
+                className="px-4 py-2 rounded-xl bg-white dark:bg-dark-900 border border-slate-200 dark:border-dark-800 text-xs font-bold text-slate-700 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white flex items-center gap-2 self-start cursor-pointer disabled:opacity-50 shadow-sm transition-colors"
               >
                 <RefreshCw className={`w-3.5 h-3.5 ${earningsLoading ? 'animate-spin' : ''}`} />
                 <span>Refresh Ledger</span>

@@ -399,8 +399,8 @@ export default function WalletPage() {
 
             <div className="space-y-1">
               <div className="flex justify-between items-center text-xs">
-                <label className="font-semibold text-gray-300">Amount (KES)</label>
-                <span className="text-brand-400 font-bold">Min: KES 500</span>
+                <label className="font-semibold text-slate-700 dark:text-gray-300">Amount (KES)</label>
+                <span className="text-brand-600 dark:text-brand-400 font-bold">Min: KES 500</span>
               </div>
               <input
                 type="number"
@@ -412,9 +412,9 @@ export default function WalletPage() {
                 onChange={(e) => setAmount(e.target.value)}
                 className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500 font-mono font-bold"
               />
-              <p className="text-[11px] text-gray-400 flex justify-between pt-1">
+              <p className="text-[11px] text-slate-500 dark:text-gray-400 flex justify-between pt-1">
                 <span>Fixed processing fee:</span>
-                <span className="text-amber-400 font-bold">KES 10.00</span>
+                <span className="text-amber-500 dark:text-amber-400 font-bold">KES 10.00</span>
               </p>
             </div>
 
@@ -424,7 +424,7 @@ export default function WalletPage() {
               className={`w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 ${
                 availableBalance >= 500
                   ? 'bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 text-white shadow-xl shadow-brand-500/20 hover:scale-[1.02]'
-                  : 'bg-slate-800 text-gray-500 cursor-not-allowed border border-slate-700'
+                  : 'bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-gray-500 cursor-not-allowed border border-slate-200 dark:border-slate-700'
               }`}
             >
               {sendingWithdrawalOtp
@@ -462,17 +462,17 @@ export default function WalletPage() {
           <form onSubmit={handleRedeemCoins} className="space-y-4">
             <div className="space-y-1">
               <div className="flex justify-between items-center text-xs pb-1">
-                <label className="font-semibold text-gray-300">Your Coins</label>
-                <span className="text-amber-400 font-bold">{wallet.coins || 0} Available</span>
+                <label className="font-semibold text-slate-700 dark:text-gray-300">Your Coins</label>
+                <span className="text-amber-500 dark:text-amber-400 font-bold">{wallet.coins || 0} Available</span>
               </div>
               <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-center">
-                <span className="text-sm font-bold text-gray-300">
-                  Estimated Value: <span className="text-emerald-400">KES {Math.floor((wallet.coins || 0) / 5)}</span>
+                <span className="text-sm font-bold text-slate-700 dark:text-gray-300">
+                  Estimated Value: <span className="text-emerald-600 dark:text-emerald-400 font-extrabold">KES {Math.floor((wallet.coins || 0) / 5)}</span>
                 </span>
               </div>
-              <p className="text-[11px] text-gray-400 flex justify-between pt-1">
+              <p className="text-[11px] text-slate-500 dark:text-gray-400 flex justify-between pt-1">
                 <span>Minimum to redeem:</span>
-                <span className="text-brand-400 font-bold">50 Coins</span>
+                <span className="text-brand-600 dark:text-brand-400 font-bold">50 Coins</span>
               </p>
             </div>
 
@@ -482,7 +482,7 @@ export default function WalletPage() {
               className={`w-full py-4 rounded-2xl font-black text-sm transition-all flex items-center justify-center gap-2 ${
                 (wallet.coins || 0) >= 50
                   ? 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-white shadow-xl shadow-amber-500/20 hover:scale-[1.02]'
-                  : 'bg-slate-800 text-gray-500 cursor-not-allowed border border-slate-700'
+                  : 'bg-slate-100 dark:bg-slate-800/80 text-slate-400 dark:text-gray-500 cursor-not-allowed border border-slate-200 dark:border-slate-700'
               }`}
             >
               {redeeming

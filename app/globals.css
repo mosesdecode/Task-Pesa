@@ -120,23 +120,148 @@ html.light ::-webkit-scrollbar-thumb:hover {
   background: #00C853;
 }
 
-/* ── Admin shell: force dark theme for inputs and browser autofill ── */
-.admin-shell {
+/* ──────────────────────────────────────────
+   Admin Shell Styles & Light Mode Overrides
+   ────────────────────────────────────────── */
+
+/* Force dark theme for inputs and browser autofill when in dark mode */
+html:not(.light) .admin-shell {
   color-scheme: dark;
 }
 
-.admin-shell input,
-.admin-shell select,
-.admin-shell textarea {
+html:not(.light) .admin-shell input,
+html:not(.light) .admin-shell select,
+html:not(.light) .admin-shell textarea {
   color-scheme: dark;
 }
 
-.admin-shell input:-webkit-autofill,
-.admin-shell input:-webkit-autofill:hover,
-.admin-shell input:-webkit-autofill:focus,
-.admin-shell select:-webkit-autofill,
-.admin-shell textarea:-webkit-autofill {
+html:not(.light) .admin-shell input:-webkit-autofill,
+html:not(.light) .admin-shell input:-webkit-autofill:hover,
+html:not(.light) .admin-shell input:-webkit-autofill:focus,
+html:not(.light) .admin-shell select:-webkit-autofill,
+html:not(.light) .admin-shell textarea:-webkit-autofill {
   -webkit-box-shadow: 0 0 0 1000px #020608 inset !important;
   -webkit-text-fill-color: #e2e8f0 !important;
   caret-color: #e2e8f0;
+}
+
+/* Admin Light Mode Overrides */
+html.light .admin-shell {
+  color-scheme: light;
+  color: #0f172a;
+}
+
+/* Headings in Admin Main */
+html.light .admin-shell main h1,
+html.light .admin-shell main h2,
+html.light .admin-shell main h3,
+html.light .admin-shell main h4 {
+  color: #0f172a !important;
+}
+
+/* Base Surfaces & Metric Cards in Admin Main */
+html.light .admin-shell main .bg-dark-900,
+html.light .admin-shell main .bg-dark-900\/80,
+html.light .admin-shell main .bg-dark-900\/90,
+html.light .admin-shell main .bg-dark-900\/60,
+html.light .admin-shell main [class*="bg-dark-900"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05);
+}
+
+/* Dark 950 surfaces & inner containers in Admin Main */
+html.light .admin-shell main .bg-dark-950,
+html.light .admin-shell main [class*="bg-dark-950"] {
+  background-color: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+/* Secondary dark 800 surfaces & pill buttons */
+html.light .admin-shell main .bg-dark-800,
+html.light .admin-shell main [class*="bg-dark-800"] {
+  background-color: #f1f5f9 !important;
+  border-color: #e2e8f0 !important;
+  color: #334155 !important;
+}
+
+/* Dark borders in Admin Main */
+html.light .admin-shell main [class*="border-dark-800"],
+html.light .admin-shell main [class*="border-dark-700"] {
+  border-color: #e2e8f0 !important;
+}
+
+/* Text adjustments inside Admin Main cards & labels */
+html.light .admin-shell main p.text-white,
+html.light .admin-shell main span.text-white,
+html.light .admin-shell main div.text-white,
+html.light .admin-shell main td.text-white,
+html.light .admin-shell main strong.text-white {
+  color: #0f172a !important;
+}
+
+/* Secondary muted text */
+html.light .admin-shell main .text-slate-400 {
+  color: #64748b !important;
+}
+html.light .admin-shell main .text-slate-300 {
+  color: #475569 !important;
+}
+
+/* Keep colored CTA buttons and badges vibrant */
+html.light .admin-shell main button[class*="bg-brand-"],
+html.light .admin-shell main button[class*="bg-emerald-"],
+html.light .admin-shell main button[class*="bg-amber-"],
+html.light .admin-shell main button[class*="bg-rose-"],
+html.light .admin-shell main button[class*="bg-gradient-"],
+html.light .admin-shell main a[class*="bg-brand-"],
+html.light .admin-shell main a[class*="bg-emerald-"],
+html.light .admin-shell main a[class*="bg-amber-"],
+html.light .admin-shell main a[class*="bg-gradient-"] {
+  box-shadow: 0 4px 14px 0 rgba(0, 200, 83, 0.2) !important;
+}
+
+html.light .admin-shell main button[class*="bg-brand-"] span,
+html.light .admin-shell main button[class*="bg-emerald-"] span,
+html.light .admin-shell main .bg-brand-500,
+html.light .admin-shell main .bg-emerald-500 {
+  color: #020608 !important;
+}
+
+/* Ensure emerald/brand text retains high contrast */
+html.light .admin-shell main .text-brand-400 {
+  color: #00a844 !important;
+}
+html.light .admin-shell main .text-emerald-400 {
+  color: #059669 !important;
+}
+html.light .admin-shell main .text-amber-400 {
+  color: #d97706 !important;
+}
+html.light .admin-shell main .text-blue-400 {
+  color: #2563eb !important;
+}
+
+/* Admin inputs, selects, textareas in light mode */
+html.light .admin-shell main input,
+html.light .admin-shell main select,
+html.light .admin-shell main textarea {
+  background-color: #ffffff !important;
+  border-color: #cbd5e1 !important;
+  color: #0f172a !important;
+}
+html.light .admin-shell main input::placeholder,
+html.light .admin-shell main textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+html.light .admin-shell main input:-webkit-autofill,
+html.light .admin-shell main input:-webkit-autofill:hover,
+html.light .admin-shell main input:-webkit-autofill:focus,
+html.light .admin-shell main select:-webkit-autofill,
+html.light .admin-shell main textarea:-webkit-autofill {
+  -webkit-box-shadow: 0 0 0 1000px #ffffff inset !important;
+  -webkit-text-fill-color: #0f172a !important;
+  caret-color: #0f172a;
 }

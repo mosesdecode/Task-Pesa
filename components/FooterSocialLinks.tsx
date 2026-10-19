@@ -58,7 +58,7 @@ export default function FooterSocialLinks() {
 
   return (
     <div>
-      <h3 className="text-white text-sm font-semibold mb-4 tracking-wider uppercase">Connect With Us</h3>
+      <h3 className="text-slate-900 dark:text-white text-sm font-semibold mb-4 tracking-wider uppercase">Connect With Us</h3>
       <div className="flex flex-col gap-2.5">
         {links.map((link) => {
           const Icon = getPlatformIcon(link.platform, link.icon_key);
@@ -68,9 +68,9 @@ export default function FooterSocialLinks() {
               href={link.url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-brand-400 text-sm transition-colors flex items-center gap-2"
+              className="text-slate-600 dark:text-gray-400 hover:text-brand-500 dark:hover:text-brand-400 text-sm transition-colors flex items-center gap-2"
             >
-              <Icon className="w-4 h-4 text-brand-400" />
+              <Icon className="w-4 h-4 text-brand-500 dark:text-brand-400" />
               <span>{link.label}</span>
             </a>
           );

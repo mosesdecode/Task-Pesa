@@ -3,52 +3,52 @@
 import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ShieldCheck, Smartphone } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import FooterSocialLinks from './FooterSocialLinks';
 
 export default function Footer() {
   const pathname = usePathname();
-  if (pathname === '/admin/login') return null;
+  if (pathname === '/admin/login' || pathname.startsWith('/admin')) return null;
   return (
-    <footer className="bg-dark-900 border-t border-slate-800/80 pt-12 pb-24 md:pb-12 mt-20 text-gray-400">
+    <footer className="bg-white dark:bg-dark-900 border-t border-slate-200 dark:border-slate-800/80 pt-12 pb-24 md:pb-12 mt-20 text-slate-600 dark:text-gray-400 transition-colors">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-8 mb-12">
           {/* Brand Col */}
           <div className="space-y-4 md:col-span-1">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-white text-sm">
+              <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-dark-950 text-sm">
                 TM
               </div>
-              <span className="font-extrabold text-xl text-white">
-                Task<span className="text-brand-400">Mint</span>
+              <span className="font-extrabold text-xl text-slate-900 dark:text-white">
+                Task<span className="text-brand-500 dark:text-brand-400">Mint</span>
               </span>
             </Link>
-            <p className="text-sm text-gray-400 leading-relaxed">
+            <p className="text-sm text-slate-600 dark:text-gray-400 leading-relaxed">
               Kenya's premier global work space. Complete legitimate data annotation, surveys, and content verification securely.
             </p>
           </div>
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Platform</h4>
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Platform</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link href="/tasks" className="hover:text-brand-400 transition-colors">
+                <Link href="/tasks" className="hover:text-brand-500 dark:hover:text-brand-400 transition-colors">
                   Tasks
                 </Link>
               </li>
               <li>
-                <Link href="/packages" className="hover:text-brand-400 transition-colors">
+                <Link href="/packages" className="hover:text-brand-500 dark:hover:text-brand-400 transition-colors">
                   Task Packages
                 </Link>
               </li>
               <li>
-                <Link href="/wallet" className="hover:text-brand-400 transition-colors">
+                <Link href="/wallet" className="hover:text-brand-500 dark:hover:text-brand-400 transition-colors">
                   M-Pesa Withdrawals
                 </Link>
               </li>
               <li>
-                <Link href="/referrals" className="hover:text-brand-400 transition-colors">
+                <Link href="/referrals" className="hover:text-brand-500 dark:hover:text-brand-400 transition-colors">
                   Referral Program
                 </Link>
               </li>
@@ -57,20 +57,20 @@ export default function Footer() {
 
           {/* Legal Pages */}
           <div>
-            <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-4">Legal</h4>
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Legal</h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link href="/terms" className="hover:text-brand-400 transition-colors">
+                <Link href="/terms" className="hover:text-brand-500 dark:hover:text-brand-400 transition-colors">
                   Terms &amp; Conditions
                 </Link>
               </li>
               <li>
-                <Link href="/privacy" className="hover:text-brand-400 transition-colors">
+                <Link href="/privacy" className="hover:text-brand-500 dark:hover:text-brand-400 transition-colors">
                   Privacy Policy
                 </Link>
               </li>
               <li>
-                <Link href="/support" className="hover:text-brand-400 transition-colors">
+                <Link href="/support" className="hover:text-brand-500 dark:hover:text-brand-400 transition-colors">
                   Contact &amp; Support
                 </Link>
               </li>
@@ -79,13 +79,13 @@ export default function Footer() {
 
           {/* Trust & Security */}
           <div className="space-y-4">
-            <h4 className="text-sm font-semibold text-white uppercase tracking-wider">Security &amp; Trust</h4>
-            <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50 space-y-2">
-              <div className="flex items-center gap-2 text-white font-medium text-xs">
-                <ShieldCheck className="w-4 h-4 text-brand-400" />
+            <h4 className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Security &amp; Trust</h4>
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 space-y-2">
+              <div className="flex items-center gap-2 text-slate-900 dark:text-white font-medium text-xs">
+                <ShieldCheck className="w-4 h-4 text-brand-500 dark:text-brand-400" />
                 Anti-Fraud Protected
               </div>
-              <p className="text-xs text-gray-400">
+              <p className="text-xs text-slate-600 dark:text-gray-400">
                 All payouts run through verified M-Pesa server-side audit trails.
               </p>
             </div>
@@ -95,9 +95,9 @@ export default function Footer() {
           <FooterSocialLinks />
         </div>
 
-        <div className="border-t border-slate-800/80 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
+        <div className="border-t border-slate-200 dark:border-slate-800/80 pt-6 flex flex-col md:flex-row items-center justify-between gap-4 text-xs">
           <p>© {new Date().getFullYear()} Task Mint Platform (Kenya). All rights reserved.</p>
-          <p className="text-gray-500">Secure Task &amp; Payout Platform</p>
+          <p className="text-slate-500 dark:text-gray-500">Secure Task &amp; Payout Platform</p>
         </div>
       </div>
     </footer>
