@@ -49,3 +49,4 @@ create_shadow_db.js
 *.sql
 !prisma/migrations/**/*.sql
 scratch/
+public/uploads/

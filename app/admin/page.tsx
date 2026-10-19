@@ -944,12 +944,13 @@ function AdminDashboardInner() {
     setEditingTask(null);
   };
 
-  const handleMediaImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleMediaFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'VIDEO' | 'IMAGE') => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError('Image file is too large. Max size is 5MB.');
+    const maxSize = type === 'VIDEO' ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      setError(`Selected file is too large. Max size is ${type === 'VIDEO' ? '50MB' : '10MB'}.`);
       return;
     }
 
@@ -957,30 +958,34 @@ function AdminDashboardInner() {
     setError('');
     try {
       const formData = new FormData();
-      formData.append('avatar', file);
+      formData.append('file', file);
 
-      const res = await fetch('/api/profile/avatar?type=proof', {
+      const res = await fetch('/api/admin/media/upload', {
         method: 'POST',
         body: formData,
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to upload image');
+      if (!res.ok) throw new Error(data.error || 'Failed to upload media file');
 
       setTaskForm((prev) => ({
         ...prev,
         mediaSettings: {
           ...prev.mediaSettings,
-          mediaUrl: data.profilePhoto,
+          mediaType: type,
+          mediaUrl: data.url,
         },
       }));
-      setSuccessMsg('Photo uploaded successfully!');
+      setSuccessMsg(`${type === 'VIDEO' ? 'Video' : 'Photo'} uploaded successfully!`);
     } catch (err: any) {
-      setError(err.message || 'Image upload failed');
+      setError(err.message || 'Media upload failed');
     } finally {
       setMediaUploading(false);
+      e.target.value = '';
     }
   };
+
+  const handleMediaImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => handleMediaFileUpload(e, 'IMAGE');
 
   const validateQuizQuestions = () => {
     if (taskForm.taskType !== 'QUIZ') return null;
@@ -3124,26 +3129,12 @@ function AdminDashboardInner() {
                     </label>
 
                     {taskForm.mediaSettings.mediaType === 'VIDEO' ? (
-                      <input
-                        type="text"
-                        required
-                        placeholder="e.g. https://www.youtube.com/watch?v=... or https://vimeo.com/... or https://cdn.../video.mp4"
-                        value={taskForm.mediaSettings.mediaUrl}
-                        onChange={(e) =>
-                          setTaskForm({
-                            ...taskForm,
-                            mediaSettings: { ...taskForm.mediaSettings, mediaUrl: e.target.value },
-                          })
-                        }
-                        className="w-full px-4 py-3 rounded-xl bg-dark-900 border border-dark-800 text-white text-xs font-mono focus:outline-none focus:border-cyan-500 placeholder-slate-600"
-                      />
-                    ) : (
                       <div className="space-y-2">
                         <div className="flex gap-2">
                           <input
                             type="text"
                             required
-                            placeholder="Paste Image URL or upload below (e.g. https://...supabase.co/.../image.jpg)"
+                            placeholder="Paste video URL (YouTube, Vimeo, MP4) OR click Upload Video below"
                             value={taskForm.mediaSettings.mediaUrl}
                             onChange={(e) =>
                               setTaskForm({
@@ -3160,17 +3151,87 @@ function AdminDashboardInner() {
                               </>
                             ) : (
                               <>
-                                <Upload className="w-3.5 h-3.5" /> Upload File
+                                <Upload className="w-3.5 h-3.5" /> Upload Video
                               </>
                             )}
                             <input
                               type="file"
-                              accept="image/*"
+                              accept="video/mp4,video/webm,video/ogg,video/quicktime"
                               disabled={mediaUploading}
-                              onChange={handleMediaImageUpload}
+                              onChange={(e) => handleMediaFileUpload(e, 'VIDEO')}
                               className="hidden"
                             />
                           </label>
+                        </div>
+                        <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                          <span>Accepted formats: MP4, WebM, OGG, MOV (up to 50MB)</span>
+                          {taskForm.mediaSettings.mediaUrl && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setTaskForm({
+                                  ...taskForm,
+                                  mediaSettings: { ...taskForm.mediaSettings, mediaUrl: '' },
+                                })
+                              }
+                              className="text-rose-400 hover:underline cursor-pointer"
+                            >
+                              Clear Video
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            required
+                            placeholder="Paste Image URL OR click Upload Photo below"
+                            value={taskForm.mediaSettings.mediaUrl}
+                            onChange={(e) =>
+                              setTaskForm({
+                                ...taskForm,
+                                mediaSettings: { ...taskForm.mediaSettings, mediaUrl: e.target.value },
+                              })
+                            }
+                            className="flex-1 px-4 py-3 rounded-xl bg-dark-900 border border-dark-800 text-white text-xs font-mono focus:outline-none focus:border-cyan-500 placeholder-slate-600"
+                          />
+                          <label className="px-4 py-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shrink-0">
+                            {mediaUploading ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-3.5 h-3.5" /> Upload Photo
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/jpeg,image/png,image/webp,image/gif"
+                              disabled={mediaUploading}
+                              onChange={(e) => handleMediaFileUpload(e, 'IMAGE')}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                        <div className="text-[11px] text-slate-400 flex items-center justify-between">
+                          <span>Accepted formats: JPG, PNG, WEBP, GIF (up to 10MB)</span>
+                          {taskForm.mediaSettings.mediaUrl && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setTaskForm({
+                                  ...taskForm,
+                                  mediaSettings: { ...taskForm.mediaSettings, mediaUrl: '' },
+                                })
+                              }
+                              className="text-rose-400 hover:underline cursor-pointer"
+                            >
+                              Clear Photo
+                            </button>
+                          )}
                         </div>
                       </div>
                     )}
