@@ -23,10 +23,18 @@ export default function ThemeToggle({ className = '', showLabel = false }: Theme
 
       <button
         type="button"
-        onClick={toggleTheme}
-        aria-label={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
+        role="switch"
+        aria-checked={!isDark}
+        aria-label={`Color theme switch. Currently ${isDark ? 'Dark' : 'Light'} mode. Click or press Space to toggle.`}
         title={`Switch to ${isDark ? 'Light' : 'Dark'} mode`}
-        className="group relative flex items-center h-8 w-[64px] rounded-full p-1 cursor-pointer select-none transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
+        onClick={toggleTheme}
+        onKeyDown={(e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            toggleTheme();
+          }
+        }}
+        className="group relative flex items-center h-8 w-[64px] rounded-full p-1 cursor-pointer select-none transition-all duration-300 motion-reduce:transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brand-400"
         style={{
           // Frosted Glass Capsule Track with reflective glass rim
           background: isDark
@@ -45,12 +53,12 @@ export default function ThemeToggle({ className = '', showLabel = false }: Theme
         {/* Track Decorative Glyphs: Subtle Moon (left) & Sun (right) */}
         <div className="absolute inset-0 flex items-center justify-between px-2 pointer-events-none">
           <Moon
-            className={`w-3 h-3 transition-opacity duration-300 ${
+            className={`w-3 h-3 transition-opacity duration-300 motion-reduce:transition-none ${
               isDark ? 'opacity-80 text-emerald-400' : 'opacity-25 text-slate-400'
             }`}
           />
           <Sun
-            className={`w-3.5 h-3.5 transition-opacity duration-300 ${
+            className={`w-3.5 h-3.5 transition-opacity duration-300 motion-reduce:transition-none ${
               !isDark ? 'opacity-90 text-amber-500' : 'opacity-25 text-slate-500'
             }`}
           />
@@ -58,7 +66,9 @@ export default function ThemeToggle({ className = '', showLabel = false }: Theme
 
         {/* 3D Glass Sliding Sphere Knob (inspired by the green glass 3D reference) */}
         <div
-          className="relative z-10 w-6 h-6 rounded-full transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)] group-hover:scale-105"
+          className={`relative z-10 w-6 h-6 rounded-full group-hover:scale-105 motion-reduce:transition-none ${
+            isMounted ? 'transition-transform duration-500 ease-[cubic-bezier(0.34,1.56,0.64,1)]' : ''
+          }`}
           style={{
             transform: isMounted
               ? isDark

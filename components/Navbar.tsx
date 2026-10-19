@@ -151,8 +151,10 @@ export default function Navbar() {
 
           {/* Right Action & User Controls */}
           <div className="flex items-center gap-3">
-            {/* Theme Toggle Pill */}
-            <ThemeToggle />
+            {/* Theme Toggle Pill: visible for admins or when feature flag is enabled */}
+            {(user?.role === 'ADMIN' || process.env.NEXT_PUBLIC_THEME_TOGGLE === 'true' || process.env.NEXT_PUBLIC_THEME_TOGGLE === '1') && (
+              <ThemeToggle />
+            )}
 
             {user ? (
               <>
