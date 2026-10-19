@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import InactivityTimeout from '@/components/InactivityTimeout';
 import { useMe, invalidateMe } from '@/lib/useMe';
+import ThemeToggle from '@/components/ThemeToggle';
 
 const navLinks = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -150,6 +151,9 @@ export default function Navbar() {
 
           {/* Right Action & User Controls */}
           <div className="flex items-center gap-3">
+            {/* Theme Toggle Pill */}
+            <ThemeToggle />
+
             {user ? (
               <>
 
