@@ -302,12 +302,15 @@ export async function POST(
         }
       }
 
+      const reportedWatchSeconds = Number(body.watchSeconds ?? body.watchTimeSeconds ?? minWatchSeconds);
       const mediaSubmissionData = {
         mode: 'MEDIA',
         mediaType: mediaPayload?.mediaType || 'VIDEO',
         mediaUrl: mediaPayload?.mediaUrl || task.externalUrl,
-        watchTimeSeconds: body.watchTimeSeconds || minWatchSeconds,
+        watchSeconds: reportedWatchSeconds,
+        watchTimeSeconds: reportedWatchSeconds,
         targetWatchSeconds: minWatchSeconds,
+        watchPercent: minWatchSeconds > 0 ? Math.min(100, Math.round((reportedWatchSeconds / minWatchSeconds) * 100)) : 100,
         comprehensionAnswer: body.comprehensionAnswer || null,
         verified: true,
         submittedAt: new Date().toISOString(),

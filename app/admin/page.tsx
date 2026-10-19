@@ -217,6 +217,7 @@ function AdminDashboardInner() {
     },
   });
   const [mediaUploading, setMediaUploading] = useState(false);
+  const [adminPreviewLoaded, setAdminPreviewLoaded] = useState(false);
   const [taskSubmitting, setTaskSubmitting] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
 
@@ -3134,12 +3135,13 @@ function AdminDashboardInner() {
                             required
                             placeholder="Paste video stream URL (YouTube, Vimeo, or direct .mp4 CDN link)"
                             value={taskForm.mediaSettings.mediaUrl}
-                            onChange={(e) =>
+                            onChange={(e) => {
+                              setAdminPreviewLoaded(false);
                               setTaskForm({
                                 ...taskForm,
                                 mediaSettings: { ...taskForm.mediaSettings, mediaUrl: e.target.value },
-                              })
-                            }
+                              });
+                            }}
                             className="flex-1 px-4 py-3 rounded-xl bg-dark-900 border border-dark-800 text-white text-xs font-mono focus:outline-none focus:border-cyan-500 placeholder-slate-600"
                           />
                           {taskForm.mediaSettings.mediaUrl && (
@@ -3226,7 +3228,14 @@ function AdminDashboardInner() {
                       <div className="p-3 rounded-xl bg-dark-900 border border-dark-800 space-y-2">
                         <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Live Media Preview:</span>
                         {taskForm.mediaSettings.mediaType === 'VIDEO' ? (
-                          <div className="aspect-video w-full max-w-md rounded-xl overflow-hidden bg-black border border-dark-800 flex items-center justify-center">
+                          <div className="aspect-video w-full max-w-md rounded-xl overflow-hidden bg-black border border-dark-800 flex items-center justify-center relative">
+                            {!adminPreviewLoaded && (
+                              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-dark-950 p-4 text-center space-y-2">
+                                <Loader2 className="w-7 h-7 text-cyan-400 animate-spin" />
+                                <span className="text-xs font-mono text-cyan-300 font-semibold">Loading live preview...</span>
+                                <span className="text-[10px] text-slate-500">Connecting to stream</span>
+                              </div>
+                            )}
                             {(() => {
                               const url = taskForm.mediaSettings.mediaUrl.trim();
                               // YouTube
@@ -3239,6 +3248,7 @@ function AdminDashboardInner() {
                                     className="w-full h-full border-0"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
+                                    onLoad={() => setAdminPreviewLoaded(true)}
                                   />
                                 );
                               }
@@ -3254,6 +3264,7 @@ function AdminDashboardInner() {
                                     className="w-full h-full border-0"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
+                                    onLoad={() => setAdminPreviewLoaded(true)}
                                   />
                                 );
                               }
@@ -3268,6 +3279,7 @@ function AdminDashboardInner() {
                                     className="w-full h-full border-0"
                                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                                     allowFullScreen
+                                    onLoad={() => setAdminPreviewLoaded(true)}
                                   />
                                 );
                               }
@@ -3277,15 +3289,30 @@ function AdminDashboardInner() {
                                 ? url.replace(/[?&]dl=0/, '').replace(/[?&]raw=1/, '') + (url.includes('?') ? '&raw=1' : '?raw=1')
                                 : url;
 
-                              return <video src={videoSrc} controls className="w-full h-full object-contain" />;
+                              return (
+                                <video
+                                  src={videoSrc}
+                                  controls
+                                  className="w-full h-full object-contain"
+                                  onCanPlay={() => setAdminPreviewLoaded(true)}
+                                  onLoadedData={() => setAdminPreviewLoaded(true)}
+                                />
+                              );
                             })()}
                           </div>
                         ) : (
-                          <div className="max-w-md rounded-xl overflow-hidden border border-dark-800 bg-black">
+                          <div className="max-w-md rounded-xl overflow-hidden border border-dark-800 bg-black relative">
+                            {!adminPreviewLoaded && (
+                              <div className="p-8 flex flex-col items-center justify-center bg-dark-950 text-center space-y-2">
+                                <Loader2 className="w-6 h-6 text-cyan-400 animate-spin" />
+                                <span className="text-xs font-mono text-cyan-300">Loading photo preview...</span>
+                              </div>
+                            )}
                             <img
                               src={taskForm.mediaSettings.mediaUrl}
                               alt="Media Preview"
-                              className="w-full max-h-60 object-contain"
+                              className={`w-full max-h-60 object-contain transition-opacity duration-300 ${adminPreviewLoaded ? 'opacity-100' : 'opacity-0'}`}
+                              onLoad={() => setAdminPreviewLoaded(true)}
                             />
                           </div>
                         )}
@@ -3925,17 +3952,24 @@ function AdminDashboardInner() {
                             </span>
 
                             {/* Watch time & Verification metric badge */}
-                            <div className="flex items-center gap-3 flex-wrap">
-                              <div className="px-3 py-1.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono font-bold text-xs flex items-center gap-1.5">
-                                <Clock className="w-3.5 h-3.5 text-cyan-400" />
-                                <span>
-                                  Watch Time: {subData.watchSeconds ?? 0}s / {subData.targetWatchSeconds ?? 0}s ({subData.watchPercent ?? 100}%)
-                                </span>
-                              </div>
-                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" /> Anti-Cheat Verified
-                              </span>
-                            </div>
+                            {(() => {
+                              const watchSec = Number(subData.watchSeconds ?? subData.watchTimeSeconds ?? subData.targetWatchSeconds ?? 0);
+                              const targetSec = Number(subData.targetWatchSeconds ?? subData.minWatchSeconds ?? sub.task?.durationSeconds ?? 60);
+                              const watchPct = targetSec > 0 ? Math.min(100, Math.round((watchSec / targetSec) * 100)) : 100;
+                              return (
+                                <div className="flex items-center gap-3 flex-wrap">
+                                  <div className="px-3 py-1.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono font-bold text-xs flex items-center gap-1.5">
+                                    <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                                    <span>
+                                      Watch Time: {watchSec}s / {targetSec}s ({watchPct}%)
+                                    </span>
+                                  </div>
+                                  <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3" /> Anti-Cheat Verified
+                                  </span>
+                                </div>
+                              );
+                            })()}
 
                             {/* Media Link / Preview */}
                             {subData.mediaUrl && (

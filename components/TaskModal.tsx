@@ -24,6 +24,7 @@ import {
   Award,
   Zap,
   Video,
+  Loader2,
 } from 'lucide-react';
 
 function getEmbedInfo(url?: string | null) {
@@ -124,6 +125,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
   // Media Task State
   const [mediaWatchSeconds, setMediaWatchSeconds] = useState<number>(0);
   const [mediaWatchStarted, setMediaWatchStarted] = useState<boolean>(false);
+  const [mediaLoaded, setMediaLoaded] = useState<boolean>(false);
   const [mediaTabActive, setMediaTabActive] = useState<boolean>(true);
   const [mediaComprehensionAnswer, setMediaComprehensionAnswer] = useState<string>('');
   const [mediaSubmitting, setMediaSubmitting] = useState<boolean>(false);
@@ -508,9 +510,9 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
   const isMedia = taskDetail?.isMedia || false;
   const mediaPayload = isMedia ? taskDetail?.formPayload : null;
 
-  // Media Video Watch Timer Effect
+  // Media Video Watch Timer Effect - ONLY ticks once media has actually loaded!
   useEffect(() => {
-    if (!isMedia || mediaPayload?.mediaType !== 'VIDEO' || !mediaWatchStarted) return;
+    if (!isMedia || mediaPayload?.mediaType !== 'VIDEO' || !mediaWatchStarted || !mediaLoaded) return;
     const target = parseInt(mediaPayload?.minWatchSeconds) || 60;
     if (mediaWatchSeconds >= target) return;
 
@@ -521,7 +523,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isMedia, mediaPayload, mediaWatchStarted, mediaTabActive, mediaWatchSeconds]);
+  }, [isMedia, mediaPayload, mediaWatchStarted, mediaLoaded, mediaTabActive, mediaWatchSeconds]);
 
   // Tab blur and visibility change listener for media anti-cheat
   useEffect(() => {
@@ -559,6 +561,8 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
       const res = await fetch(`/api/tasks/${item.id}/start`, { method: 'POST' });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start task');
+      setMediaLoaded(false);
+      setMediaWatchSeconds(0);
       setMediaWatchStarted(true);
     } catch (err: any) {
       setError(err.message);
@@ -587,6 +591,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          watchSeconds: mediaWatchSeconds,
           watchTimeSeconds: mediaWatchSeconds,
           comprehensionAnswer: mediaComprehensionAnswer,
           proofText,
@@ -1039,25 +1044,39 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                       );
                     }
 
-                    if (embed?.type === 'youtube' || embed?.type === 'vimeo' || embed?.type === 'gdrive') {
-                      return (
-                        <iframe
-                          src={embed.embedUrl}
-                          title={item.title}
-                          className="w-full h-full border-0"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                        />
-                      );
-                    }
-
                     return (
-                      <video
-                        src={mediaPayload?.mediaUrl || item.externalUrl}
-                        controls={!mediaPayload?.disableSeeking}
-                        autoPlay
-                        className="w-full h-full object-contain"
-                      />
+                      <div className="relative w-full h-full">
+                        {!mediaLoaded && (
+                          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-slate-950/95 p-6 text-center space-y-3">
+                            <Loader2 className="w-8 h-8 text-cyan-400 animate-spin" />
+                            <div className="space-y-1">
+                              <p className="text-sm font-bold text-white">Connecting to Video Stream...</p>
+                              <p className="text-xs text-slate-400">
+                                The watch timer will start automatically once playback is ready.
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {embed?.type === 'youtube' || embed?.type === 'vimeo' || embed?.type === 'gdrive' ? (
+                          <iframe
+                            src={embed.embedUrl}
+                            title={item.title}
+                            className={`w-full h-full border-0 transition-opacity duration-300 ${mediaLoaded ? 'opacity-100' : 'opacity-0'}`}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            onLoad={() => setMediaLoaded(true)}
+                          />
+                        ) : (
+                          <video
+                            src={mediaPayload?.mediaUrl || item.externalUrl}
+                            controls={!mediaPayload?.disableSeeking}
+                            autoPlay
+                            className={`w-full h-full object-contain transition-opacity duration-300 ${mediaLoaded ? 'opacity-100' : 'opacity-0'}`}
+                            onCanPlay={() => setMediaLoaded(true)}
+                            onLoadedData={() => setMediaLoaded(true)}
+                          />
+                        )}
+                      </div>
                     );
                   })()}
                 </div>
@@ -1070,22 +1089,29 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                         <Clock className="w-3.5 h-3.5 text-brand-400" />
                         Watch Progress:
                       </span>
-                      <span
-                        className={`font-mono font-bold ${
-                          mediaWatchSeconds >= (parseInt(mediaPayload?.minWatchSeconds) || 60)
-                            ? 'text-emerald-400'
-                            : 'text-amber-400'
-                        }`}
-                      >
-                        {mediaWatchSeconds}s / {mediaPayload?.minWatchSeconds || 60}s (
-                        {Math.min(
-                          100,
-                          Math.round(
-                            (mediaWatchSeconds / (parseInt(mediaPayload?.minWatchSeconds) || 60)) * 100
-                          )
-                        )}
-                        %)
-                      </span>
+                      {!mediaLoaded ? (
+                        <span className="font-mono text-xs text-cyan-300 flex items-center gap-1.5 animate-pulse">
+                          <Loader2 className="w-3 h-3 animate-spin text-cyan-400" />
+                          Buffering stream... timer starts on ready
+                        </span>
+                      ) : (
+                        <span
+                          className={`font-mono font-bold ${
+                            mediaWatchSeconds >= (parseInt(mediaPayload?.minWatchSeconds) || 60)
+                              ? 'text-emerald-400'
+                              : 'text-amber-400'
+                          }`}
+                        >
+                          {mediaWatchSeconds}s / {mediaPayload?.minWatchSeconds || 60}s (
+                          {Math.min(
+                            100,
+                            Math.round(
+                              (mediaWatchSeconds / (parseInt(mediaPayload?.minWatchSeconds) || 60)) * 100
+                            )
+                          )}
+                          %)
+                        </span>
+                      )}
                     </div>
 
                     <div className="w-full h-2.5 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
