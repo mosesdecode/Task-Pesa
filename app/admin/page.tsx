@@ -944,13 +944,13 @@ function AdminDashboardInner() {
     setEditingTask(null);
   };
 
-  const handleMediaFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'VIDEO' | 'IMAGE') => {
+  const handleMediaImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const maxSize = type === 'VIDEO' ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (file.size > maxSize) {
-      setError(`Selected file is too large. Max size is ${type === 'VIDEO' ? '50MB' : '10MB'}.`);
+    // Vercel serverless functions enforce a 4.5MB request limit
+    if (file.size > 4 * 1024 * 1024) {
+      setError('Image file is too large for serverless upload. Max size is 4MB. For larger images, paste an image link.');
       return;
     }
 
@@ -958,34 +958,32 @@ function AdminDashboardInner() {
     setError('');
     try {
       const formData = new FormData();
-      formData.append('file', file);
+      formData.append('avatar', file);
 
-      const res = await fetch('/api/admin/media/upload', {
+      const res = await fetch('/api/profile/avatar?type=proof', {
         method: 'POST',
         body: formData,
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to upload media file');
+      if (!res.ok) throw new Error(data.error || 'Failed to upload photo');
 
       setTaskForm((prev) => ({
         ...prev,
         mediaSettings: {
           ...prev.mediaSettings,
-          mediaType: type,
-          mediaUrl: data.url,
+          mediaType: 'IMAGE',
+          mediaUrl: data.profilePhoto,
         },
       }));
-      setSuccessMsg(`${type === 'VIDEO' ? 'Video' : 'Photo'} uploaded successfully!`);
+      setSuccessMsg('Photo uploaded and loaded successfully!');
     } catch (err: any) {
-      setError(err.message || 'Media upload failed');
+      setError(err.message || 'Image upload failed');
     } finally {
       setMediaUploading(false);
       e.target.value = '';
     }
   };
-
-  const handleMediaImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => handleMediaFileUpload(e, 'IMAGE');
 
   const validateQuizQuestions = () => {
     if (taskForm.taskType !== 'QUIZ') return null;
@@ -3129,12 +3127,12 @@ function AdminDashboardInner() {
                     </label>
 
                     {taskForm.mediaSettings.mediaType === 'VIDEO' ? (
-                      <div className="space-y-2">
+                      <div className="space-y-2.5">
                         <div className="flex gap-2">
                           <input
                             type="text"
                             required
-                            placeholder="Paste video URL (YouTube, Vimeo, MP4) OR click Upload Video below"
+                            placeholder="Paste video stream URL (YouTube, Vimeo, or direct .mp4 CDN link)"
                             value={taskForm.mediaSettings.mediaUrl}
                             onChange={(e) =>
                               setTaskForm({
@@ -3144,27 +3142,6 @@ function AdminDashboardInner() {
                             }
                             className="flex-1 px-4 py-3 rounded-xl bg-dark-900 border border-dark-800 text-white text-xs font-mono focus:outline-none focus:border-cyan-500 placeholder-slate-600"
                           />
-                          <label className="px-4 py-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shrink-0">
-                            {mediaUploading ? (
-                              <>
-                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="w-3.5 h-3.5" /> Upload Video
-                              </>
-                            )}
-                            <input
-                              type="file"
-                              accept="video/mp4,video/webm,video/ogg,video/quicktime"
-                              disabled={mediaUploading}
-                              onChange={(e) => handleMediaFileUpload(e, 'VIDEO')}
-                              className="hidden"
-                            />
-                          </label>
-                        </div>
-                        <div className="text-[11px] text-slate-400 flex items-center justify-between">
-                          <span>Accepted formats: MP4, WebM, OGG, MOV (up to 50MB)</span>
                           {taskForm.mediaSettings.mediaUrl && (
                             <button
                               type="button"
@@ -3174,11 +3151,18 @@ function AdminDashboardInner() {
                                   mediaSettings: { ...taskForm.mediaSettings, mediaUrl: '' },
                                 })
                               }
-                              className="text-rose-400 hover:underline cursor-pointer"
+                              className="px-3 py-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold transition-colors cursor-pointer"
                             >
-                              Clear Video
+                              Clear
                             </button>
                           )}
+                        </div>
+                        <div className="p-3 rounded-xl bg-dark-900/60 border border-dark-800 text-[11px] text-slate-400 space-y-1">
+                          <span className="font-semibold text-cyan-300 block">💡 Recommended Video Sources:</span>
+                          <ul className="list-disc list-inside space-y-0.5 text-slate-400">
+                            <li><span className="text-white font-medium">YouTube</span> (Public or Unlisted): Paste any YouTube link — works seamlessly with instant streaming.</li>
+                            <li><span className="text-white font-medium">Vimeo</span> or <span className="text-white font-medium">Direct MP4 / WebM CDN</span> links (Cloudinary, Bunny.net, S3, Supabase Storage).</li>
+                          </ul>
                         </div>
                       </div>
                     ) : (
@@ -3211,13 +3195,13 @@ function AdminDashboardInner() {
                               type="file"
                               accept="image/jpeg,image/png,image/webp,image/gif"
                               disabled={mediaUploading}
-                              onChange={(e) => handleMediaFileUpload(e, 'IMAGE')}
+                              onChange={handleMediaImageUpload}
                               className="hidden"
                             />
                           </label>
                         </div>
                         <div className="text-[11px] text-slate-400 flex items-center justify-between">
-                          <span>Accepted formats: JPG, PNG, WEBP, GIF (up to 10MB)</span>
+                          <span>Accepted formats: JPG, PNG, WEBP, GIF (up to 4MB)</span>
                           {taskForm.mediaSettings.mediaUrl && (
                             <button
                               type="button"
