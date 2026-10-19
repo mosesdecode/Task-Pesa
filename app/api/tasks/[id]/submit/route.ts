@@ -31,12 +31,17 @@ export async function POST(
 
     let isQuiz = false;
     let quizPayload: any = null;
+    let isMedia = false;
+    let mediaPayload: any = null;
     if (task.dataPayloadJson) {
       try {
         const parsed = JSON.parse(task.dataPayloadJson);
         if (parsed.mode === 'QUIZ' || (Array.isArray(parsed.questions) && parsed.questions.length > 0)) {
           isQuiz = true;
           quizPayload = parsed;
+        } else if (parsed.mode === 'MEDIA' || parsed.mediaType) {
+          isMedia = true;
+          mediaPayload = parsed;
         }
       } catch (e) {}
     }
@@ -261,7 +266,82 @@ export async function POST(
     }
 
     // ─────────────────────────────────────────────────────────────
-    // BRANCH B: STANDARD TASKS SUBMISSION
+    // BRANCH B: MEDIA TASK SUBMISSION (Video Watching / Photo Review)
+    // ─────────────────────────────────────────────────────────────
+    if (isMedia) {
+      if (!existing || existing.status !== 'IN_PROGRESS') {
+        return NextResponse.json(
+          { error: 'No active task session found. Please start the task first.' },
+          { status: 400 }
+        );
+      }
+
+      const minWatchSeconds = parseInt(mediaPayload?.minWatchSeconds) || 0;
+      if (minWatchSeconds > 0 && mediaPayload?.mediaType === 'VIDEO') {
+        const startedAtTs = new Date(existing.startedAt).getTime();
+        const elapsedSeconds = Math.floor((Date.now() - startedAtTs) / 1000);
+        // Anti-cheat: Ensure minimum watch duration elapsed from server startedAt (3s buffer for network lag)
+        if (elapsedSeconds < Math.max(0, minWatchSeconds - 4)) {
+          return NextResponse.json(
+            { error: `You must watch the video for at least ${minWatchSeconds} seconds before submitting. (Current elapsed: ${elapsedSeconds}s)` },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Validate comprehension question if configured
+      if (mediaPayload?.comprehension?.correctAnswer) {
+        const submittedAnswer = body.comprehensionAnswer || (typeof submissionDataJson === 'object' ? submissionDataJson.comprehensionAnswer : null);
+        const expected = String(mediaPayload.comprehension.correctAnswer).trim().toLowerCase();
+        const actual = String(submittedAnswer || '').trim().toLowerCase();
+        if (!actual || actual !== expected) {
+          return NextResponse.json(
+            { error: 'Incorrect answer to comprehension check. Please review the media and select the correct answer.' },
+            { status: 400 }
+          );
+        }
+      }
+
+      const mediaSubmissionData = {
+        mode: 'MEDIA',
+        mediaType: mediaPayload?.mediaType || 'VIDEO',
+        mediaUrl: mediaPayload?.mediaUrl || task.externalUrl,
+        watchTimeSeconds: body.watchTimeSeconds || minWatchSeconds,
+        targetWatchSeconds: minWatchSeconds,
+        comprehensionAnswer: body.comprehensionAnswer || null,
+        verified: true,
+        submittedAt: new Date().toISOString(),
+      };
+
+      const submission = await prisma.taskSubmission.update({
+        where: { id: existing.id },
+        data: {
+          status: 'UNDER_REVIEW',
+          proofUrl: proofUrl || existing.proofUrl,
+          proofText: proofText || existing.proofText,
+          submissionDataJson: JSON.stringify(mediaSubmissionData),
+          submittedAt: new Date(),
+        },
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: user.id,
+          title: 'Media Task Submitted! 🎬',
+          message: `Your submission for "${task.title}" has been received and is now in the admin review queue. KES ${task.reward.toFixed(2)} will credit upon approval.`,
+          type: 'SUCCESS',
+        },
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: 'Task submitted successfully! Awaiting admin quality review.',
+        submission,
+      });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // BRANCH C: STANDARD TASKS SUBMISSION
     // ─────────────────────────────────────────────────────────────
     let submission;
 

@@ -53,6 +53,8 @@ import {
   ToggleRight,
   Plus,
   BrainCircuit,
+  Video,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { formatKenyanPhoneDisplay } from '@/lib/phone';
 import { Skeleton } from '@/components/Skeleton';
@@ -200,9 +202,21 @@ function AdminDashboardInner() {
     totalSlots: '100',
     externalUrl: '',
     status: 'DRAFT',
-    taskType: 'STANDARD' as 'STANDARD' | 'QUIZ',
+    taskType: 'STANDARD' as 'STANDARD' | 'QUIZ' | 'MEDIA',
     quizQuestions: [] as Array<{ id: string; prompt: string; options: string[]; correctAnswer: string }>,
+    mediaSettings: {
+      mediaType: 'VIDEO' as 'VIDEO' | 'IMAGE',
+      mediaUrl: '',
+      minWatchSeconds: '60',
+      disableSeeking: true,
+      pauseOnBlur: true,
+      hasComprehension: false,
+      comprehensionQuestion: '',
+      comprehensionOptions: ['', '', '', ''],
+      comprehensionCorrectAnswer: '',
+    },
   });
+  const [mediaUploading, setMediaUploading] = useState(false);
   const [taskSubmitting, setTaskSubmitting] = useState(false);
   const [editingTask, setEditingTask] = useState<any | null>(null);
 
@@ -915,8 +929,57 @@ function AdminDashboardInner() {
       status: 'DRAFT',
       taskType: 'STANDARD',
       quizQuestions: [],
+      mediaSettings: {
+        mediaType: 'VIDEO',
+        mediaUrl: '',
+        minWatchSeconds: '60',
+        disableSeeking: true,
+        pauseOnBlur: true,
+        hasComprehension: false,
+        comprehensionQuestion: '',
+        comprehensionOptions: ['', '', '', ''],
+        comprehensionCorrectAnswer: '',
+      },
     });
     setEditingTask(null);
+  };
+
+  const handleMediaImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image file is too large. Max size is 5MB.');
+      return;
+    }
+
+    setMediaUploading(true);
+    setError('');
+    try {
+      const formData = new FormData();
+      formData.append('avatar', file);
+
+      const res = await fetch('/api/profile/avatar?type=proof', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to upload image');
+
+      setTaskForm((prev) => ({
+        ...prev,
+        mediaSettings: {
+          ...prev.mediaSettings,
+          mediaUrl: data.profilePhoto,
+        },
+      }));
+      setSuccessMsg('Photo uploaded successfully!');
+    } catch (err: any) {
+      setError(err.message || 'Image upload failed');
+    } finally {
+      setMediaUploading(false);
+    }
   };
 
   const validateQuizQuestions = () => {
@@ -954,6 +1017,49 @@ function AdminDashboardInner() {
     });
   };
 
+  const validateMediaTask = () => {
+    if (taskForm.taskType !== 'MEDIA') return null;
+    const { mediaType, mediaUrl, minWatchSeconds, disableSeeking, pauseOnBlur, hasComprehension, comprehensionQuestion, comprehensionOptions, comprehensionCorrectAnswer } = taskForm.mediaSettings;
+
+    if (!mediaUrl || !mediaUrl.trim()) {
+      throw new Error(`Please provide a ${mediaType === 'VIDEO' ? 'video link or direct video URL' : 'photo / image URL'}.`);
+    }
+
+    const parsedMinWatch = Math.max(5, parseInt(minWatchSeconds || '60', 10) || 60);
+
+    let comprehensionPayload = null;
+    if (hasComprehension) {
+      if (!comprehensionQuestion || !comprehensionQuestion.trim()) {
+        throw new Error('Please provide the comprehension verification question.');
+      }
+      const cleanOpts = (comprehensionOptions || []).map((o) => o.trim()).filter(Boolean);
+      if (cleanOpts.length < 2) {
+        throw new Error('Comprehension check must have at least 2 non-empty answer options.');
+      }
+      if (!comprehensionCorrectAnswer || !comprehensionCorrectAnswer.trim()) {
+        throw new Error('Please mark the correct answer for the comprehension question.');
+      }
+      if (!cleanOpts.includes(comprehensionCorrectAnswer.trim())) {
+        throw new Error('The marked correct answer must match one of the comprehension options.');
+      }
+      comprehensionPayload = {
+        question: comprehensionQuestion.trim(),
+        options: cleanOpts,
+        correctAnswer: comprehensionCorrectAnswer.trim(),
+      };
+    }
+
+    return JSON.stringify({
+      mode: 'MEDIA',
+      mediaType,
+      mediaUrl: mediaUrl.trim(),
+      minWatchSeconds: parsedMinWatch,
+      disableSeeking: !!disableSeeking,
+      pauseOnBlur: !!pauseOnBlur,
+      comprehension: comprehensionPayload,
+    });
+  };
+
   const handleCreateTask = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -967,7 +1073,11 @@ function AdminDashboardInner() {
       if (!taskForm.instructions?.trim()) {
         throw new Error('Please provide detailed instructions.');
       }
-      const dataPayloadJson = validateQuizQuestions();
+      const dataPayloadJson = taskForm.taskType === 'QUIZ' 
+        ? validateQuizQuestions() 
+        : taskForm.taskType === 'MEDIA' 
+          ? validateMediaTask() 
+          : null;
 
       const payload = {
         ...taskForm,
@@ -998,8 +1108,20 @@ function AdminDashboardInner() {
   const handleEditTask = (task: any) => {
     setEditingTask(task);
 
-    let loadedType: 'STANDARD' | 'QUIZ' = 'STANDARD';
+    let loadedType: 'STANDARD' | 'QUIZ' | 'MEDIA' = 'STANDARD';
     let loadedQuestions: any[] = [];
+    let loadedMediaSettings = {
+      mediaType: 'VIDEO' as 'VIDEO' | 'IMAGE',
+      mediaUrl: '',
+      minWatchSeconds: '60',
+      disableSeeking: true,
+      pauseOnBlur: true,
+      hasComprehension: false,
+      comprehensionQuestion: '',
+      comprehensionOptions: ['', '', '', ''],
+      comprehensionCorrectAnswer: '',
+    };
+
     if (task.dataPayloadJson) {
       try {
         const parsed = JSON.parse(task.dataPayloadJson);
@@ -1011,6 +1133,19 @@ function AdminDashboardInner() {
             options: q.options || ['', '', '', ''],
             correctAnswer: q.correctAnswer || '',
           }));
+        } else if (parsed.mode === 'MEDIA') {
+          loadedType = 'MEDIA';
+          loadedMediaSettings = {
+            mediaType: parsed.mediaType || 'VIDEO',
+            mediaUrl: parsed.mediaUrl || '',
+            minWatchSeconds: String(parsed.minWatchSeconds || '60'),
+            disableSeeking: parsed.disableSeeking !== false,
+            pauseOnBlur: parsed.pauseOnBlur !== false,
+            hasComprehension: !!parsed.comprehension,
+            comprehensionQuestion: parsed.comprehension?.question || '',
+            comprehensionOptions: parsed.comprehension?.options?.length ? parsed.comprehension.options : ['', '', '', ''],
+            comprehensionCorrectAnswer: parsed.comprehension?.correctAnswer || '',
+          };
         }
       } catch (e) {}
     }
@@ -1029,6 +1164,7 @@ function AdminDashboardInner() {
       status: task.status || 'DRAFT',
       taskType: loadedType,
       quizQuestions: loadedQuestions,
+      mediaSettings: loadedMediaSettings,
     });
     router.push('/admin?tab=add-task');
   };
@@ -1046,7 +1182,11 @@ function AdminDashboardInner() {
       if (!taskForm.instructions?.trim()) {
         throw new Error('Please provide detailed instructions.');
       }
-      const dataPayloadJson = validateQuizQuestions();
+      const dataPayloadJson = taskForm.taskType === 'QUIZ' 
+        ? validateQuizQuestions() 
+        : taskForm.taskType === 'MEDIA' 
+          ? validateMediaTask() 
+          : null;
 
       const payload = {
         id: editingTask.id,
@@ -2528,10 +2668,33 @@ function AdminDashboardInner() {
                   >
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-dark-800 pb-3">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/15 text-brand-300 border border-brand-500/20">
                             {task.category?.name || 'Task'}
                           </span>
+                          {(() => {
+                            try {
+                              if (task.dataPayloadJson) {
+                                const p = JSON.parse(task.dataPayloadJson);
+                                if (p.mode === 'QUIZ') {
+                                  return (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                                      <BrainCircuit className="w-3 h-3" /> Quiz
+                                    </span>
+                                  );
+                                }
+                                if (p.mode === 'MEDIA') {
+                                  return (
+                                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                                      {p.mediaType === 'IMAGE' ? <ImageIcon className="w-3 h-3" /> : <Video className="w-3 h-3" />}
+                                      {p.mediaType === 'IMAGE' ? 'Photo Task' : 'Video Task'}
+                                    </span>
+                                  );
+                                }
+                              }
+                            } catch {}
+                            return null;
+                          })()}
                           <span
                             className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                               task.status === 'PUBLISHED'
@@ -2693,7 +2856,7 @@ function AdminDashboardInner() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold text-slate-300 uppercase">Task Format</label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <button
                     type="button"
                     onClick={() => setTaskForm({ ...taskForm, taskType: 'STANDARD' })}
@@ -2734,6 +2897,30 @@ function AdminDashboardInner() {
                     <div>
                       <div className="text-xs font-bold text-white">Interactive Quiz (MCQ)</div>
                       <div className="text-[10px] text-slate-400">Graded choice questions with unpausable exam timer</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTaskForm({
+                        ...taskForm,
+                        taskType: 'MEDIA',
+                        durationSeconds: String(Math.max(180, (parseInt(taskForm.mediaSettings.minWatchSeconds, 10) || 60) + 60)),
+                        instructions: taskForm.instructions || 'Watch the video completely or inspect the photo carefully without switching tabs. Complete verification to earn your reward.',
+                        proofRequired: 'Auto-verified watch time and anti-cheat checks',
+                      });
+                    }}
+                    className={`p-3.5 rounded-2xl border text-left flex items-center gap-3 transition-all cursor-pointer ${
+                      taskForm.taskType === 'MEDIA'
+                        ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300 shadow-md shadow-cyan-500/10'
+                        : 'bg-dark-950 border-dark-800 text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    <Video className="w-5 h-5 text-cyan-400 shrink-0" />
+                    <div>
+                      <div className="text-xs font-bold text-white">Media Task (Video / Photo)</div>
+                      <div className="text-[10px] text-slate-400">Anti-cheat watch timer & photo inspection</div>
                     </div>
                   </button>
                 </div>
@@ -2868,6 +3055,328 @@ function AdminDashboardInner() {
                   >
                     + Add Another Question
                   </button>
+                </div>
+              )}
+
+              {/* Media Task Builder */}
+              {taskForm.taskType === 'MEDIA' && (
+                <div className="p-5 rounded-2xl bg-dark-950 border border-cyan-500/30 space-y-6">
+                  <div className="flex items-center justify-between border-b border-dark-800 pb-3">
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-cyan-400 flex items-center gap-1.5">
+                        <Video className="w-4 h-4" /> Media Task Builder
+                      </h4>
+                      <p className="text-[11px] text-slate-400 mt-0.5">
+                        Configure direct video streaming or high-resolution photo evaluation with engagement anti-cheat.
+                      </p>
+                    </div>
+                    <span className="text-xs font-mono px-2.5 py-1 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
+                      {taskForm.mediaSettings.mediaType === 'VIDEO' ? '🎬 Video Stream' : '🖼️ Photo Inspection'}
+                    </span>
+                  </div>
+
+                  {/* Media Type Selector */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-300 uppercase">Media Type</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTaskForm({
+                            ...taskForm,
+                            mediaSettings: { ...taskForm.mediaSettings, mediaType: 'VIDEO' },
+                          })
+                        }
+                        className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                          taskForm.mediaSettings.mediaType === 'VIDEO'
+                            ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300'
+                            : 'bg-dark-900 border-dark-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <Video className="w-4 h-4" /> Video Task (YouTube / Vimeo / MP4)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTaskForm({
+                            ...taskForm,
+                            mediaSettings: { ...taskForm.mediaSettings, mediaType: 'IMAGE' },
+                          })
+                        }
+                        className={`p-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                          taskForm.mediaSettings.mediaType === 'IMAGE'
+                            ? 'bg-cyan-500/20 border-cyan-500 text-cyan-300'
+                            : 'bg-dark-900 border-dark-800 text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        <ImageIcon className="w-4 h-4" /> Photo / Image Review
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Media Input (URL & File Upload) */}
+                  <div className="space-y-3">
+                    <label className="text-xs font-semibold text-slate-300 uppercase flex items-center justify-between">
+                      <span>{taskForm.mediaSettings.mediaType === 'VIDEO' ? 'Video Link / Stream URL' : 'Photo Image Source'} <span className="text-rose-400">*</span></span>
+                      {taskForm.mediaSettings.mediaType === 'VIDEO' && (
+                        <span className="text-[11px] text-cyan-400 lowercase font-mono">Supports YouTube, Vimeo, direct MP4/WebM</span>
+                      )}
+                    </label>
+
+                    {taskForm.mediaSettings.mediaType === 'VIDEO' ? (
+                      <input
+                        type="text"
+                        required
+                        placeholder="e.g. https://www.youtube.com/watch?v=... or https://vimeo.com/... or https://cdn.../video.mp4"
+                        value={taskForm.mediaSettings.mediaUrl}
+                        onChange={(e) =>
+                          setTaskForm({
+                            ...taskForm,
+                            mediaSettings: { ...taskForm.mediaSettings, mediaUrl: e.target.value },
+                          })
+                        }
+                        className="w-full px-4 py-3 rounded-xl bg-dark-900 border border-dark-800 text-white text-xs font-mono focus:outline-none focus:border-cyan-500 placeholder-slate-600"
+                      />
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            required
+                            placeholder="Paste Image URL or upload below (e.g. https://...supabase.co/.../image.jpg)"
+                            value={taskForm.mediaSettings.mediaUrl}
+                            onChange={(e) =>
+                              setTaskForm({
+                                ...taskForm,
+                                mediaSettings: { ...taskForm.mediaSettings, mediaUrl: e.target.value },
+                              })
+                            }
+                            className="flex-1 px-4 py-3 rounded-xl bg-dark-900 border border-dark-800 text-white text-xs font-mono focus:outline-none focus:border-cyan-500 placeholder-slate-600"
+                          />
+                          <label className="px-4 py-3 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-300 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors shrink-0">
+                            {mediaUploading ? (
+                              <>
+                                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-3.5 h-3.5" /> Upload File
+                              </>
+                            )}
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={mediaUploading}
+                              onChange={handleMediaImageUpload}
+                              className="hidden"
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Live Preview Box */}
+                    {taskForm.mediaSettings.mediaUrl && (
+                      <div className="p-3 rounded-xl bg-dark-900 border border-dark-800 space-y-2">
+                        <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Live Media Preview:</span>
+                        {taskForm.mediaSettings.mediaType === 'VIDEO' ? (
+                          <div className="aspect-video w-full max-w-md rounded-xl overflow-hidden bg-black border border-dark-800 flex items-center justify-center">
+                            {taskForm.mediaSettings.mediaUrl.includes('youtube') || taskForm.mediaSettings.mediaUrl.includes('youtu.be') ? (
+                              <div className="p-4 text-center text-xs text-slate-400">
+                                <Video className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
+                                <p className="font-semibold text-white">YouTube Stream Linked</p>
+                                <p className="text-[11px] text-slate-500 truncate mt-1">{taskForm.mediaSettings.mediaUrl}</p>
+                              </div>
+                            ) : (
+                              <video src={taskForm.mediaSettings.mediaUrl} controls className="w-full h-full object-contain" />
+                            )}
+                          </div>
+                        ) : (
+                          <div className="max-w-md rounded-xl overflow-hidden border border-dark-800 bg-black">
+                            <img
+                              src={taskForm.mediaSettings.mediaUrl}
+                              alt="Media Preview"
+                              className="w-full max-h-60 object-contain"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Anti-Cheat & Engagement Settings */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-dark-800">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-300 uppercase">
+                        {taskForm.mediaSettings.mediaType === 'VIDEO' ? 'Minimum Watch Time (Seconds)' : 'Minimum Inspection Time (Seconds)'}
+                      </label>
+                      <input
+                        type="number"
+                        min="5"
+                        max="3600"
+                        value={taskForm.mediaSettings.minWatchSeconds}
+                        onChange={(e) =>
+                          setTaskForm({
+                            ...taskForm,
+                            mediaSettings: { ...taskForm.mediaSettings, minWatchSeconds: e.target.value },
+                          })
+                        }
+                        className="w-full px-4 py-2.5 rounded-xl bg-dark-900 border border-dark-800 text-white text-xs font-mono focus:outline-none focus:border-cyan-500"
+                      />
+                      <div className="flex items-center gap-1.5 pt-1">
+                        {['30', '60', '90', '120', '180'].map((sec) => (
+                          <button
+                            key={sec}
+                            type="button"
+                            onClick={() =>
+                              setTaskForm({
+                                ...taskForm,
+                                mediaSettings: { ...taskForm.mediaSettings, minWatchSeconds: sec },
+                              })
+                            }
+                            className={`px-2 py-0.5 rounded text-[10px] font-mono border cursor-pointer ${
+                              taskForm.mediaSettings.minWatchSeconds === sec
+                                ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                                : 'bg-dark-900 text-slate-400 border-dark-800 hover:text-white'
+                            }`}
+                          >
+                            {sec}s
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      <label className="text-xs font-semibold text-slate-300 uppercase block">Fraud & Anti-Cheat Controls</label>
+                      <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={taskForm.mediaSettings.pauseOnBlur}
+                          onChange={(e) =>
+                            setTaskForm({
+                              ...taskForm,
+                              mediaSettings: { ...taskForm.mediaSettings, pauseOnBlur: e.target.checked },
+                            })
+                          }
+                          className="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-500 bg-dark-900 border-dark-700"
+                        />
+                        <span>Pause timer on tab blur or browser minimize</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer text-xs text-slate-300">
+                        <input
+                          type="checkbox"
+                          checked={taskForm.mediaSettings.disableSeeking}
+                          onChange={(e) =>
+                            setTaskForm({
+                              ...taskForm,
+                              mediaSettings: { ...taskForm.mediaSettings, disableSeeking: e.target.checked },
+                            })
+                          }
+                          className="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-500 bg-dark-900 border-dark-700"
+                        />
+                        <span>Disable seeking / skipping ahead</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Optional Comprehension Verification */}
+                  <div className="pt-3 border-t border-dark-800 space-y-4">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={taskForm.mediaSettings.hasComprehension}
+                        onChange={(e) =>
+                          setTaskForm({
+                            ...taskForm,
+                            mediaSettings: { ...taskForm.mediaSettings, hasComprehension: e.target.checked },
+                          })
+                        }
+                        className="w-4 h-4 rounded text-cyan-500 focus:ring-cyan-500 bg-dark-900 border-dark-700"
+                      />
+                      <span className="text-xs font-bold text-white">Require Comprehension Check Question (Anti-Bot Verification)</span>
+                    </label>
+
+                    {taskForm.mediaSettings.hasComprehension && (
+                      <div className="p-4 rounded-xl bg-dark-900 border border-dark-800 space-y-3">
+                        <p className="text-[11px] text-slate-400">
+                          Workers must select the correct answer after watching the media to unlock submission.
+                        </p>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">Question Prompt</label>
+                          <input
+                            type="text"
+                            placeholder="e.g. What color was the vehicle featured in the video?"
+                            value={taskForm.mediaSettings.comprehensionQuestion}
+                            onChange={(e) =>
+                              setTaskForm({
+                                ...taskForm,
+                                mediaSettings: { ...taskForm.mediaSettings, comprehensionQuestion: e.target.value },
+                              })
+                            }
+                            className="w-full px-3 py-2 rounded-xl bg-dark-950 border border-dark-800 text-xs text-white focus:outline-none focus:border-cyan-500"
+                          />
+                        </div>
+
+                        <div className="space-y-2 pt-1">
+                          <label className="text-[10px] font-bold text-slate-400 uppercase">Answer Options (Select the correct one)</label>
+                          {['A', 'B', 'C', 'D'].map((letter, optIdx) => {
+                            const val = taskForm.mediaSettings.comprehensionOptions[optIdx] || '';
+                            const isCorrect = taskForm.mediaSettings.comprehensionCorrectAnswer === val && val.trim().length > 0;
+                            return (
+                              <div key={letter} className="flex items-center gap-2">
+                                <label className="flex items-center gap-1.5 cursor-pointer shrink-0">
+                                  <input
+                                    type="radio"
+                                    name="mediaCorrectAnswer"
+                                    checked={isCorrect}
+                                    onChange={() => {
+                                      setTaskForm({
+                                        ...taskForm,
+                                        mediaSettings: { ...taskForm.mediaSettings, comprehensionCorrectAnswer: val },
+                                      });
+                                    }}
+                                    className="w-3.5 h-3.5 text-cyan-500"
+                                  />
+                                  <span className="text-xs font-mono font-bold text-slate-400 w-4">{letter}.</span>
+                                </label>
+                                <input
+                                  type="text"
+                                  placeholder={`Option ${letter}`}
+                                  value={val}
+                                  onChange={(e) => {
+                                    const nextOpts = [...taskForm.mediaSettings.comprehensionOptions];
+                                    const oldVal = nextOpts[optIdx];
+                                    nextOpts[optIdx] = e.target.value;
+                                    let nextCorrect = taskForm.mediaSettings.comprehensionCorrectAnswer;
+                                    if (nextCorrect === oldVal) {
+                                      nextCorrect = e.target.value;
+                                    }
+                                    setTaskForm({
+                                      ...taskForm,
+                                      mediaSettings: {
+                                        ...taskForm.mediaSettings,
+                                        comprehensionOptions: nextOpts,
+                                        comprehensionCorrectAnswer: nextCorrect,
+                                      },
+                                    });
+                                  }}
+                                  className={`flex-1 px-3 py-1.5 rounded-xl bg-dark-950 border text-xs text-white focus:outline-none ${
+                                    isCorrect ? 'border-cyan-500 bg-cyan-500/10' : 'border-dark-800'
+                                  }`}
+                                />
+                                {isCorrect && (
+                                  <span className="text-[10px] font-bold text-cyan-400 flex items-center gap-1 shrink-0 px-2 py-0.5 rounded-full bg-cyan-500/15 border border-cyan-500/30">
+                                    <Check className="w-3 h-3" /> Correct
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
               )}
 
@@ -3251,10 +3760,11 @@ function AdminDashboardInner() {
                   />
                 ) : (
                   submissionsList.map((sub) => {
-                    // Parse quiz data once per card
-                    let quizData: any = null;
-                    try { if (sub.submissionDataJson) quizData = JSON.parse(sub.submissionDataJson); } catch {}
-                    const isQuizSub = quizData?.autoGraded === true;
+                    // Parse submission data once per card
+                    let subData: any = null;
+                    try { if (sub.submissionDataJson) subData = JSON.parse(sub.submissionDataJson); } catch {}
+                    const isQuizSub = subData?.autoGraded === true || subData?.mode === 'QUIZ';
+                    const isMediaSub = subData?.mode === 'MEDIA';
 
                     return (
                     <div key={sub.id} className="p-5 rounded-2xl bg-dark-900/80 border border-dark-800 space-y-4 shadow-lg">
@@ -3267,6 +3777,12 @@ function AdminDashboardInner() {
                             {isQuizSub && (
                               <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30">
                                 MCQ Quiz
+                              </span>
+                            )}
+                            {isMediaSub && (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                                {subData.mediaType === 'IMAGE' ? <ImageIcon className="w-3 h-3" /> : <Video className="w-3 h-3" />}
+                                {subData.mediaType === 'IMAGE' ? 'Photo Review Task' : 'Video Watch Task'}
                               </span>
                             )}
                           </div>
@@ -3293,15 +3809,15 @@ function AdminDashboardInner() {
                             <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Quiz Auto-Graded Result:</span>
                             <div className="flex items-center gap-3">
                               <div className={`px-4 py-2 rounded-xl text-center font-black text-xl border ${
-                                quizData.passed
+                                subData.passed
                                   ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300'
                                   : 'bg-rose-500/15 border-rose-500/30 text-rose-300'
                               }`}>
-                                {quizData.score ?? '—'}%
+                                {subData.score ?? '—'}%
                               </div>
                               <div>
-                                <p className={`font-bold text-sm ${quizData.passed ? 'text-emerald-400' : 'text-rose-400'}`}>
-                                  {quizData.passed ? '✓ PASSED (≥80%)' : '✗ FAILED (<80%)'}
+                                <p className={`font-bold text-sm ${subData.passed ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                  {subData.passed ? '✓ PASSED (≥80%)' : '✗ FAILED (<80%)'}
                                 </p>
                                 <p className="text-slate-400 text-[11px] mt-0.5">
                                   Score verified server-side against answer key
@@ -3312,6 +3828,73 @@ function AdminDashboardInner() {
                               Approve to credit KES {sub.task?.reward?.toFixed(2)} to this worker.
                               Reject if you suspect any integrity violation.
                             </p>
+                          </div>
+                        ) : isMediaSub ? (
+                          <div className="space-y-3">
+                            <span className="text-[10px] uppercase font-bold text-cyan-400 block tracking-wider">
+                              Media Task Verification Metrics:
+                            </span>
+
+                            {/* Watch time & Verification metric badge */}
+                            <div className="flex items-center gap-3 flex-wrap">
+                              <div className="px-3 py-1.5 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-mono font-bold text-xs flex items-center gap-1.5">
+                                <Clock className="w-3.5 h-3.5 text-cyan-400" />
+                                <span>
+                                  Watch Time: {subData.watchSeconds ?? 0}s / {subData.targetWatchSeconds ?? 0}s ({subData.watchPercent ?? 100}%)
+                                </span>
+                              </div>
+                              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 flex items-center gap-1">
+                                <CheckCircle2 className="w-3 h-3" /> Anti-Cheat Verified
+                              </span>
+                            </div>
+
+                            {/* Media Link / Preview */}
+                            {subData.mediaUrl && (
+                              <div className="pt-1">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase block">Task Media Source:</span>
+                                {subData.mediaType === 'IMAGE' ? (
+                                  <div className="mt-1 max-w-xs rounded-xl overflow-hidden border border-dark-800 bg-black">
+                                    <img src={subData.mediaUrl} alt="Task Media" className="w-full max-h-48 object-contain" />
+                                  </div>
+                                ) : (
+                                  <a
+                                    href={subData.mediaUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="mt-1 inline-flex items-center gap-1.5 text-cyan-400 hover:underline font-mono text-xs"
+                                  >
+                                    <Video className="w-3.5 h-3.5" />
+                                    <span>{subData.mediaUrl}</span>
+                                    <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Comprehension Question Answer (if present) */}
+                            {subData.comprehension && (
+                              <div className="p-3 rounded-xl bg-dark-900 border border-dark-800 space-y-1.5">
+                                <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">
+                                  Comprehension Check Result:
+                                </span>
+                                <p className="text-xs text-white font-medium">Q: {subData.comprehension.question}</p>
+                                <div className="flex items-center gap-2 pt-1">
+                                  <span className="text-xs text-slate-400">Worker Answer:</span>
+                                  <span className="px-2 py-0.5 rounded text-xs font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                                    {subData.comprehension.answer}
+                                  </span>
+                                  <span className="text-[11px] text-emerald-400 font-medium">✓ Verified Correct</span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Worker text notes if any */}
+                            {sub.proofText && (
+                              <div className="pt-1">
+                                <span className="text-[10px] font-bold text-slate-500 uppercase block">Worker Submission Notes:</span>
+                                <p className="text-slate-300 whitespace-pre-wrap mt-0.5">{sub.proofText}</p>
+                              </div>
+                            )}
                           </div>
                         ) : (
                           <>

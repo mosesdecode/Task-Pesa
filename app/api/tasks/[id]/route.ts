@@ -45,6 +45,18 @@ export async function GET(
               return safeQuestion;
             }),
           };
+        } else if (parsed.mode === 'MEDIA') {
+          // SECURITY RULE: Strip comprehension correctAnswer for MEDIA tasks
+          const { comprehension, ...restMedia } = parsed;
+          safeFormPayload = {
+            ...restMedia,
+            comprehension: comprehension
+              ? {
+                  question: comprehension.question,
+                  options: comprehension.options || [],
+                }
+              : null,
+          };
         } else {
           safeFormPayload = parsed;
         }
@@ -85,6 +97,7 @@ export async function GET(
         category: task.category,
         formPayload: safeFormPayload,
         isQuiz,
+        isMedia: safeFormPayload?.mode === 'MEDIA' || Boolean(safeFormPayload?.mediaType),
       },
       userSubmission: userSub
         ? {

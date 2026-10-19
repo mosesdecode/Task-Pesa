@@ -23,7 +23,33 @@ import {
   XCircle,
   Award,
   Zap,
+  Video,
 } from 'lucide-react';
+
+function getEmbedInfo(url?: string | null) {
+  if (!url) return null;
+  const cleanUrl = url.trim();
+  const ytMatch = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+  if (ytMatch) {
+    return {
+      type: 'youtube',
+      id: ytMatch[1],
+      embedUrl: `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1`,
+    };
+  }
+  const vimeoMatch = cleanUrl.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+  if (vimeoMatch) {
+    return {
+      type: 'vimeo',
+      id: vimeoMatch[1],
+      embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`,
+    };
+  }
+  return {
+    type: 'direct',
+    embedUrl: cleanUrl,
+  };
+}
 
 interface TaskModalProps {
   item: any;
@@ -70,6 +96,14 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
   const [quizPassed, setQuizPassed] = useState<boolean | null>(null);
   const [autosaving, setAutosaving] = useState(false);
 
+  // Media Task State
+  const [mediaWatchSeconds, setMediaWatchSeconds] = useState<number>(0);
+  const [mediaWatchStarted, setMediaWatchStarted] = useState<boolean>(false);
+  const [mediaTabActive, setMediaTabActive] = useState<boolean>(true);
+  const [mediaComprehensionAnswer, setMediaComprehensionAnswer] = useState<string>('');
+  const [mediaSubmitting, setMediaSubmitting] = useState<boolean>(false);
+  const [mediaImageZoomed, setMediaImageZoomed] = useState<boolean>(false);
+
   // Fetch full task data on open if it is a task
   useEffect(() => {
     if (type !== 'TASK' || !item?.id) return;
@@ -85,7 +119,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
         if (res.ok && data.task) {
           setTaskDetail(data.task);
 
-          // If quiz attempt exists:
+          // If quiz or media attempt exists:
           if (data.userSubmission) {
             const sub = data.userSubmission;
             if (sub.serverTime) {
@@ -94,6 +128,14 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
             if (sub.savedAnswers) {
               answersRef.current = sub.savedAnswers;
               setQuizAnswers(sub.savedAnswers);
+            }
+
+            if (data.task?.isMedia && sub.status === 'IN_PROGRESS') {
+              setMediaWatchStarted(true);
+              if (sub.startedAt) {
+                const elapsed = Math.floor((Date.now() - new Date(sub.startedAt).getTime()) / 1000);
+                setMediaWatchSeconds(Math.max(0, elapsed));
+              }
             }
 
             if (sub.status === 'IN_PROGRESS' && sub.deadline) {
@@ -426,6 +468,109 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
 
   const isQuiz = taskDetail?.isQuiz || false;
   const quizQuestions = taskDetail?.formPayload?.questions || [];
+  const isMedia = taskDetail?.isMedia || false;
+  const mediaPayload = isMedia ? taskDetail?.formPayload : null;
+
+  // Media Video Watch Timer Effect
+  useEffect(() => {
+    if (!isMedia || mediaPayload?.mediaType !== 'VIDEO' || !mediaWatchStarted) return;
+    const target = parseInt(mediaPayload?.minWatchSeconds) || 60;
+    if (mediaWatchSeconds >= target) return;
+
+    const timer = setInterval(() => {
+      if (mediaTabActive && document.visibilityState === 'visible') {
+        setMediaWatchSeconds((prev) => prev + 1);
+      }
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isMedia, mediaPayload, mediaWatchStarted, mediaTabActive, mediaWatchSeconds]);
+
+  // Tab blur and visibility change listener for media anti-cheat
+  useEffect(() => {
+    if (!isMedia || mediaPayload?.mediaType !== 'VIDEO') return;
+
+    const handleVisibilityChange = () => {
+      setMediaTabActive(document.visibilityState === 'visible');
+    };
+
+    const handleWindowBlur = () => {
+      if (mediaPayload?.pauseOnBlur !== false) {
+        setMediaTabActive(false);
+      }
+    };
+
+    const handleWindowFocus = () => {
+      setMediaTabActive(true);
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('blur', handleWindowBlur);
+    window.addEventListener('focus', handleWindowFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('blur', handleWindowBlur);
+      window.removeEventListener('focus', handleWindowFocus);
+    };
+  }, [isMedia, mediaPayload]);
+
+  const handleStartMediaTask = async () => {
+    setError(null);
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/tasks/${item.id}/start`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to start task');
+      setMediaWatchStarted(true);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitMediaTask = async () => {
+    setError(null);
+    setSuccessMsg(null);
+    const target = parseInt(mediaPayload?.minWatchSeconds) || 0;
+    if (mediaPayload?.mediaType === 'VIDEO' && mediaWatchSeconds < target) {
+      setError(`Please complete watching at least ${target} seconds of the video before submitting.`);
+      return;
+    }
+
+    if (mediaPayload?.comprehension?.question && !mediaComprehensionAnswer) {
+      setError('Please answer the comprehension check before submitting.');
+      return;
+    }
+
+    setMediaSubmitting(true);
+    try {
+      const res = await fetch(`/api/tasks/${item.id}/submit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          watchTimeSeconds: mediaWatchSeconds,
+          comprehensionAnswer: mediaComprehensionAnswer,
+          proofText,
+          proofUrl,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Submission failed');
+
+      setSuccessMsg(data.message || 'Media task submitted successfully! Awaiting admin review.');
+      setTimeout(() => {
+        onSuccess();
+        onClose();
+      }, 1500);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setMediaSubmitting(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
@@ -437,6 +582,10 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
               {type === 'TASK'
                 ? isQuiz
                   ? 'Digital Skills Exam (MCQ)'
+                  : isMedia
+                  ? mediaPayload?.mediaType === 'VIDEO'
+                    ? 'Video Watching Task 🎬'
+                    : 'Photo / Image Task 🖼️'
                   : item.category?.name || 'Task Assignment'
                 : type === 'AD'
                 ? 'Sponsored Video Ad'
@@ -767,9 +916,268 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
         )}
 
         {/* ══════════════════════════════════════════════════════════
-            MODE B2: STANDARD MICROTASK
+            MODE B2: MEDIA TASK (Video Watching / Photo Review)
         ══════════════════════════════════════════════════════════ */}
-        {type === 'TASK' && !isQuiz && (
+        {type === 'TASK' && isMedia && (
+          <div className="space-y-6">
+            {/* Instructions Box */}
+            <div className="p-4 sm:p-5 rounded-2xl bg-slate-800/40 border border-slate-700/50 space-y-3">
+              <div className="flex justify-between items-center">
+                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-brand-400" /> Instructions
+                </h4>
+                <span className="text-xs font-mono text-slate-400">
+                  {mediaPayload?.mediaType === 'VIDEO'
+                    ? `Min. Watch: ${mediaPayload?.minWatchSeconds || 60}s`
+                    : 'Photo Review'}
+                </span>
+              </div>
+              <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{item.instructions}</p>
+              {item.rules && (
+                <div className="pt-2 border-t border-slate-700/50 text-xs text-amber-300/90 space-y-1">
+                  <strong className="text-amber-400 uppercase tracking-wider text-[10px] block">Task Rules:</strong>
+                  <p>{item.rules}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Media Player / Viewer */}
+            {mediaPayload?.mediaType === 'VIDEO' ? (
+              <div className="space-y-4">
+                <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl">
+                  {(() => {
+                    const embed = getEmbedInfo(mediaPayload?.mediaUrl || item.externalUrl);
+                    if (!mediaWatchStarted) {
+                      return (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 p-6 text-center space-y-4">
+                          <div className="w-16 h-16 rounded-full bg-brand-500/20 text-brand-400 border border-brand-500/30 flex items-center justify-center shadow-lg shadow-brand-500/10">
+                            <Play className="w-7 h-7 ml-1" />
+                          </div>
+                          <div className="space-y-1 max-w-sm">
+                            <h4 className="text-base font-bold text-white">Ready to watch and earn?</h4>
+                            <p className="text-xs text-slate-400">
+                              Watch for at least {mediaPayload?.minWatchSeconds || 60} seconds without skipping to unlock your reward.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={handleStartMediaTask}
+                            disabled={loading}
+                            className="px-6 py-3 rounded-xl bg-brand-500 hover:bg-brand-400 text-slate-950 font-black text-xs transition-all shadow-lg shadow-brand-500/20 cursor-pointer disabled:opacity-50"
+                          >
+                            {loading ? 'Starting Task...' : 'Start Watching Video'}
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    if (embed?.type === 'youtube' || embed?.type === 'vimeo') {
+                      return (
+                        <iframe
+                          src={embed.embedUrl}
+                          title={item.title}
+                          className="w-full h-full border-0"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      );
+                    }
+
+                    return (
+                      <video
+                        src={mediaPayload?.mediaUrl || item.externalUrl}
+                        controls={!mediaPayload?.disableSeeking}
+                        autoPlay
+                        className="w-full h-full object-contain"
+                      />
+                    );
+                  })()}
+                </div>
+
+                {/* Real-time Watch Progress Bar & Anti-cheat feedback */}
+                {mediaWatchStarted && (
+                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-brand-400" />
+                        Watch Progress:
+                      </span>
+                      <span
+                        className={`font-mono font-bold ${
+                          mediaWatchSeconds >= (parseInt(mediaPayload?.minWatchSeconds) || 60)
+                            ? 'text-emerald-400'
+                            : 'text-amber-400'
+                        }`}
+                      >
+                        {mediaWatchSeconds}s / {mediaPayload?.minWatchSeconds || 60}s (
+                        {Math.min(
+                          100,
+                          Math.round(
+                            (mediaWatchSeconds / (parseInt(mediaPayload?.minWatchSeconds) || 60)) * 100
+                          )
+                        )}
+                        %)
+                      </span>
+                    </div>
+
+                    <div className="w-full h-2.5 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
+                      <div
+                        className={`h-full transition-all duration-300 ${
+                          mediaWatchSeconds >= (parseInt(mediaPayload?.minWatchSeconds) || 60)
+                            ? 'bg-emerald-500 shadow-sm shadow-emerald-500'
+                            : 'bg-gradient-to-r from-amber-500 to-brand-500'
+                        }`}
+                        style={{
+                          width: `${Math.min(
+                            100,
+                            (mediaWatchSeconds / (parseInt(mediaPayload?.minWatchSeconds) || 60)) * 100
+                          )}%`,
+                        }}
+                      />
+                    </div>
+
+                    {!mediaTabActive && mediaWatchSeconds < (parseInt(mediaPayload?.minWatchSeconds) || 60) && (
+                      <p className="text-[11px] text-amber-400 flex items-center gap-1.5 font-medium animate-pulse">
+                        <AlertTriangle className="w-3.5 h-3.5" />
+                        Video paused — keep this screen active on your device to count your watch time.
+                      </p>
+                    )}
+
+                    {mediaWatchSeconds >= (parseInt(mediaPayload?.minWatchSeconds) || 60) && (
+                      <p className="text-[11px] text-emerald-400 font-bold flex items-center gap-1.5">
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Watch time verified! You can now submit your task below.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* Image / Photo Task Viewer */
+              <div className="space-y-3">
+                <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center p-3 group">
+                  <img
+                    src={mediaPayload?.mediaUrl || item.externalUrl}
+                    alt={item.title}
+                    className="max-h-80 w-auto object-contain rounded-xl cursor-zoom-in hover:opacity-95 transition-opacity"
+                    onClick={() => setMediaImageZoomed(!mediaImageZoomed)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMediaImageZoomed(!mediaImageZoomed)}
+                    className="absolute bottom-4 right-4 px-3 py-1.5 rounded-xl bg-slate-900/90 text-white text-xs font-bold border border-slate-700 flex items-center gap-1.5 shadow-md backdrop-blur-md cursor-pointer"
+                  >
+                    <ImageIcon className="w-3.5 h-3.5 text-brand-400" />
+                    <span>{mediaImageZoomed ? 'Shrink Image' : 'Zoom Image'}</span>
+                  </button>
+                </div>
+                {mediaImageZoomed && (
+                  <div
+                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4 cursor-zoom-out backdrop-blur-sm"
+                    onClick={() => setMediaImageZoomed(false)}
+                  >
+                    <img
+                      src={mediaPayload?.mediaUrl || item.externalUrl}
+                      alt={item.title}
+                      className="max-w-full max-h-full object-contain rounded-xl shadow-2xl"
+                    />
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Comprehension Check (if configured) */}
+            {mediaPayload?.comprehension?.question && (
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-brand-500/30 space-y-3">
+                <span className="text-[10px] uppercase font-bold text-brand-400 block tracking-wider">
+                  Comprehension Check:
+                </span>
+                <p className="text-xs font-bold text-white">{mediaPayload.comprehension.question}</p>
+                <div className="space-y-2 pt-1">
+                  {(mediaPayload.comprehension.options || []).map((opt: string, optIdx: number) => {
+                    const isSelected = mediaComprehensionAnswer === opt;
+                    const letter = String.fromCharCode(65 + optIdx);
+                    return (
+                      <label
+                        key={optIdx}
+                        className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
+                          isSelected
+                            ? 'bg-brand-500/15 border-brand-500 text-brand-200'
+                            : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="media_comprehension"
+                          checked={isSelected}
+                          onChange={() => setMediaComprehensionAnswer(opt)}
+                          className="w-4 h-4 text-brand-500 focus:ring-brand-500 accent-brand-500 cursor-pointer"
+                        />
+                        <span className="text-xs font-mono font-bold text-slate-400">{letter}.</span>
+                        <span className="text-xs">{opt}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Submission Section */}
+            <div className="space-y-4 border-t border-slate-800 pt-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-gray-300">
+                  Worker Notes / Feedback (Optional)
+                </label>
+                <textarea
+                  rows={2}
+                  placeholder="Optional notes or summary of what was reviewed..."
+                  value={proofText}
+                  onChange={(e) => setProofText(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-brand-500"
+                />
+              </div>
+
+              {/* Submit Button with Anti-Cheat Lock */}
+              {(() => {
+                const target = parseInt(mediaPayload?.minWatchSeconds) || 0;
+                const isWatchMet = mediaPayload?.mediaType !== 'VIDEO' || mediaWatchSeconds >= target;
+                const isQuestionMet = !mediaPayload?.comprehension?.question || Boolean(mediaComprehensionAnswer);
+                const canSubmit = isWatchMet && isQuestionMet && !mediaSubmitting;
+
+                return (
+                  <button
+                    type="button"
+                    onClick={handleSubmitMediaTask}
+                    disabled={!canSubmit}
+                    className={`w-full py-3.5 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg ${
+                      canSubmit
+                        ? 'bg-brand-500 hover:bg-brand-400 text-slate-950 shadow-brand-500/25'
+                        : 'bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed opacity-60'
+                    }`}
+                  >
+                    {mediaSubmitting ? (
+                      'Submitting Task...'
+                    ) : !isWatchMet ? (
+                      `Watch ${target - mediaWatchSeconds}s more to unlock submission`
+                    ) : !isQuestionMet ? (
+                      'Please answer comprehension check above'
+                    ) : (
+                      <>
+                        <CheckCircle2 className="w-4 h-4" />
+                        <span>Submit Media Task for KES {item.reward?.toFixed(2)}</span>
+                      </>
+                    )}
+                  </button>
+                );
+              })()}
+            </div>
+          </div>
+        )}
+
+        {/* ══════════════════════════════════════════════════════════
+            MODE B3: STANDARD MICROTASK
+        ══════════════════════════════════════════════════════════ */}
+        {type === 'TASK' && !isQuiz && !isMedia && (
           <div className="space-y-6">
             {/* Instructions Box */}
             <div className="p-4 sm:p-5 rounded-2xl bg-slate-800/40 border border-slate-700/50 space-y-3">

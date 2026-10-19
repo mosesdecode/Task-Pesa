@@ -24,6 +24,8 @@ import {
   Check,
   FolderOpen,
   Eye,
+  Video,
+  Image as ImageIcon,
 } from 'lucide-react';
 import { Skeleton } from '@/components/Skeleton';
 import TaskModal from '@/components/TaskModal';
@@ -532,10 +534,24 @@ export default function TasksPage() {
                                 <div className="space-y-3">
                                   {/* Top Category Badge & Slots */}
                                   <div className="flex items-center justify-between">
-                                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
-                                      <Clock className="w-3 h-3 text-amber-400 animate-pulse" />
-                                      <span>In Progress</span>
-                                    </span>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1.5">
+                                        <Clock className="w-3 h-3 text-amber-400 animate-pulse" />
+                                        <span>In Progress</span>
+                                      </span>
+                                      {task.isMedia && (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                                          {task.mediaType === 'IMAGE' ? <ImageIcon className="w-3 h-3" /> : <Video className="w-3 h-3" />}
+                                          <span>{task.mediaType === 'IMAGE' ? 'Photo Review' : 'Video Task'}</span>
+                                        </span>
+                                      )}
+                                      {task.isQuiz && (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                                          <BrainCircuit className="w-3 h-3" />
+                                          <span>MCQ Quiz</span>
+                                        </span>
+                                      )}
+                                    </div>
                                     <span className="text-[11px] font-mono text-slate-400">
                                       {task.remainingSlots} / {task.totalSlots} slots
                                     </span>
@@ -627,9 +643,23 @@ export default function TasksPage() {
                                 <div className="space-y-3">
                                   {/* Top Category Badge & Slots */}
                                   <div className="flex items-center justify-between">
-                                    <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20">
-                                      {task.category?.name || 'Task'}
-                                    </span>
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                                        {task.category?.name || 'Task'}
+                                      </span>
+                                      {task.isMedia && (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                                          {task.mediaType === 'IMAGE' ? <ImageIcon className="w-3 h-3" /> : <Video className="w-3 h-3" />}
+                                          <span>{task.mediaType === 'IMAGE' ? 'Photo Review' : 'Video Task'}</span>
+                                        </span>
+                                      )}
+                                      {task.isQuiz && (
+                                        <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-500/15 text-purple-300 border border-purple-500/30 flex items-center gap-1">
+                                          <BrainCircuit className="w-3 h-3" />
+                                          <span>MCQ Quiz</span>
+                                        </span>
+                                      )}
+                                    </div>
                                     <span className="text-[11px] font-mono text-slate-400">
                                       {task.remainingSlots} / {task.totalSlots} slots
                                     </span>

@@ -68,6 +68,7 @@ export async function GET(req: NextRequest) {
           externalUrl: true,
           createdAt: true,
           updatedAt: true,
+          dataPayloadJson: true,
           category: {
             select: { id: true, name: true, slug: true, icon: true },
           },
@@ -162,8 +163,30 @@ export async function GET(req: NextRequest) {
     const mappedTasks = tasks.map((task: any) => {
       const userSub = task.submissions?.[0] || null;
       const userStatus = userSub ? userSub.status : 'NOT_STARTED';
-      const { submissions, ...taskDetails } = task;
-      return { ...taskDetails, userStatus, userSubmission: userSub || null };
+      const { submissions, dataPayloadJson, ...taskDetails } = task;
+
+      let isQuiz = false;
+      let isMedia = false;
+      let mediaType: 'VIDEO' | 'IMAGE' | null = null;
+      if (dataPayloadJson) {
+        try {
+          const parsed = JSON.parse(dataPayloadJson);
+          if (parsed.mode === 'QUIZ') isQuiz = true;
+          if (parsed.mode === 'MEDIA') {
+            isMedia = true;
+            mediaType = parsed.mediaType || 'VIDEO';
+          }
+        } catch {}
+      }
+
+      return {
+        ...taskDetails,
+        isQuiz,
+        isMedia,
+        mediaType,
+        userStatus,
+        userSubmission: userSub || null,
+      };
     });
 
     return NextResponse.json({ tasks: mappedTasks, categories, ads, campaigns });
