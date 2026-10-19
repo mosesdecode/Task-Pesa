@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAdmin } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: NextRequest) {
   try {
     await requireAdmin(req);
@@ -147,6 +150,12 @@ export async function GET(req: NextRequest) {
         rejected: rejectedTotal,
         total: pendingReviewTotal + approvedTotal + rejectedTotal,
       },
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      },
     });
   } catch (error: any) {
     console.error('Admin submissions fetch error:', error);
@@ -172,13 +181,25 @@ export async function POST(req: NextRequest) {
 
     // TASK SUBMISSION REVIEW
     if (submissionType === 'TASK' || !submissionType) {
-      const sub = await prisma.taskSubmission.findUnique({
+      let sub = await prisma.taskSubmission.findUnique({
         where: { id: submissionId },
         include: {
           task: true,
           user: { select: { id: true, username: true, email: true, phone: true, packageId: true } },
         },
       });
+
+      // Resilient fallback: If not found by primary id, check if submissionId is a taskId with an UNDER_REVIEW submission
+      if (!sub) {
+        sub = await prisma.taskSubmission.findFirst({
+          where: { taskId: submissionId, status: 'UNDER_REVIEW' },
+          include: {
+            task: true,
+            user: { select: { id: true, username: true, email: true, phone: true, packageId: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+      }
 
       if (!sub) {
         return NextResponse.json({ error: 'Task submission not found' }, { status: 404 });

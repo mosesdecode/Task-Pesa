@@ -400,7 +400,10 @@ function AdminDashboardInner() {
     setSubmissionsError('');
     setSubmissionsFilterLoading(true);
     try {
-      const res = await fetch(`/api/admin/submissions?status=${submissionFilter}`);
+      const res = await fetch(`/api/admin/submissions?status=${submissionFilter}&_t=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' },
+      });
       if (res.ok) {
         const data = await res.json();
         setSubmissionsList(data.taskSubmissions || []);
@@ -1366,9 +1369,19 @@ function AdminDashboardInner() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Approval failed');
+      if (!res.ok) {
+        if (res.status === 404) {
+          // Stale submission that was removed or replaced: prune immediately and refresh
+          setSubmissionsList((prev) => prev.filter((item) => item.id !== sub.id));
+          fetchSubmissions();
+          fetchStats();
+          throw new Error('This submission was no longer found in the active database queue. The review list has been refreshed.');
+        }
+        throw new Error(data.error || 'Approval failed');
+      }
 
       setSuccessMsg(data.message || 'Submission approved and reward credited!');
+      setSubmissionsList((prev) => prev.filter((item) => item.id !== sub.id));
       fetchSubmissions();
       fetchStats();
     } catch (err: any) {
@@ -1397,9 +1410,18 @@ function AdminDashboardInner() {
       });
 
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Rejection failed');
+      if (!res.ok) {
+        if (res.status === 404) {
+          setSubmissionsList((prev) => prev.filter((item) => item.id !== rejectModalSub.id));
+          fetchSubmissions();
+          fetchStats();
+          throw new Error('This submission was no longer found in the active database queue. The review list has been refreshed.');
+        }
+        throw new Error(data.error || 'Rejection failed');
+      }
 
       setSuccessMsg('Submission rejected. User notified with feedback.');
+      setSubmissionsList((prev) => prev.filter((item) => item.id !== rejectModalSub.id));
       setRejectModalSub(null);
       setRejectionReasonInput('');
       fetchSubmissions();
