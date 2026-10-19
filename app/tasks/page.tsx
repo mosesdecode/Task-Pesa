@@ -734,12 +734,10 @@ export default function TasksPage() {
                                   )}
 
                                   {status === 'REJECTED' && (
-                                    <button
-                                      onClick={() => openTaskModal(task, 'TASK')}
-                                      className="px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/30 text-rose-300 text-xs font-bold transition-colors cursor-pointer"
-                                    >
-                                      Resubmit
-                                    </button>
+                                    <div className="px-3 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-1.5">
+                                      <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                                      <span>Rejected</span>
+                                    </div>
                                   )}
                                 </div>
                               </div>
@@ -1124,7 +1122,7 @@ export default function TasksPage() {
               <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-xs text-rose-300 flex items-center gap-3">
                 <AlertCircle className="w-5 h-5 flex-shrink-0 text-rose-400" />
                 <span>
-                  Submissions below were rejected during review. Check the administrator feedback on each card, fix the issue, and resubmit to claim your reward.
+                  Submissions below were rejected during review. Per platform policy, rejected tasks cannot be resubmitted. You can review the administrator feedback on each card below.
                 </span>
               </div>
 
@@ -1185,13 +1183,10 @@ export default function TasksPage() {
                           </span>
                         </div>
 
-                        <button
-                          onClick={() => openTaskModal(task, 'TASK')}
-                          className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Resubmit Proof</span>
-                        </button>
+                        <div className="px-3 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-1.5">
+                          <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Not Eligible to Resubmit</span>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -1238,13 +1233,10 @@ export default function TasksPage() {
                           </span>
                         </div>
 
-                        <button
-                          onClick={() => openTaskModal(camp, 'WHATSAPP')}
-                          className="px-4 py-2 rounded-xl bg-rose-500 hover:bg-rose-400 text-slate-950 font-bold text-xs flex items-center gap-1.5 transition-all cursor-pointer"
-                        >
-                          <RotateCcw className="w-3.5 h-3.5" />
-                          <span>Resubmit Proof</span>
-                        </button>
+                        <div className="px-3 py-1.5 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center gap-1.5">
+                          <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                          <span>Not Eligible to Resubmit</span>
+                        </div>
                       </div>
                     </div>
                   ))}

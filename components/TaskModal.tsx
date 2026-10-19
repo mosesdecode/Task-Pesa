@@ -104,6 +104,18 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
   const [mediaSubmitting, setMediaSubmitting] = useState<boolean>(false);
   const [mediaImageZoomed, setMediaImageZoomed] = useState<boolean>(false);
 
+  const isSubmissionRejected =
+    taskDetail?.userSubmission?.status === 'REJECTED' ||
+    (item as any)?.userStatus === 'REJECTED' ||
+    (item as any)?.userSubmission?.status === 'REJECTED' ||
+    (item as any)?.submissions?.[0]?.status === 'REJECTED';
+
+  const rejectionFeedback =
+    taskDetail?.userSubmission?.rejectionReason ||
+    (item as any)?.userSubmission?.rejectionReason ||
+    (item as any)?.rejectionReason ||
+    (item as any)?.submissions?.[0]?.adminNotes;
+
   // Fetch full task data on open if it is a task
   useEffect(() => {
     if (type !== 'TASK' || !item?.id) return;
@@ -615,10 +627,41 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
           </div>
         )}
 
-        {/* ══════════════════════════════════════════════════════════
-            MODE A: WATCH ADS
-        ══════════════════════════════════════════════════════════ */}
-        {type === 'AD' && (
+        {isSubmissionRejected ? (
+          <div className="p-6 rounded-3xl bg-rose-500/10 border border-rose-500/30 text-center space-y-4 animate-in fade-in">
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/20 text-rose-400 mx-auto flex items-center justify-center">
+              <XCircle className="w-8 h-8" />
+            </div>
+            <div>
+              <h4 className="text-base font-bold text-white">Submission Rejected</h4>
+              <p className="text-xs text-rose-300 mt-1 max-w-md mx-auto">
+                This submission was evaluated and rejected by the quality review team. Per platform policy, rejected tasks cannot be resubmitted.
+              </p>
+            </div>
+            {rejectionFeedback && (
+              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-rose-500/25 text-xs text-slate-300 max-w-md mx-auto text-left space-y-1">
+                <span className="text-[10px] uppercase font-bold text-rose-400 block tracking-wider">
+                  Admin Feedback:
+                </span>
+                <p className="italic text-rose-200">"{rejectionFeedback}"</p>
+              </div>
+            )}
+            <div className="pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors cursor-pointer"
+              >
+                Close Window
+              </button>
+            </div>
+          </div>
+        ) : (
+          <>
+            {/* ══════════════════════════════════════════════════════════
+                MODE A: WATCH ADS
+            ══════════════════════════════════════════════════════════ */}
+            {type === 'AD' && (
           <div className="space-y-6">
             <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center group">
               <img
@@ -1515,6 +1558,8 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
               </button>
             </div>
           </div>
+        )}
+          </>
         )}
       </div>
     </div>

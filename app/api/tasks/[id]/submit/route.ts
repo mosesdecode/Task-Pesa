@@ -101,9 +101,9 @@ export async function POST(
         );
       }
 
-      if (isQuiz && existing.status === 'REJECTED') {
+      if (existing.status === 'REJECTED') {
         return NextResponse.json(
-          { error: 'You have already attempted this quiz. Retries are not permitted.' },
+          { error: 'This task submission was rejected. Per platform policy, rejected tasks cannot be resubmitted.' },
           { status: 400 }
         );
       }

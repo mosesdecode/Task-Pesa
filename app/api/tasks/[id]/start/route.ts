@@ -111,42 +111,10 @@ export async function POST(
       }
 
       if (existing.status === 'REJECTED') {
-        if (isQuiz) {
-          return NextResponse.json(
-            { error: 'You have already attempted this quiz. Retries are not permitted.' },
-            { status: 400 }
-          );
-        }
-
-        // For STANDARD tasks: Check if slots are available before restarting
-        if (task.remainingSlots <= 0) {
-          return NextResponse.json(
-            { error: 'Task slot capacity reached. No slots remaining.' },
-            { status: 400 }
-          );
-        }
-
-        // Reuse the existing rejected row (reset to IN_PROGRESS)
-        // to maintain retry capability while respecting @@unique([taskId, userId])
-        const reusedSubmission = await prisma.taskSubmission.update({
-          where: { id: existing.id },
-          data: {
-            status: 'IN_PROGRESS',
-            startedAt: new Date(),
-            submittedAt: null,
-            rejectionReason: null,
-            proofText: null,
-            proofUrl: null,
-            submissionDataJson: null,
-          },
-        });
-
-        return NextResponse.json({
-          success: true,
-          message: 'Task restarted! Please complete instructions and resubmit.',
-          submission: reusedSubmission,
-          isQuiz: false,
-        });
+        return NextResponse.json(
+          { error: 'This task submission was rejected. Per platform policy, rejected tasks cannot be restarted or resubmitted.' },
+          { status: 400 }
+        );
       }
     }
 
