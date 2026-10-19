@@ -29,6 +29,8 @@ import {
 function getEmbedInfo(url?: string | null) {
   if (!url) return null;
   const cleanUrl = url.trim();
+
+  // YouTube Embed
   const ytMatch = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
   if (ytMatch) {
     return {
@@ -37,6 +39,19 @@ function getEmbedInfo(url?: string | null) {
       embedUrl: `https://www.youtube-nocookie.com/embed/${ytMatch[1]}?autoplay=1&rel=0&modestbranding=1&enablejsapi=1`,
     };
   }
+
+  // Google Drive Embed (converts /view or /open links to /preview iframe)
+  const gdriveMatch = cleanUrl.match(/drive\.google\.com\/(?:file\/d\/([a-zA-Z0-9_-]+)|open\?id=([a-zA-Z0-9_-]+)|uc\?(?:.*&)?id=([a-zA-Z0-9_-]+))/);
+  if (gdriveMatch) {
+    const fileId = gdriveMatch[1] || gdriveMatch[2] || gdriveMatch[3];
+    return {
+      type: 'gdrive',
+      id: fileId,
+      embedUrl: `https://drive.google.com/file/d/${fileId}/preview`,
+    };
+  }
+
+  // Vimeo Embed
   const vimeoMatch = cleanUrl.match(/vimeo\.com\/(?:video\/)?(\d+)/);
   if (vimeoMatch) {
     return {
@@ -45,6 +60,16 @@ function getEmbedInfo(url?: string | null) {
       embedUrl: `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=1`,
     };
   }
+
+  // Dropbox Direct Stream (convert dl=0 to raw=1 for direct streaming)
+  if (cleanUrl.includes('dropbox.com')) {
+    const dropboxDirect = cleanUrl.replace(/[?&]dl=0/, '').replace(/[?&]raw=1/, '') + (cleanUrl.includes('?') ? '&raw=1' : '?raw=1');
+    return {
+      type: 'direct',
+      embedUrl: dropboxDirect,
+    };
+  }
+
   return {
     type: 'direct',
     embedUrl: cleanUrl,
@@ -1014,7 +1039,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                       );
                     }
 
-                    if (embed?.type === 'youtube' || embed?.type === 'vimeo') {
+                    if (embed?.type === 'youtube' || embed?.type === 'vimeo' || embed?.type === 'gdrive') {
                       return (
                         <iframe
                           src={embed.embedUrl}

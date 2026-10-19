@@ -3157,11 +3157,12 @@ function AdminDashboardInner() {
                             </button>
                           )}
                         </div>
-                        <div className="p-3 rounded-xl bg-dark-900/60 border border-dark-800 text-[11px] text-slate-400 space-y-1">
-                          <span className="font-semibold text-cyan-300 block">💡 Recommended Video Sources:</span>
-                          <ul className="list-disc list-inside space-y-0.5 text-slate-400">
-                            <li><span className="text-white font-medium">YouTube</span> (Public or Unlisted): Paste any YouTube link — works seamlessly with instant streaming.</li>
-                            <li><span className="text-white font-medium">Vimeo</span> or <span className="text-white font-medium">Direct MP4 / WebM CDN</span> links (Cloudinary, Bunny.net, S3, Supabase Storage).</li>
+                        <div className="p-3 rounded-xl bg-dark-900/60 border border-dark-800 text-[11px] text-slate-400 space-y-1.5">
+                          <span className="font-semibold text-cyan-300 block">💡 Supported Video Sources:</span>
+                          <ul className="list-disc list-inside space-y-1 text-slate-400">
+                            <li><span className="text-white font-medium">Google Drive</span>: Upload MP4 to Drive, right-click &rarr; Share &rarr; set to <em>"Anyone with the link"</em>, and paste the link here.</li>
+                            <li><span className="text-white font-medium">YouTube</span> (Public or Unlisted): Paste any YouTube link &mdash; streams instantly with zero buffering.</li>
+                            <li><span className="text-white font-medium">Vimeo / Dropbox / Direct MP4 CDN</span>: Paste any Vimeo link or direct MP4/WebM URL.</li>
                           </ul>
                         </div>
                       </div>
@@ -3226,15 +3227,58 @@ function AdminDashboardInner() {
                         <span className="text-[10px] uppercase font-bold text-slate-400 block tracking-wider">Live Media Preview:</span>
                         {taskForm.mediaSettings.mediaType === 'VIDEO' ? (
                           <div className="aspect-video w-full max-w-md rounded-xl overflow-hidden bg-black border border-dark-800 flex items-center justify-center">
-                            {taskForm.mediaSettings.mediaUrl.includes('youtube') || taskForm.mediaSettings.mediaUrl.includes('youtu.be') ? (
-                              <div className="p-4 text-center text-xs text-slate-400">
-                                <Video className="w-8 h-8 text-cyan-400 mx-auto mb-2" />
-                                <p className="font-semibold text-white">YouTube Stream Linked</p>
-                                <p className="text-[11px] text-slate-500 truncate mt-1">{taskForm.mediaSettings.mediaUrl}</p>
-                              </div>
-                            ) : (
-                              <video src={taskForm.mediaSettings.mediaUrl} controls className="w-full h-full object-contain" />
-                            )}
+                            {(() => {
+                              const url = taskForm.mediaSettings.mediaUrl.trim();
+                              // YouTube
+                              const ytMatch = url.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))([\w-]{11})/);
+                              if (ytMatch) {
+                                return (
+                                  <iframe
+                                    src={`https://www.youtube-nocookie.com/embed/${ytMatch[1]}`}
+                                    title="YouTube Preview"
+                                    className="w-full h-full border-0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                  />
+                                );
+                              }
+
+                              // Google Drive
+                              const gdriveMatch = url.match(/drive\.google\.com\/(?:file\/d\/([a-zA-Z0-9_-]+)|open\?id=([a-zA-Z0-9_-]+)|uc\?(?:.*&)?id=([a-zA-Z0-9_-]+))/);
+                              if (gdriveMatch) {
+                                const fileId = gdriveMatch[1] || gdriveMatch[2] || gdriveMatch[3];
+                                return (
+                                  <iframe
+                                    src={`https://drive.google.com/file/d/${fileId}/preview`}
+                                    title="Google Drive Preview"
+                                    className="w-full h-full border-0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                  />
+                                );
+                              }
+
+                              // Vimeo
+                              const vimeoMatch = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+                              if (vimeoMatch) {
+                                return (
+                                  <iframe
+                                    src={`https://player.vimeo.com/video/${vimeoMatch[1]}`}
+                                    title="Vimeo Preview"
+                                    className="w-full h-full border-0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                  />
+                                );
+                              }
+
+                              // Direct Video File (MP4, WebM, Dropbox raw)
+                              const videoSrc = url.includes('dropbox.com')
+                                ? url.replace(/[?&]dl=0/, '').replace(/[?&]raw=1/, '') + (url.includes('?') ? '&raw=1' : '?raw=1')
+                                : url;
+
+                              return <video src={videoSrc} controls className="w-full h-full object-contain" />;
+                            })()}
                           </div>
                         ) : (
                           <div className="max-w-md rounded-xl overflow-hidden border border-dark-800 bg-black">
