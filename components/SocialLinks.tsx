@@ -73,9 +73,9 @@ export default function SocialLinks({ placement = 'community_row', className }: 
             href={link.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3.5 py-2 rounded-xl bg-slate-900/90 hover:bg-slate-800 border border-slate-700/80 text-gray-300 hover:text-white text-xs font-bold transition-all flex items-center gap-2 hover:scale-105 shadow-md"
+            className="px-3.5 py-2 rounded-xl bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700/80 text-slate-800 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white text-xs font-bold transition-all flex items-center gap-2 hover:scale-105 shadow-sm dark:shadow-md"
           >
-            <Icon className="w-4 h-4 text-brand-400" />
+            <Icon className="w-4 h-4 text-emerald-600 dark:text-brand-400" />
             <span>{link.label}</span>
           </a>
         );

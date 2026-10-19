@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   BrainCircuit,
@@ -8,7 +8,6 @@ import {
   PlaySquare,
   Share2,
   Users,
-  Zap,
   ArrowRight,
   ChevronDown,
   HelpCircle,
@@ -32,16 +31,16 @@ export default function LandingPage() {
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[350px] bg-gradient-to-tr from-brand-600/20 via-emerald-500/15 to-transparent blur-[120px] rounded-full pointer-events-none" />
         
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10 text-center space-y-8">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-slate-800/80 border border-slate-700/60 text-xs font-semibold text-brand-300 shadow-xl backdrop-blur-md">
-            <Sparkles className="w-4 h-4 text-brand-400 animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-500/10 dark:bg-slate-800/80 border border-emerald-500/30 dark:border-slate-700/60 text-xs font-bold text-emerald-800 dark:text-brand-300 shadow-md backdrop-blur-md">
+            <Sparkles className="w-4 h-4 text-emerald-600 dark:text-brand-400 animate-pulse" />
             <span>Kenya’s #1 Verified Global Work Space</span>
           </div>
 
-          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight max-w-4xl mx-auto leading-[1.1]">
-            Turn Your Skills & Time Into <span className="bg-gradient-to-r from-brand-400 via-emerald-300 to-teal-200 bg-clip-text text-transparent">Digital Opportunities</span>
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black text-slate-900 dark:text-white tracking-tight max-w-4xl mx-auto leading-[1.1]">
+            Turn Your Skills &amp; Time Into <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-500 dark:from-brand-400 dark:via-emerald-300 dark:to-teal-200 bg-clip-text text-transparent">Digital Opportunities</span>
           </h1>
 
-          <p className="text-lg sm:text-xl text-gray-300 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg sm:text-xl text-slate-700 dark:text-gray-300 max-w-2xl mx-auto leading-relaxed font-medium">
             Complete legitimate digital tasks, participate in promotional campaigns, refer friends, and manage your earnings seamlessly from one platform.
           </p>
 
@@ -55,7 +54,7 @@ export default function LandingPage() {
             </Link>
             <Link
               href="/tasks"
-              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-slate-800/80 hover:bg-slate-800 border border-slate-700 text-gray-200 font-bold text-base transition-all hover:border-slate-600 flex items-center justify-center gap-2"
+              className="w-full sm:w-auto px-8 py-4 rounded-2xl bg-white dark:bg-slate-800/80 hover:bg-slate-50 dark:hover:bg-slate-800 border border-slate-300 dark:border-slate-700 text-slate-800 dark:text-gray-200 font-bold text-base transition-all hover:border-slate-400 dark:hover:border-slate-600 flex items-center justify-center gap-2 shadow-sm dark:shadow-none"
             >
               Explore Available Tasks
             </Link>
@@ -68,21 +67,21 @@ export default function LandingPage() {
 
           {/* Stats Bar */}
           <div className="pt-8 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
-            <div className="p-4 rounded-2xl glass-card text-center space-y-1">
-              <p className="text-2xl font-black text-white">KES 200</p>
-              <p className="text-xs text-gray-400 font-medium">Access Fee (Anti-Spam)</p>
+            <div className="p-4 rounded-2xl glass-card text-center space-y-1 border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none">
+              <p className="text-2xl font-black text-slate-900 dark:text-white">KES 200</p>
+              <p className="text-xs text-slate-600 dark:text-gray-400 font-semibold">Access Fee (Anti-Spam)</p>
             </div>
-            <div className="p-4 rounded-2xl glass-card text-center space-y-1">
-              <p className="text-2xl font-black text-brand-400">KES 500</p>
-              <p className="text-xs text-gray-400 font-medium">Min Withdrawal Threshold</p>
+            <div className="p-4 rounded-2xl glass-card text-center space-y-1 border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none">
+              <p className="text-2xl font-black text-emerald-600 dark:text-brand-400">KES 500</p>
+              <p className="text-xs text-slate-600 dark:text-gray-400 font-semibold">Min Withdrawal Threshold</p>
             </div>
-            <div className="p-4 rounded-2xl glass-card text-center space-y-1">
-              <p className="text-2xl font-black text-white">100%</p>
-              <p className="text-xs text-gray-400 font-medium">M-Pesa Payout Verified</p>
+            <div className="p-4 rounded-2xl glass-card text-center space-y-1 border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none">
+              <p className="text-2xl font-black text-slate-900 dark:text-white">100%</p>
+              <p className="text-xs text-slate-600 dark:text-gray-400 font-semibold">M-Pesa Payout Verified</p>
             </div>
-            <div className="p-4 rounded-2xl glass-card text-center space-y-1">
-              <p className="text-2xl font-black text-emerald-400">48 Hours</p>
-              <p className="text-xs text-gray-400 font-medium">Payout Rate Cooldown</p>
+            <div className="p-4 rounded-2xl glass-card text-center space-y-1 border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none">
+              <p className="text-2xl font-black text-teal-600 dark:text-emerald-400">48 Hours</p>
+              <p className="text-xs text-slate-600 dark:text-gray-400 font-semibold">Payout Rate Cooldown</p>
             </div>
           </div>
         </div>
@@ -91,9 +90,9 @@ export default function LandingPage() {
       {/* 2. HOW IT WORKS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center space-y-3">
-          <h2 className="text-xs font-extrabold uppercase tracking-widest text-brand-400">Simple Process</h2>
-          <h3 className="text-3xl sm:text-4xl font-black text-white">How TaskMint Works</h3>
-          <p className="text-gray-400 max-w-xl mx-auto text-sm">
+          <h2 className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-brand-400">Simple Process</h2>
+          <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">How TaskMint Works</h3>
+          <p className="text-slate-600 dark:text-gray-400 max-w-xl mx-auto text-sm font-medium">
             Get started in 6 straightforward steps and start earning from verified task campaigns.
           </p>
         </div>
@@ -107,12 +106,12 @@ export default function LandingPage() {
             { step: '05', title: 'Track & Accumulate Rewards', desc: 'Watch your available and pending balances update automatically upon approval.' },
             { step: '06', title: 'Withdraw via M-Pesa', desc: 'Request direct Safaricom M-Pesa payouts once your available balance reaches KES 500.' },
           ].map((item, idx) => (
-            <div key={idx} className="p-6 rounded-3xl glass-card glass-card-hover space-y-3 relative">
-              <span className="text-4xl font-black text-brand-500/30 absolute top-4 right-6 font-mono">
+            <div key={idx} className="p-6 rounded-3xl glass-card glass-card-hover space-y-3 relative border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none">
+              <span className="text-4xl font-black text-emerald-600/25 dark:text-brand-500/30 absolute top-4 right-6 font-mono">
                 {item.step}
               </span>
-              <h4 className="text-lg font-bold text-white pr-8">{item.title}</h4>
-              <p className="text-xs text-gray-400 leading-relaxed">{item.desc}</p>
+              <h4 className="text-lg font-black text-slate-900 dark:text-white pr-8">{item.title}</h4>
+              <p className="text-xs text-slate-700 dark:text-gray-300 leading-relaxed font-medium">{item.desc}</p>
             </div>
           ))}
         </div>
@@ -121,8 +120,8 @@ export default function LandingPage() {
       {/* 3. TASK CATEGORIES */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
         <div className="text-center space-y-3">
-          <h2 className="text-xs font-extrabold uppercase tracking-widest text-brand-400">Global Work Space</h2>
-          <h3 className="text-3xl sm:text-4xl font-black text-white">Task Categories</h3>
+          <h2 className="text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-brand-400">Global Work Space</h2>
+          <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">Task Categories</h3>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -135,26 +134,26 @@ export default function LandingPage() {
           ].map((cat, idx) => {
             const Icon = cat.icon;
             return (
-              <div key={idx} className="p-5 rounded-2xl glass-card glass-card-hover text-center space-y-3">
-                <div className="w-12 h-12 rounded-xl bg-brand-500/10 border border-brand-500/20 text-brand-400 flex items-center justify-center mx-auto">
+              <div key={idx} className="p-5 rounded-2xl glass-card glass-card-hover text-center space-y-3 border border-slate-200 dark:border-white/10 shadow-sm dark:shadow-none">
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 dark:bg-brand-500/10 border border-emerald-500/25 dark:border-brand-500/20 text-emerald-600 dark:text-brand-400 flex items-center justify-center mx-auto">
                   <Icon className="w-6 h-6" />
                 </div>
-                <h4 className="font-bold text-white text-sm">{cat.title}</h4>
-                <p className="text-xs text-gray-400 leading-relaxed">{cat.desc}</p>
+                <h4 className="font-black text-slate-900 dark:text-white text-sm">{cat.title}</h4>
+                <p className="text-xs text-slate-700 dark:text-gray-300 leading-relaxed font-medium">{cat.desc}</p>
               </div>
             );
           })}
         </div>
       </section>
 
-      {/* 5. FREQUENTLY ASKED QUESTIONS (5 FAQs) */}
+      {/* 4. FREQUENTLY ASKED QUESTIONS (5 FAQs) */}
       <section className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         <div className="text-center space-y-3">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-500/10 border border-brand-500/20 text-brand-400 text-xs font-semibold">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 dark:bg-brand-500/10 border border-emerald-500/25 dark:border-brand-500/20 text-emerald-700 dark:text-brand-400 text-xs font-bold">
             <HelpCircle className="w-4 h-4" /> Got Questions?
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-white">Frequently Asked Questions</h2>
-          <p className="text-sm text-gray-400">Everything you need to know about task completion, payouts, and account security.</p>
+          <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">Frequently Asked Questions</h2>
+          <p className="text-sm text-slate-600 dark:text-gray-400 font-medium">Everything you need to know about task completion, payouts, and account security.</p>
         </div>
 
         <div className="space-y-4">
@@ -182,19 +181,19 @@ export default function LandingPage() {
           ].map((faq, idx) => (
             <div
               key={idx}
-              className="p-5 rounded-2xl glass-card border border-slate-800 transition-all cursor-pointer"
+              className="p-5 rounded-2xl glass-card border border-slate-200 dark:border-slate-800 transition-all cursor-pointer shadow-sm dark:shadow-none"
               onClick={() => setOpenFaq(openFaq === idx ? null : idx)}
             >
-              <div className="flex items-center justify-between font-bold text-white text-base">
+              <div className="flex items-center justify-between font-bold text-slate-900 dark:text-white text-base">
                 <span>{faq.q}</span>
                 <ChevronDown
-                  className={`w-5 h-5 text-brand-400 transition-transform ${
+                  className={`w-5 h-5 text-emerald-600 dark:text-brand-400 transition-transform ${
                     openFaq === idx ? 'rotate-180' : ''
                   }`}
                 />
               </div>
               {openFaq === idx && (
-                <p className="mt-3 text-xs text-gray-300 leading-relaxed border-t border-slate-800/80 pt-3">
+                <p className="mt-3 text-xs text-slate-700 dark:text-gray-300 leading-relaxed border-t border-slate-200 dark:border-slate-800/80 pt-3 font-medium">
                   {faq.a}
                 </p>
               )}
