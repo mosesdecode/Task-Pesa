@@ -23,12 +23,12 @@ const Section = ({
   title: string;
   children: React.ReactNode;
 }) => (
-  <section className="space-y-4 border-b border-slate-800/60 pb-10">
-    <h2 className="text-xl sm:text-2xl font-bold text-emerald-400 flex items-center gap-2.5">
+  <section className="space-y-4 border-b border-slate-200 dark:border-slate-800/60 pb-10">
+    <h2 className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-2.5">
       {Icon && <Icon className="w-6 h-6 shrink-0" />}
       {title}
     </h2>
-    <div className="text-gray-300 leading-relaxed space-y-3 text-sm sm:text-base">
+    <div className="text-slate-700 dark:text-gray-300 leading-relaxed space-y-3 text-sm sm:text-base">
       {children}
     </div>
   </section>
@@ -36,26 +36,26 @@ const Section = ({
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-gray-100">
+    <div className="min-h-screen bg-slate-50 dark:bg-gradient-to-br dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 text-slate-800 dark:text-gray-100 transition-colors duration-200">
       {/* Hero Header */}
-      <header className="relative py-16 sm:py-24 border-b border-slate-800">
+      <header className="relative py-16 sm:py-24 border-b border-slate-200 dark:border-slate-800 bg-white/60 dark:bg-transparent">
         <div className="absolute inset-0 bg-gradient-to-b from-emerald-500/5 to-transparent pointer-events-none" />
         <div className="max-w-4xl mx-auto px-4 text-center relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold tracking-widest uppercase mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-600 dark:text-emerald-400 text-xs font-semibold tracking-widest uppercase mb-6">
             <ShieldCheck className="w-3.5 h-3.5" />
             Legal Document
           </div>
-          <h1 className="text-4xl sm:text-5xl font-extrabold text-white mb-4">
+          <h1 className="text-4xl sm:text-5xl font-extrabold text-slate-900 dark:text-white mb-4">
             Terms &amp;{' '}
-            <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-400 to-emerald-200">
+            <span className="bg-clip-text text-transparent bg-gradient-to-r from-emerald-600 to-emerald-400 dark:from-emerald-400 dark:to-emerald-200">
               Conditions
             </span>
           </h1>
-          <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">
+          <p className="text-slate-600 dark:text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">
             By registering or using the TaskMint platform, you agree to be bound
             by these Terms and Conditions. Please read them carefully.
           </p>
-          <p className="mt-4 text-xs text-gray-500">
+          <p className="mt-4 text-xs text-slate-500 dark:text-gray-500">
             Last updated: September 2026
           </p>
         </div>
@@ -72,7 +72,7 @@ export default function TermsPage() {
             web and app testing, and transcription tasks.
           </p>
           <p>
-            TaskMint is <strong className="text-white">not</strong> an investment
+            TaskMint is <strong className="text-slate-900 dark:text-white">not</strong> an investment
             scheme, a pyramid scheme, or a get-rich-quick program. Earnings are
             derived solely from completing approved tasks and qualifying referrals.
           </p>
@@ -82,20 +82,20 @@ export default function TermsPage() {
         <Section icon={CreditCard} title="2. Account Activation">
           <p>
             New accounts require a one-time activation fee of{' '}
-            <strong className="text-emerald-400">KES 200</strong>. This fee:
+            <strong className="text-emerald-600 dark:text-emerald-400">KES 200</strong>. This fee:
           </p>
           <ul className="list-disc list-inside space-y-1.5 pl-2">
             <li>Grants full access to the task marketplace.</li>
             <li>Enables your unique referral link and referral commissions.</li>
             <li>Acts as an identity filter to prevent bot and duplicate accounts.</li>
             <li>
-              Is <strong className="text-white">non-refundable</strong> once your
+              Is <strong className="text-slate-900 dark:text-white">non-refundable</strong> once your
               account is activated.
             </li>
           </ul>
           <p>
             Payment is processed securely via{' '}
-            <strong className="text-white">Paystack</strong> and supports M-Pesa
+            <strong className="text-slate-900 dark:text-white">Paystack</strong> and supports M-Pesa
             STK Push, card, and bank transfer.
           </p>
         </Section>
@@ -147,16 +147,16 @@ export default function TermsPage() {
           <ul className="list-disc list-inside space-y-1.5 pl-2">
             <li>
               Minimum withdrawal amount:{' '}
-              <strong className="text-emerald-400">KES 500</strong>.
+              <strong className="text-emerald-600 dark:text-emerald-400">KES 500</strong>.
             </li>
             <li>
               Maximum of{' '}
-              <strong className="text-white">one (1) withdrawal</strong> per{' '}
-              <strong className="text-white">48 hours</strong>.
+              <strong className="text-slate-900 dark:text-white">one (1) withdrawal</strong> per{' '}
+              <strong className="text-slate-900 dark:text-white">48 hours</strong>.
             </li>
             <li>
               A transaction fee of{' '}
-              <strong className="text-emerald-400">KES 10</strong> is deducted
+              <strong className="text-emerald-600 dark:text-emerald-400">KES 10</strong> is deducted
               from each withdrawal.
             </li>
             <li>
@@ -165,9 +165,9 @@ export default function TermsPage() {
             </li>
             <li>
               You must have completed at least{' '}
-              <strong className="text-white">10 tasks</strong>, have an account
-              aged at least <strong className="text-white">5 days</strong>, have at
-              least <strong className="text-white">5 active referrals</strong>, and
+              <strong className="text-slate-900 dark:text-white">10 tasks</strong>, have an account
+              aged at least <strong className="text-slate-900 dark:text-white">5 days</strong>, have at
+              least <strong className="text-slate-900 dark:text-white">5 active referrals</strong>, and
               your balance must not be 100% sourced from referrals alone.
             </li>
             <li>
@@ -181,8 +181,8 @@ export default function TermsPage() {
             </li>
           </ul>
           <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-            <p className="text-amber-200 text-sm">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+            <p className="text-amber-800 dark:text-amber-200 text-sm">
               <strong>No Refunds on Activation:</strong> The KES 200 activation
               fee is non-refundable under any circumstances, including account
               bans for rule violations.
@@ -194,7 +194,7 @@ export default function TermsPage() {
         <Section icon={Users} title="6. Referral Program">
           <p>
             Users earn{' '}
-            <strong className="text-emerald-400">KES 10</strong> for each
+            <strong className="text-emerald-600 dark:text-emerald-400">KES 10</strong> for each
             friend they refer who successfully registers and activates their
             account. Referral commissions are credited directly to your wallet.
           </p>
@@ -252,7 +252,7 @@ export default function TermsPage() {
         {/* 9. Earnings Disclaimer */}
         <Section icon={AlertTriangle} title="9. Earnings Disclaimer">
           <p>
-            TaskMint does <strong className="text-white">not</strong> guarantee
+            TaskMint does <strong className="text-slate-900 dark:text-white">not</strong> guarantee
             any specific level of income. Earnings depend entirely on:
           </p>
           <ul className="list-disc list-inside space-y-1.5 pl-2">
@@ -277,7 +277,7 @@ export default function TermsPage() {
           </p>
           <p>
             For full details, see our{' '}
-            <Link href="/privacy" className="text-emerald-400 underline hover:text-emerald-300">
+            <Link href="/privacy" className="text-emerald-600 dark:text-emerald-400 underline hover:text-emerald-700 dark:hover:text-emerald-300">
               Privacy Policy
             </Link>
             .
@@ -289,7 +289,7 @@ export default function TermsPage() {
           <p>
             These Terms and Conditions are governed by and construed in
             accordance with the laws of the{' '}
-            <strong className="text-white">Republic of Kenya</strong>. Any
+            <strong className="text-slate-900 dark:text-white">Republic of Kenya</strong>. Any
             disputes arising from the use of TaskMint shall be subject to the
             exclusive jurisdiction of the courts of Nairobi, Kenya.
           </p>
@@ -307,9 +307,9 @@ export default function TermsPage() {
 
         {/* Footer CTA */}
         <div className="pt-8 text-center space-y-4">
-          <p className="text-gray-400 text-sm">
+          <p className="text-slate-500 dark:text-gray-400 text-sm">
             For questions about these Terms, contact us via the{' '}
-            <Link href="/support" className="text-emerald-400 underline hover:text-emerald-300">
+            <Link href="/support" className="text-emerald-600 dark:text-emerald-400 underline hover:text-emerald-700 dark:hover:text-emerald-300">
               Support page
             </Link>
             .
@@ -320,7 +320,7 @@ export default function TermsPage() {
           >
             Return to Home
           </Link>
-          <p className="text-xs text-gray-600 pt-4">
+          <p className="text-xs text-slate-500 dark:text-gray-600 pt-4">
             © {new Date().getFullYear()} TaskMint Platform (Kenya). All rights reserved.
           </p>
         </div>

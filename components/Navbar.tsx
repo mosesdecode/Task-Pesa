@@ -94,24 +94,24 @@ export default function Navbar() {
           {/* Brand Logo */}
           <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-emerald-400 p-0.5 shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
-              <div className="w-full h-full bg-dark-900 rounded-[10px] flex items-center justify-center">
+              <div className="w-full h-full bg-dark-900 dark:bg-dark-900 rounded-[10px] flex items-center justify-center">
                 <Zap className="w-5 h-5 text-brand-400 fill-brand-400/20" />
               </div>
             </div>
             <div className="flex flex-col">
-              <span className="font-extrabold text-xl tracking-tight text-white flex items-center gap-1">
+              <span className="font-extrabold text-xl tracking-tight text-slate-900 dark:text-white flex items-center gap-1">
                 Task<span className="text-brand-400">Mint</span>
-                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-400 border border-brand-500/20">
+                <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-brand-500/10 text-brand-500 dark:text-brand-400 border border-brand-500/20">
                   KE
                 </span>
               </span>
-              <span className="text-[10px] text-gray-400 -mt-1 font-medium tracking-wide">
+              <span className="text-[10px] text-slate-500 dark:text-gray-400 -mt-1 font-medium tracking-wide">
                 Global Work Space
               </span>
             </div>
           </Link>
 
-          {/* Desktop Nav Links (Clean 4 Core Sections) */}
+          {/* Desktop Nav Links */}
           {user && (
             <div className="hidden md:flex items-center gap-1">
               {navLinks.map((link) => {
@@ -123,8 +123,8 @@ export default function Navbar() {
                     href={link.href}
                     className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${
                       isActive
-                        ? 'bg-brand-500/10 text-brand-400 border border-brand-500/20'
-                        : 'text-gray-400 hover:text-white hover:bg-slate-800/80'
+                        ? 'bg-brand-500/10 text-brand-500 dark:text-brand-400 border border-brand-500/20'
+                        : 'text-slate-600 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/80'
                     }`}
                   >
                     <Icon className="w-4 h-4" />
@@ -138,8 +138,8 @@ export default function Navbar() {
                   href="/admin"
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${
                     pathname === '/admin'
-                      ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
-                      : 'text-amber-500/80 hover:text-amber-300 hover:bg-slate-800/80'
+                      ? 'bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20'
+                      : 'text-amber-600 dark:text-amber-500/80 hover:text-amber-700 dark:hover:text-amber-300 hover:bg-amber-50 dark:hover:bg-slate-800/80'
                   }`}
                 >
                   <ShieldAlert className="w-4 h-4" />
@@ -151,10 +151,8 @@ export default function Navbar() {
 
           {/* Right Action & User Controls */}
           <div className="flex items-center gap-3">
-            {/* Theme Toggle Pill: visible for admins or when feature flag is enabled */}
-            {(user?.role === 'ADMIN' || process.env.NEXT_PUBLIC_THEME_TOGGLE === 'true' || process.env.NEXT_PUBLIC_THEME_TOGGLE === '1') && (
-              <ThemeToggle />
-            )}
+            {/* Theme Toggle Pill */}
+            <ThemeToggle />
 
             {user ? (
               <>
@@ -162,12 +160,12 @@ export default function Navbar() {
                 {/* Notifications Bell */}
                 <Link
                   href="/notifications"
-                  className="relative p-2 rounded-xl text-gray-300 hover:text-white hover:bg-slate-800/60 transition-colors"
+                  className="relative p-2 rounded-xl text-slate-500 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
                   title="Notifications"
                 >
                   <Bell className="w-5 h-5" />
                   {unreadNotifications > 0 && (
-                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-400 ring-4 ring-dark-900 animate-ping" />
+                    <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-400 ring-4 ring-white dark:ring-dark-900 animate-ping" />
                   )}
                 </Link>
 
@@ -175,7 +173,7 @@ export default function Navbar() {
                 <div className="relative">
                   <button
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
-                    className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-800/80 transition-all border border-slate-700/50"
+                    className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800/80 transition-all border border-slate-200 dark:border-slate-700/50"
                   >
                     <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center">
                       {user.profilePhoto ? (
@@ -196,12 +194,12 @@ export default function Navbar() {
                   </button>
 
                   {profileDropdownOpen && (
-                    <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-slate-900 border border-slate-700/80 shadow-2xl p-2 z-50">
-                      <div className="px-3 py-2 border-b border-slate-800 mb-1">
-                        <p className="text-sm font-semibold text-white truncate">{user.fullName}</p>
-                        <p className="text-xs text-gray-400 truncate">@{user.username}</p>
+                    <div className="absolute right-0 mt-2 w-56 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 shadow-2xl p-2 z-50">
+                      <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800 mb-1">
+                        <p className="text-sm font-semibold text-slate-900 dark:text-white truncate">{user.fullName}</p>
+                        <p className="text-xs text-slate-500 dark:text-gray-400 truncate">@{user.username}</p>
                         {user.phoneVerified && (
-                          <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                          <div className="mt-1 inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-500/20">
                             <CheckCircle2 className="w-3 h-3" />
                             Phone Verified
                           </div>
@@ -211,9 +209,9 @@ export default function Navbar() {
                       <Link
                         href="/profile"
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-gray-300 hover:text-white hover:bg-slate-800/70 rounded-xl transition-colors"
+                        className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/70 rounded-xl transition-colors"
                       >
-                        <UserIcon className="w-4 h-4 text-brand-400" />
+                        <UserIcon className="w-4 h-4 text-brand-500 dark:text-brand-400" />
                         Profile & Security
                       </Link>
 
@@ -222,7 +220,7 @@ export default function Navbar() {
                         <Link
                           href="/admin"
                           onClick={() => setProfileDropdownOpen(false)}
-                          className="flex items-center gap-2 px-3 py-2 text-sm text-amber-400 hover:bg-amber-500/10 rounded-xl font-medium transition-colors"
+                          className="flex items-center gap-2 px-3 py-2 text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10 rounded-xl font-medium transition-colors"
                         >
                           <Shield className="w-4 h-4" />
                           Admin Portal
@@ -230,7 +228,7 @@ export default function Navbar() {
                       )}
 
                       {logoutError && (
-                        <div className="px-3 py-2 text-[11px] text-rose-300 bg-rose-500/10 border border-rose-500/20 rounded-xl flex items-center gap-2">
+                        <div className="px-3 py-2 text-[11px] text-rose-600 dark:text-rose-300 bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 rounded-xl flex items-center gap-2">
                           <span className="shrink-0">⚠</span>
                           <span>{logoutError}</span>
                         </div>
@@ -239,7 +237,7 @@ export default function Navbar() {
                       <button
                         onClick={handleLogout}
                         disabled={logoutLoading}
-                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-400 hover:bg-rose-500/10 rounded-xl transition-colors mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-full flex items-center gap-2 px-3 py-2 text-sm text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-xl transition-colors mt-1 disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <LogOut className="w-4 h-4" />
                         {logoutLoading ? 'Logging out...' : 'Sign Out'}
@@ -252,7 +250,7 @@ export default function Navbar() {
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
-                  className="px-4 py-2 rounded-xl text-sm font-semibold text-gray-300 hover:text-white transition-colors"
+                  className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   Log In
                 </Link>

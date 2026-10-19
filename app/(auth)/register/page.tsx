@@ -245,7 +245,7 @@ function RegisterForm() {
   // ── STEP 2: OTP VERIFICATION SCREEN ──
   if (step === 'otp') {
     return (
-      <div className="w-full max-w-xl glass-card rounded-3xl p-8 sm:p-12 space-y-7 border border-slate-700/80 shadow-2xl text-center">
+      <div className="w-full max-w-xl glass-card rounded-3xl p-8 sm:p-12 space-y-7 border border-slate-200 dark:border-slate-700/80 shadow-2xl text-center">
         <div className="flex flex-col items-center gap-4">
           <span className="px-3 py-1 rounded-full bg-brand-500/20 border border-brand-500/30 text-brand-300 text-xs font-bold uppercase tracking-wider">
             Step 1 of 2 · Email Verification
@@ -254,21 +254,21 @@ function RegisterForm() {
             <Mail className="w-10 h-10 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-black text-white">Check Your Email</h2>
-            <p className="text-sm text-slate-400 mt-1">
+            <h2 className="text-2xl font-black text-slate-900 dark:text-white">Check Your Email</h2>
+            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
               Enter the 6-digit verification code sent to{' '}
-              <strong className="text-emerald-400 font-mono break-all">{sentEmail}</strong>
+              <strong className="text-emerald-600 dark:text-emerald-400 font-mono break-all">{sentEmail}</strong>
             </p>
           </div>
         </div>
 
         {/* Guidance Card: What to do while waiting */}
-        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-700/80 text-left space-y-2 text-xs text-slate-300 shadow-inner">
-          <p className="font-bold text-slate-200 flex items-center gap-2 text-[12px]">
-            <Inbox className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-4 rounded-2xl bg-slate-100 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700/80 text-left space-y-2 text-xs text-slate-600 dark:text-slate-300 shadow-inner">
+          <p className="font-bold text-slate-700 dark:text-slate-200 flex items-center gap-2 text-[12px]">
+            <Inbox className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
             <span>What to do while waiting:</span>
           </p>
-          <ul className="space-y-1.5 text-slate-400 pl-1 text-[11px] leading-relaxed">
+          <ul className="space-y-1.5 text-slate-500 dark:text-slate-400 pl-1 text-[11px] leading-relaxed">
             <li className="flex items-start gap-2">
               <span className="text-emerald-400 font-bold">•</span>
               <span>Open the inbox for <strong className="text-slate-200">{sentEmail}</strong>.</span>
@@ -314,7 +314,7 @@ function RegisterForm() {
               placeholder="000000"
               value={otpCode}
               onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-              className="w-full px-4 py-4 rounded-2xl bg-slate-900 border border-slate-700 text-center text-3xl font-mono tracking-[0.5em] text-white focus:outline-none focus:border-brand-500 transition-all shadow-inner"
+              className="w-full px-4 py-4 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-center text-3xl font-mono tracking-[0.5em] text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 transition-all shadow-inner"
             />
             <p className="text-xs text-slate-500">Code expires in 10 minutes</p>
           </div>
@@ -338,7 +338,7 @@ function RegisterForm() {
           </button>
         </form>
 
-        <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
+        <div className="flex items-center justify-between pt-2 border-t border-slate-200 dark:border-slate-800 text-xs">
           <button
             type="button"
             onClick={() => { setStep('form'); setError(null); setResendMsg(null); }}
@@ -453,15 +453,15 @@ function RegisterForm() {
 
   // ── STEP 1: REGISTRATION FORM ──
   return (
-    <div className="w-full max-w-xl glass-card rounded-3xl p-6 sm:p-10 space-y-8 border border-slate-700/80 shadow-2xl">
+    <div className="w-full max-w-xl glass-card rounded-3xl p-6 sm:p-10 space-y-8 border border-slate-200 dark:border-slate-700/80 shadow-2xl">
       <div className="text-center space-y-2">
         <Link href="/" className="inline-flex items-center gap-2 mb-2">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-white text-base shadow-lg shadow-brand-500/20">
             TM
           </div>
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-black text-white">Create Your TaskMint Account</h1>
-        <p className="text-xs text-gray-400">Join Kenya&apos;s premier global work space</p>
+        <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white">Create Your TaskMint Account</h1>
+        <p className="text-xs text-slate-500 dark:text-gray-400">Join Kenya&apos;s premier global work space</p>
       </div>
 
       {/* Step notice */}
@@ -490,18 +490,18 @@ function RegisterForm() {
       <form onSubmit={handleInitiate} className="space-y-5">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-300">Full Name</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">Full Name</label>
             <input
               type="text"
               required
               placeholder="John Kamau"
               value={formData.fullName}
               onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500"
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-300">Username</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">Username</label>
             <input
               type="text"
               required
@@ -513,7 +513,7 @@ function RegisterForm() {
                   username: e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ''),
                 })
               }
-              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500"
             />
           </div>
         </div>
@@ -533,32 +533,32 @@ function RegisterForm() {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-300">Safaricom Phone Number</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">Safaricom Phone Number</label>
             <input
               type="tel"
               required
               placeholder="e.g. 07XXXXXXXX or 01XXXXXXXX"
               value={formData.phone}
               onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500"
             />
             <p className="text-[10px] text-slate-500">For M-Pesa payouts and account notifications</p>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-300">M-Pesa Number (for Payouts)</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">M-Pesa Number (for Payouts)</label>
             <input
               type="tel"
               placeholder="Same as phone if blank"
               value={formData.mpesaNumber}
               onChange={(e) => setFormData({ ...formData, mpesaNumber: e.target.value })}
-              className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+              className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-300">Password</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">Password</label>
             <div className="relative">
               <input
                 type={showPassword ? 'text' : 'password'}
@@ -566,7 +566,7 @@ function RegisterForm() {
                 placeholder="At least 6 characters"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500 pr-10"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500 pr-10"
               />
               <button
                 type="button"
@@ -578,7 +578,7 @@ function RegisterForm() {
             </div>
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-gray-300">Confirm Password</label>
+            <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">Confirm Password</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
@@ -586,7 +586,7 @@ function RegisterForm() {
                 placeholder="Repeat password"
                 value={formData.confirmPassword}
                 onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500 pr-10"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500 pr-10"
               />
               <button
                 type="button"
@@ -645,9 +645,9 @@ function RegisterForm() {
       </form>
 
       <div className="text-center pt-2">
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-slate-500 dark:text-gray-400">
           Already have an account?{' '}
-          <Link href="/login" className="text-brand-400 font-bold hover:underline">
+          <Link href="/login" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
             Log In
           </Link>
         </p>

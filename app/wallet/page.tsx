@@ -169,7 +169,7 @@ export default function WalletPage() {
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-2">
+            <div key={i} className="p-6 rounded-3xl bg-slate-100/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-2">
               <Skeleton className="w-32 h-3 mb-2" />
               <Skeleton className="w-40 h-9" />
               <Skeleton className="w-48 h-3 mt-1" />
@@ -178,7 +178,7 @@ export default function WalletPage() {
         </div>
 
         {/* Withdrawal Progress Skeleton */}
-        <div className="p-6 rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
+        <div className="p-6 rounded-3xl bg-slate-100/80 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4">
           <Skeleton className="w-64 h-5" />
           <div className="space-y-2">
             <div className="flex justify-between">
@@ -214,8 +214,8 @@ export default function WalletPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       {/* Header */}
       <div className="space-y-2 text-center sm:text-left">
-        <h1 className="text-3xl sm:text-4xl font-black text-white">Wallet & M-Pesa Withdrawals</h1>
-        <p className="text-xs sm:text-sm text-gray-400">
+        <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">Wallet & M-Pesa Withdrawals</h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400">
           Track your earnings, manage your M-Pesa payout wallet, and submit withdrawal requests (Min KES 500).
         </p>
       </div>
@@ -232,7 +232,7 @@ export default function WalletPage() {
 
         <div className="p-6 rounded-3xl glass-card space-y-2">
           <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Task Earnings</span>
-          <p className="text-3xl font-black text-white">
+          <p className="text-3xl font-black text-slate-900 dark:text-white">
             KES {(walletData?.taskEarnings || 0).toLocaleString('en-KE', { minimumFractionDigits: 2 })}
           </p>
           <p className="text-[11px] text-gray-400">Approved task completions</p>
@@ -265,15 +265,15 @@ export default function WalletPage() {
 
       {/* Withdrawal Progress Bar */}
       <div className="p-6 sm:p-8 rounded-3xl glass-card space-y-4">
-        <h4 className="text-sm font-bold text-white">Withdrawal Progress (KES 500 Min)</h4>
+        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Withdrawal Progress (KES 500 Min)</h4>
         <div className="space-y-1.5">
           <div className="flex justify-between text-xs font-semibold">
-            <span className="text-gray-400">Current Balance</span>
-            <span className="text-brand-400">
+            <span className="text-slate-500 dark:text-gray-400">Current Balance</span>
+            <span className="text-brand-600 dark:text-brand-400">
               {Math.min(100, Math.round((availableBalance / 500) * 100))}%
             </span>
           </div>
-          <div className="w-full h-3 rounded-full bg-slate-800 overflow-hidden border border-slate-700">
+          <div className="w-full h-3 rounded-full bg-slate-200 dark:bg-slate-800 overflow-hidden border border-slate-300 dark:border-slate-700">
             <div
               className="h-full bg-gradient-to-r from-brand-500 to-emerald-400 rounded-full transition-all duration-500"
               style={{ width: `${Math.min(100, (availableBalance / 500) * 100)}%` }}
@@ -284,13 +284,13 @@ export default function WalletPage() {
 
       {/* Withdrawal Eligibility Checklist */}
       <div className="p-6 sm:p-8 rounded-3xl glass-card space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800 pb-4">
           <div>
-            <h3 className="text-lg font-black text-white flex items-center gap-2">
-              <ShieldCheck className="w-5 h-5 text-brand-400" />
+            <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-brand-500 dark:text-brand-400" />
               Withdrawal Eligibility Pipeline
             </h3>
-            <p className="text-xs text-gray-400">All 5 criteria must be satisfied to initiate an M-Pesa payout</p>
+            <p className="text-xs text-slate-500 dark:text-gray-400">All 5 criteria must be satisfied to initiate an M-Pesa payout</p>
           </div>
           {eligibility?.isEligible ? (
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-extrabold">
@@ -305,53 +305,53 @@ export default function WalletPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-xs">
           {/* Rule 1: Min 10 Completed Tasks */}
-          <div className={`p-4 rounded-2xl border ${checks.minTasks?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-300' : 'bg-slate-900 border-slate-800 text-gray-300'} space-y-1`}>
+          <div className={`p-4 rounded-2xl border ${checks.minTasks?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-gray-300'} space-y-1`}>
             <div className="flex items-center justify-between font-bold">
               <span>1. Approved Tasks</span>
               {checks.minTasks?.met ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <XCircle className="w-4 h-4 text-rose-400" />}
             </div>
-            <p className="text-gray-400 text-[11px]">Must complete at least 10 approved tasks</p>
-            <p className="font-mono text-white font-bold">{checks.minTasks?.current || 0} / 10 Completed</p>
+            <p className="text-slate-500 dark:text-gray-400 text-[11px]">Must complete at least 10 approved tasks</p>
+            <p className="font-mono text-slate-900 dark:text-white font-bold">{checks.minTasks?.current || 0} / 10 Completed</p>
           </div>
 
           {/* Rule 2: Account Age 5 Days */}
-          <div className={`p-4 rounded-2xl border ${checks.accountAge?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-300' : 'bg-slate-900 border-slate-800 text-gray-300'} space-y-1`}>
+          <div className={`p-4 rounded-2xl border ${checks.accountAge?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-gray-300'} space-y-1`}>
             <div className="flex items-center justify-between font-bold">
               <span>2. Account Age</span>
               {checks.accountAge?.met ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <XCircle className="w-4 h-4 text-rose-400" />}
             </div>
-            <p className="text-gray-400 text-[11px]">Account age must be at least 5 days</p>
-            <p className="font-mono text-white font-bold">{checks.accountAge?.current || 0} / 5 Days</p>
+            <p className="text-slate-500 dark:text-gray-400 text-[11px]">Account age must be at least 5 days</p>
+            <p className="font-mono text-slate-900 dark:text-white font-bold">{checks.accountAge?.current || 0} / 5 Days</p>
           </div>
 
           {/* Rule 3: 5 Active Referrals */}
-          <div className={`p-4 rounded-2xl border ${checks.activeReferrals?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-300' : 'bg-slate-900 border-slate-800 text-gray-300'} space-y-1`}>
+          <div className={`p-4 rounded-2xl border ${checks.activeReferrals?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-gray-300'} space-y-1`}>
             <div className="flex items-center justify-between font-bold">
               <span>3. Active Referrals</span>
               {checks.activeReferrals?.met ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <XCircle className="w-4 h-4 text-rose-400" />}
             </div>
-            <p className="text-gray-400 text-[11px]">Must have at least 5 active activated referrals</p>
-            <p className="font-mono text-white font-bold">{checks.activeReferrals?.current || 0} / 5 Referrals</p>
+            <p className="text-slate-500 dark:text-gray-400 text-[11px]">Must have at least 5 active activated referrals</p>
+            <p className="font-mono text-slate-900 dark:text-white font-bold">{checks.activeReferrals?.current || 0} / 5 Referrals</p>
           </div>
 
           {/* Rule 4: Non-Referral Work Check */}
-          <div className={`p-4 rounded-2xl border ${checks.nonReferralBalance?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-300' : 'bg-slate-900 border-slate-800 text-gray-300'} space-y-1`}>
+          <div className={`p-4 rounded-2xl border ${checks.nonReferralBalance?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-gray-300'} space-y-1`}>
             <div className="flex items-center justify-between font-bold">
               <span>4. Non-Referral Earnings</span>
               {checks.nonReferralBalance?.met ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <XCircle className="w-4 h-4 text-rose-400" />}
             </div>
-            <p className="text-gray-400 text-[11px]">Balance cannot be 100% from referrals</p>
-            <p className="font-mono text-white font-bold">{checks.nonReferralBalance?.met ? 'Verified (Tasks Done)' : 'Requires Task Earnings'}</p>
+            <p className="text-slate-500 dark:text-gray-400 text-[11px]">Balance cannot be 100% from referrals</p>
+            <p className="font-mono text-slate-900 dark:text-white font-bold">{checks.nonReferralBalance?.met ? 'Verified (Tasks Done)' : 'Requires Task Earnings'}</p>
           </div>
 
           {/* Rule 5: 48hr Rate Limit */}
-          <div className={`p-4 rounded-2xl border ${checks.rateLimit?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-300' : 'bg-slate-900 border-slate-800 text-gray-300'} space-y-1`}>
+          <div className={`p-4 rounded-2xl border ${checks.rateLimit?.met ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-700 dark:text-emerald-300' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-gray-300'} space-y-1`}>
             <div className="flex items-center justify-between font-bold">
               <span>5. 48h Payout Cooldown</span>
               {checks.rateLimit?.met ? <CheckCircle2 className="w-4 h-4 text-emerald-400" /> : <XCircle className="w-4 h-4 text-rose-400" />}
             </div>
-            <p className="text-gray-400 text-[11px]">Maximum 1 withdrawal per 48 hours</p>
-            <p className="font-mono text-white font-bold">{checks.rateLimit?.met ? 'Ready' : 'Cooldown Active'}</p>
+            <p className="text-slate-500 dark:text-gray-400 text-[11px]">Maximum 1 withdrawal per 48 hours</p>
+            <p className="font-mono text-slate-900 dark:text-white font-bold">{checks.rateLimit?.met ? 'Ready' : 'Cooldown Active'}</p>
           </div>
         </div>
       </div>
@@ -364,11 +364,11 @@ export default function WalletPage() {
           {/* Withdrawal Form */}
           <div className="p-6 sm:p-8 rounded-3xl glass-card border-brand-500/30 space-y-6">
           <div className="space-y-1">
-            <h3 className="text-xl font-black text-white flex items-center gap-2">
-              <Wallet className="w-5 h-5 text-brand-400" />
+            <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <Wallet className="w-5 h-5 text-brand-500 dark:text-brand-400" />
               Request Withdrawal
             </h3>
-            <p className="text-xs text-gray-400">Safaricom M-Pesa Payout (Fixed Fee KES 10)</p>
+            <p className="text-xs text-slate-500 dark:text-gray-400">Safaricom M-Pesa Payout (Fixed Fee KES 10)</p>
           </div>
 
           {message && (
@@ -386,14 +386,14 @@ export default function WalletPage() {
 
           <form onSubmit={handleWithdrawalRequest} className="space-y-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-300">M-Pesa Phone Number</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">M-Pesa Phone Number</label>
               <input
                 type="tel"
                 required
                 placeholder="254712345678 or 0712345678"
                 value={mpesaNumber}
                 onChange={(e) => setMpesaNumber(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500"
               />
             </div>
 
@@ -410,7 +410,7 @@ export default function WalletPage() {
                 placeholder="500"
                 value={amount}
                 onChange={(e) => setAmount(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500 font-mono font-bold"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500 font-mono font-bold"
               />
               <p className="text-[11px] text-gray-400 flex justify-between pt-1">
                 <span>Fixed processing fee:</span>
@@ -439,11 +439,11 @@ export default function WalletPage() {
         {/* Coin Redemption Form */}
         <div className="p-6 sm:p-8 rounded-3xl glass-card space-y-6">
           <div className="space-y-1">
-            <h3 className="text-xl font-black text-white flex items-center gap-2">
+            <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
               <span className="text-2xl">🪙</span>
               Redeem Coins
             </h3>
-            <p className="text-xs text-gray-400">Convert coins to KES instantly. Rate: 5 coins = 1 KES.</p>
+            <p className="text-xs text-slate-500 dark:text-gray-400">Convert coins to KES instantly. Rate: 5 coins = 1 KES.</p>
           </div>
 
           {redeemMessage && (
@@ -465,7 +465,7 @@ export default function WalletPage() {
                 <label className="font-semibold text-gray-300">Your Coins</label>
                 <span className="text-amber-400 font-bold">{wallet.coins || 0} Available</span>
               </div>
-              <div className="p-4 rounded-xl bg-slate-900 border border-slate-700 text-center">
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-center">
                 <span className="text-sm font-bold text-gray-300">
                   Estimated Value: <span className="text-emerald-400">KES {Math.floor((wallet.coins || 0) / 5)}</span>
                 </span>
@@ -497,7 +497,7 @@ export default function WalletPage() {
 
         {/* Transaction History & Pending Payout Ledger */}
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="text-xl font-black text-white flex items-center gap-2">
+          <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
             <History className="w-5 h-5 text-brand-400" />
             Payout & Transaction History
           </h3>
@@ -505,7 +505,7 @@ export default function WalletPage() {
           <div className="p-6 rounded-3xl glass-card overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 text-[11px] font-extrabold uppercase text-gray-400 tracking-wider">
+                <tr className="border-b border-slate-200 dark:border-slate-800 text-[11px] font-extrabold uppercase text-slate-500 dark:text-gray-400 tracking-wider">
                   <th className="pb-3">Type</th>
                   <th className="pb-3">Description</th>
                   <th className="pb-3">Amount</th>
@@ -513,22 +513,22 @@ export default function WalletPage() {
                   <th className="pb-3">Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 text-xs">
+              <tbody className="divide-y divide-slate-200 dark:divide-slate-800/60 text-xs">
                 {transactions.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-gray-500">
+                    <td colSpan={5} className="py-8 text-center text-slate-400 dark:text-gray-500">
                       No transaction history yet.
                     </td>
                   </tr>
                 ) : (
                   transactions.map((tx: any) => (
-                    <tr key={tx.id} className="hover:bg-slate-800/40 transition-colors">
-                      <td className="py-3 font-semibold text-gray-200">
-                        <span className="px-2 py-0.5 rounded-full bg-slate-800 text-[10px] border border-slate-700 text-brand-400 font-bold">
+                    <tr key={tx.id} className="hover:bg-slate-100 dark:hover:bg-slate-800/40 transition-colors">
+                      <td className="py-3 font-semibold text-slate-700 dark:text-gray-200">
+                        <span className="px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-[10px] border border-slate-200 dark:border-slate-700 text-brand-600 dark:text-brand-400 font-bold">
                           {tx.type}
                         </span>
                       </td>
-                      <td className="py-3 text-gray-300">{tx.description}</td>
+                      <td className="py-3 text-slate-600 dark:text-gray-300">{tx.description}</td>
                       <td className={`py-3 font-bold font-mono ${tx.amount >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                         {tx.amount >= 0 ? '+' : ''}KES {tx.amount.toFixed(2)}
                       </td>
@@ -560,28 +560,28 @@ export default function WalletPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="max-w-md w-full p-6 sm:p-8 rounded-3xl glass-card border-amber-500/40 space-y-6 relative">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-black text-white flex items-center gap-2">
+              <h3 className="text-lg font-black text-slate-900 dark:text-white flex items-center gap-2">
                 <ShieldCheck className="w-5 h-5 text-amber-400" />
                 Authorize Withdrawal
               </h3>
               <button
                 onClick={() => { setShowWithdrawalOtpModal(false); setSendingWithdrawalOtp(false); }}
-                className="text-gray-400 hover:text-white text-sm font-bold"
+                className="text-slate-400 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white text-sm font-bold"
               >
                 ✕
               </button>
             </div>
 
-            <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-xs text-amber-300 space-y-1">
-              <p className="font-extrabold text-amber-400">🔐 Security Verification Required</p>
-              <p>A 6-digit authorization code was sent to your registered email address. Enter it below to confirm your withdrawal of <span className="font-bold text-white">KES {pendingWithdrawal?.amount}</span>.</p>
+            <div className="p-4 rounded-2xl bg-amber-500/5 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 space-y-1">
+              <p className="font-extrabold text-amber-600 dark:text-amber-400">🔐 Security Verification Required</p>
+              <p>A 6-digit authorization code was sent to your registered email address. Enter it below to confirm your withdrawal of <span className="font-bold text-slate-900 dark:text-white">KES {pendingWithdrawal?.amount}</span>.</p>
             </div>
 
             {withdrawalOtpMessage && (
               <div className={`p-3 rounded-xl text-xs font-semibold border ${
                 withdrawalOtpMessage.startsWith('Error')
-                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                  : 'bg-brand-500/10 border-brand-500/30 text-brand-300'
+                  ? 'bg-rose-500/10 border-rose-500/30 text-rose-600 dark:text-rose-300'
+                  : 'bg-brand-500/10 border-brand-500/30 text-brand-600 dark:text-brand-300'
               }`}>
                 {withdrawalOtpMessage}
               </div>
@@ -589,7 +589,7 @@ export default function WalletPage() {
 
             <form onSubmit={handleFinalWithdrawal} className="space-y-4">
               <div className="space-y-1">
-                <label className="text-xs font-semibold text-gray-300">Enter 6-Digit Authorization Code</label>
+                <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">Enter 6-Digit Authorization Code</label>
                 <input
                   type="text"
                   inputMode="numeric"
@@ -599,9 +599,9 @@ export default function WalletPage() {
                   placeholder="123456"
                   value={withdrawalOtpCode}
                   onChange={(e) => setWithdrawalOtpCode(e.target.value.replace(/\D/g, ''))}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-center font-mono text-2xl tracking-[0.5em] focus:outline-none focus:border-amber-500"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-center font-mono text-2xl tracking-[0.5em] focus:outline-none focus:border-amber-500"
                 />
-                <p className="text-[11px] text-gray-500 text-center">Code expires in 10 minutes</p>
+                <p className="text-[11px] text-slate-500 dark:text-gray-500 text-center">Code expires in 10 minutes</p>
               </div>
 
               <button
@@ -616,7 +616,7 @@ export default function WalletPage() {
                 type="button"
                 onClick={handleWithdrawalRequest.bind(null, { preventDefault: () => {} } as any)}
                 disabled={sendingWithdrawalOtp || submittingWithdrawal}
-                className="w-full py-2 rounded-xl text-xs text-gray-400 hover:text-white underline underline-offset-2 disabled:opacity-50"
+                className="w-full py-2 rounded-xl text-xs text-slate-500 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white underline underline-offset-2 disabled:opacity-50"
               >
                 Didn't receive a code? Resend OTP
               </button>

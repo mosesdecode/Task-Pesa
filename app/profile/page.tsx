@@ -252,17 +252,17 @@ export default function ProfilePage() {
   };
 
   return (
-    <div className="min-h-screen bg-dark-950 text-slate-100 flex flex-col font-sans pb-16">
+    <div className="min-h-screen text-slate-900 dark:text-slate-100 flex flex-col font-sans pb-16">
       <main className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Header Title */}
         <div className="mb-8">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-500 dark:text-brand-400">
               <UserIcon className="w-5 h-5" />
             </div>
             Account & Profile Settings
           </h1>
-          <p className="text-slate-400 text-sm mt-1">
+          <p className="text-slate-500 dark:text-slate-400 text-sm mt-1">
             Manage your personal profile, M-Pesa payouts, and security credentials.
           </p>
         </div>
@@ -285,9 +285,9 @@ export default function ProfilePage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* LEFT: Profile Overview Card */}
           <div className="lg:col-span-1 space-y-6">
-            <div className="bg-dark-900/80 border border-dark-800 rounded-3xl p-6 relative backdrop-blur-md shadow-xl">
+            <div className="bg-white dark:bg-dark-900/80 border border-slate-200 dark:border-dark-800 rounded-3xl p-6 relative backdrop-blur-md shadow-xl">
               {loading ? (
-                <div className="flex flex-col items-center text-center pb-6 border-b border-dark-800 space-y-4 pt-4">
+                <div className="flex flex-col items-center text-center pb-6 border-b border-slate-200 dark:border-dark-800 space-y-4 pt-4">
                   {/* Avatar skeleton */}
                   <Skeleton className="w-24 h-24 rounded-2xl" />
                   {/* Name + username */}
@@ -303,7 +303,7 @@ export default function ProfilePage() {
                   {/* Upload button */}
                   <Skeleton className="w-36 h-8 rounded-xl mt-2" />
                   {/* Info rows */}
-                  <div className="w-full pt-4 space-y-3 border-t border-dark-800">
+                  <div className="w-full pt-4 space-y-3 border-t border-slate-200 dark:border-dark-800">
                     {Array.from({ length: 3 }).map((_, i) => (
                       <div key={i} className="flex items-center justify-between">
                         <Skeleton className="w-24 h-3" />
@@ -314,11 +314,11 @@ export default function ProfilePage() {
                 </div>
               ) : user ? (
                 <div>
-                  <div className="flex flex-col items-center text-center pb-6 border-b border-dark-800">
+                  <div className="flex flex-col items-center text-center pb-6 border-b border-slate-200 dark:border-dark-800">
                     {/* Avatar Container with Upload Trigger */}
                     <div className="relative group mb-4">
                       <div className="w-24 h-24 rounded-2xl bg-gradient-to-tr from-brand-600 to-emerald-400 p-0.5 shadow-xl shadow-brand-500/20 overflow-hidden">
-                        <div className="w-full h-full bg-dark-950 rounded-[14px] flex items-center justify-center font-extrabold text-white text-2xl overflow-hidden relative">
+                        <div className="w-full h-full bg-slate-100 dark:bg-dark-950 rounded-[14px] flex items-center justify-center font-extrabold text-slate-900 dark:text-white text-2xl overflow-hidden relative">
                           {avatarPreview || user.profilePhoto ? (
                             <img
                               src={avatarPreview || user.profilePhoto}
@@ -349,7 +349,7 @@ export default function ProfilePage() {
                         onClick={() => fileInputRef.current?.click()}
                         disabled={uploadingAvatar}
                         title="Upload profile picture"
-                        className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-brand-500 hover:bg-brand-400 text-dark-950 flex items-center justify-center shadow-lg border-2 border-dark-900 transition-all cursor-pointer"
+                        className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full bg-brand-500 hover:bg-brand-400 text-dark-950 flex items-center justify-center shadow-lg border-2 border-white dark:border-dark-900 transition-all cursor-pointer"
                       >
                         {uploadingAvatar ? (
                           <div className="w-4 h-4 border-2 border-dark-950 border-t-transparent rounded-full animate-spin" />
@@ -368,18 +368,18 @@ export default function ProfilePage() {
                       />
                     </div>
 
-                    <h2 className="text-xl font-bold text-white">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">
                       {user.firstName ? `${user.firstName} ${user.surname}` : user.fullName}
                     </h2>
-                    <p className="text-xs font-mono text-slate-400 mt-0.5">@{user.username}</p>
+                    <p className="text-xs font-mono text-slate-500 dark:text-slate-400 mt-0.5">@{user.username}</p>
 
                     {/* Account Role & Status Badges (No Bronze/Silver/Gold tiers) */}
                     <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                           user.role === 'ADMIN'
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
-                            : 'bg-brand-500/20 text-brand-300 border border-brand-500/30'
+                            ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-500/30'
+                            : 'bg-brand-500/20 text-brand-700 dark:text-brand-300 border border-brand-500/30'
                         }`}
                       >
                         {user.role} ACCOUNT
@@ -388,8 +388,8 @@ export default function ProfilePage() {
                       <span
                         className={`px-2.5 py-0.5 rounded-full text-xs font-bold flex items-center gap-1 ${
                           user.status === 'ACTIVE'
-                            ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                            : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                            ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30'
+                            : 'bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/30'
                         }`}
                       >
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -402,21 +402,21 @@ export default function ProfilePage() {
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploadingAvatar}
-                      className="mt-4 px-4 py-2 rounded-xl bg-dark-800 hover:bg-dark-700 text-xs font-semibold text-slate-200 border border-dark-700 flex items-center gap-2 transition-all cursor-pointer"
+                      className="mt-4 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-dark-800 dark:hover:bg-dark-700 text-xs font-semibold text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-dark-700 flex items-center gap-2 transition-all cursor-pointer"
                     >
-                      <Upload className="w-3.5 h-3.5 text-brand-400" />
+                      <Upload className="w-3.5 h-3.5 text-brand-500 dark:text-brand-400" />
                       {uploadingAvatar ? 'Uploading Image...' : 'Upload New Photo'}
                     </button>
                   </div>
 
                   {/* Summary Details */}
-                  <div className="mt-6 space-y-3.5 text-xs text-slate-300">
+                  <div className="mt-6 space-y-3.5 text-xs text-slate-600 dark:text-slate-300">
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 flex items-center gap-1.5">
+                      <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                         <Mail className="w-3.5 h-3.5 text-slate-400" /> Email
                       </span>
                       <div className="flex items-center gap-1.5 truncate max-w-[150px]">
-                        <span className="font-semibold text-white truncate" title={user.email}>
+                        <span className="font-semibold text-slate-900 dark:text-white truncate" title={user.email}>
                           {user.email}
                         </span>
                         {user.emailVerified ? (
@@ -426,24 +426,24 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 flex items-center gap-1.5">
+                      <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                         <Phone className="w-3.5 h-3.5 text-slate-400" /> M-Pesa Payout Number
                       </span>
                       <div className="flex items-center gap-1.5">
-                        <span className="font-mono text-white">
+                        <span className="font-mono text-slate-900 dark:text-white">
                           {formatKenyanPhoneDisplay(user.mpesaNumber || user.phone)}
                         </span>
-                        <span className="flex items-center text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
+                        <span className="flex items-center text-[10px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded border border-emerald-500/20">
                           <Check className="w-3 h-3 mr-0.5" /> Ready
                         </span>
                       </div>
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-slate-400 flex items-center gap-1.5">
+                      <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                         <Calendar className="w-3.5 h-3.5 text-slate-400" /> Member Since
                       </span>
-                      <span className="font-medium text-slate-300">
+                      <span className="font-medium text-slate-700 dark:text-slate-300">
                         {user.createdAt
                           ? new Date(user.createdAt).toLocaleDateString('en-US', {
                               month: 'short',
@@ -463,13 +463,13 @@ export default function ProfilePage() {
           {/* RIGHT: Main Settings Panels */}
           <div className="lg:col-span-2 space-y-6">
             {/* Tab Navigation */}
-            <div className="flex items-center gap-1.5 p-1 bg-dark-900 rounded-2xl border border-dark-800">
+            <div className="flex items-center gap-1.5 p-1 bg-slate-100 dark:bg-dark-900 rounded-2xl border border-slate-200 dark:border-dark-800">
               <button
                 onClick={() => setActiveTab('PROFILE')}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   activeTab === 'PROFILE'
-                    ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30 shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-brand-500/20 text-brand-600 dark:text-brand-300 border border-brand-500/30 shadow-md'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 Personal Details
@@ -478,8 +478,8 @@ export default function ProfilePage() {
                 onClick={() => setActiveTab('SECURITY')}
                 className={`flex-1 py-2.5 px-3 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
                   activeTab === 'SECURITY'
-                    ? 'bg-brand-500/20 text-brand-300 border border-brand-500/30 shadow-md'
-                    : 'text-slate-400 hover:text-white'
+                    ? 'bg-brand-500/20 text-brand-600 dark:text-brand-300 border border-brand-500/30 shadow-md'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                 }`}
               >
                 Security & Password
@@ -488,8 +488,8 @@ export default function ProfilePage() {
 
             {/* Tab Content: skeleton while loading, tabs when ready */}
             {loading ? (
-              <div className="bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-md animate-pulse">
-                <div className="border-b border-dark-800 pb-4 space-y-2">
+              <div className="bg-white dark:bg-dark-900/80 border border-slate-200 dark:border-dark-800 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-md animate-pulse">
+                <div className="border-b border-slate-200 dark:border-dark-800 pb-4 space-y-2">
                   <Skeleton className="w-44 h-5" />
                   <Skeleton className="w-72 h-3" />
                 </div>
@@ -523,12 +523,12 @@ export default function ProfilePage() {
 
             {/* TAB 1: PERSONAL DETAILS */}
             {activeTab === 'PROFILE' && (
-              <div className="bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-md">
-                <div className="border-b border-dark-800 pb-4">
-                  <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                    <UserIcon className="w-5 h-5 text-brand-400" /> Edit Profile Details
+              <div className="bg-white dark:bg-dark-900/80 border border-slate-200 dark:border-dark-800 rounded-3xl p-6 sm:p-8 space-y-6 backdrop-blur-md">
+                <div className="border-b border-slate-200 dark:border-dark-800 pb-4">
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <UserIcon className="w-5 h-5 text-brand-500 dark:text-brand-400" /> Edit Profile Details
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
                     Update your display name, public profile, and M-Pesa withdrawal line.
                   </p>
                 </div>
@@ -536,7 +536,7 @@ export default function ProfilePage() {
                 <form onSubmit={handleUpdateProfile} className="space-y-5">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
                         First Name
                       </label>
                       <input
@@ -544,11 +544,11 @@ export default function ProfilePage() {
                         placeholder="John"
                         value={firstName}
                         onChange={(e) => setFirstName(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white focus:outline-none focus:border-brand-500 text-sm transition-colors"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-dark-950 border border-slate-300 dark:border-dark-800 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 text-sm transition-colors"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
                         Surname
                       </label>
                       <input
@@ -556,37 +556,37 @@ export default function ProfilePage() {
                         placeholder="Kamau"
                         value={surname}
                         onChange={(e) => setSurname(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white focus:outline-none focus:border-brand-500 text-sm transition-colors"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-dark-950 border border-slate-300 dark:border-dark-800 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 text-sm transition-colors"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
                       Username (Read Only)
                     </label>
                     <input
                       type="text"
                       disabled
                       value={user?.username || ''}
-                      className="w-full px-4 py-3 rounded-xl bg-dark-950/50 border border-dark-800/60 text-slate-500 font-mono text-sm cursor-not-allowed"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-100/70 dark:bg-dark-950/50 border border-slate-200 dark:border-dark-800/60 text-slate-400 dark:text-slate-500 font-mono text-sm cursor-not-allowed"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
                       Registered Email (Read Only)
                     </label>
                     <input
                       type="email"
                       disabled
                       value={user?.email || ''}
-                      className="w-full px-4 py-3 rounded-xl bg-dark-950/50 border border-dark-800/60 text-slate-500 text-sm cursor-not-allowed"
+                      className="w-full px-4 py-3 rounded-xl bg-slate-100/70 dark:bg-dark-950/50 border border-slate-200 dark:border-dark-800/60 text-slate-400 dark:text-slate-500 text-sm cursor-not-allowed"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
                       M-Pesa Payout Number
                     </label>
                     <div className="relative">
@@ -595,19 +595,19 @@ export default function ProfilePage() {
                         placeholder="0712345678"
                         value={mpesaInput}
                         onChange={(e) => setMpesaInput(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white font-mono focus:outline-none focus:border-brand-500 text-sm pl-11 transition-colors"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-dark-950 border border-slate-300 dark:border-dark-800 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-brand-500 text-sm pl-11 transition-colors"
                       />
-                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                     </div>
-                    <p className="text-[11px] text-slate-400 mt-1">
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1">
                       Withdrawals and task earnings are sent to this registered M-Pesa line.
                     </p>
                   </div>
 
                   {/* Inline Success Notice */}
                   {profileSaved && (
-                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in duration-200">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <div className="p-3.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2 animate-in fade-in duration-200">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                       <span className="font-semibold">Profile details and payout line saved successfully!</span>
                     </div>
                   )}
@@ -637,14 +637,14 @@ export default function ProfilePage() {
 
             {/* TAB 3: SECURITY & PASSWORD */}
             {activeTab === 'SECURITY' && (
-              <div className="bg-dark-900/80 border border-dark-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md">
-                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-dark-800">
-                  <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-400">
+              <div className="bg-white dark:bg-dark-900/80 border border-slate-200 dark:border-dark-800 rounded-3xl p-6 sm:p-8 backdrop-blur-md">
+                <div className="flex items-center gap-3 mb-6 pb-4 border-b border-slate-200 dark:border-dark-800">
+                  <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/20 flex items-center justify-center text-brand-500 dark:text-brand-400">
                     <Key className="w-5 h-5" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold text-white">Change Login Password</h2>
-                    <p className="text-xs text-slate-400">
+                    <h2 className="text-xl font-bold text-slate-900 dark:text-white">Change Login Password</h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
                       Update your account password with strong credentials.
                     </p>
                   </div>
@@ -653,7 +653,7 @@ export default function ProfilePage() {
                 <form onSubmit={handleChangePassword} className="space-y-5">
                   {/* Current Password with Show/Hide Toggle */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
                       Current Password
                     </label>
                     <div className="relative">
@@ -663,12 +663,12 @@ export default function ProfilePage() {
                         placeholder="••••••••••••"
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white focus:outline-none focus:border-brand-500 text-sm pr-11 transition-colors"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-dark-950 border border-slate-300 dark:border-dark-800 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 text-sm pr-11 transition-colors"
                       />
                       <button
                         type="button"
                         onClick={() => setShowCurrent(!showCurrent)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
                       >
                         {showCurrent ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -677,7 +677,7 @@ export default function ProfilePage() {
 
                   {/* New Password with Show/Hide Toggle */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
                       New Password (min 8 characters)
                     </label>
                     <div className="relative">
@@ -687,12 +687,12 @@ export default function ProfilePage() {
                         placeholder="••••••••••••"
                         value={newPassword}
                         onChange={(e) => setNewPassword(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white focus:outline-none focus:border-brand-500 text-sm pr-11 transition-colors"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-dark-950 border border-slate-300 dark:border-dark-800 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 text-sm pr-11 transition-colors"
                       />
                       <button
                         type="button"
                         onClick={() => setShowNew(!showNew)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
                       >
                         {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -701,7 +701,7 @@ export default function ProfilePage() {
 
                   {/* Confirm New Password with Show/Hide Toggle */}
                   <div>
-                    <label className="block text-xs font-semibold text-slate-300 uppercase mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 uppercase mb-1.5">
                       Confirm New Password
                     </label>
                     <div className="relative">
@@ -711,12 +711,12 @@ export default function ProfilePage() {
                         placeholder="••••••••••••"
                         value={confirmPassword}
                         onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full px-4 py-3 rounded-xl bg-dark-950 border border-dark-800 text-white focus:outline-none focus:border-brand-500 text-sm pr-11 transition-colors"
+                        className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-dark-950 border border-slate-300 dark:border-dark-800 text-slate-900 dark:text-white focus:outline-none focus:border-brand-500 text-sm pr-11 transition-colors"
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirm(!showConfirm)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors cursor-pointer"
+                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors cursor-pointer"
                       >
                         {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -726,7 +726,7 @@ export default function ProfilePage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full py-3.5 rounded-xl bg-dark-800 hover:bg-brand-500 hover:text-dark-950 border border-dark-700 text-white font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-lg shadow-dark-950/50"
+                    className="w-full py-3.5 rounded-xl bg-slate-100 hover:bg-brand-500 hover:text-dark-950 dark:bg-dark-800 dark:hover:bg-brand-500 dark:hover:text-dark-950 border border-slate-300 dark:border-dark-700 text-slate-800 dark:text-white font-bold text-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer shadow-lg"
                   >
                     <Lock className="w-4 h-4" />
                     {submitting ? 'Updating Password...' : 'Update Password'}

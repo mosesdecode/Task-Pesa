@@ -52,49 +52,49 @@ function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md glass-card rounded-3xl p-6 sm:p-10 space-y-8 border border-slate-700/80 shadow-2xl">
+    <div className="w-full max-w-md glass-card rounded-3xl p-6 sm:p-10 space-y-8 border border-slate-200 dark:border-slate-700/80 shadow-2xl">
       <div className="text-center space-y-2">
         <Link href="/" className="inline-flex items-center gap-2 mb-2">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 to-emerald-400 flex items-center justify-center font-bold text-white text-base shadow-lg shadow-brand-500/20">
             TM
           </div>
         </Link>
-        <h1 className="text-2xl font-black text-white">Welcome Back to TaskMint</h1>
-        <p className="text-xs text-gray-400">Log in to manage tasks, track earnings, and request withdrawals</p>
+        <h1 className="text-2xl font-black text-slate-900 dark:text-white">Welcome Back to TaskMint</h1>
+        <p className="text-xs text-slate-500 dark:text-gray-400">Log in to manage tasks, track earnings, and request withdrawals</p>
       </div>
 
       {justRegistered && (
-        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+        <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-200 dark:border-emerald-500/20 text-emerald-700 dark:text-emerald-300 text-xs flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
           <span>Account created successfully! Your account is now active. Please log in to start earning.</span>
         </div>
       )}
 
 
       {error && (
-        <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+        <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 text-rose-600 dark:text-rose-300 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       <form onSubmit={handleLogin} className="space-y-4">
         <div className="space-y-1">
-          <label className="text-xs font-semibold text-gray-300">Email, Phone, or Username</label>
+          <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">Email, Phone, or Username</label>
           <input
             type="text"
             required
             placeholder="e.g. 0712345678 or john@example.co.ke"
             value={identifier}
             onChange={(e) => setIdentifier(e.target.value)}
-            className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+            className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500 placeholder-slate-400 dark:placeholder-slate-500"
           />
         </div>
 
         <div className="space-y-1">
           <div className="flex items-center justify-between">
-            <label className="text-xs font-semibold text-gray-300">Password</label>
-            <Link href="/forgot-password" className="text-[11px] text-brand-400 hover:underline">
+            <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">Password</label>
+            <Link href="/forgot-password" className="text-[11px] text-brand-600 dark:text-brand-400 hover:underline">
               Forgot password?
             </Link>
           </div>
@@ -105,12 +105,12 @@ function LoginForm() {
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 pr-10 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+              className="w-full px-4 py-3 pr-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-gray-400 hover:text-slate-700 dark:hover:text-white"
               title={showPassword ? 'Hide password' : 'Show password'}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -138,9 +138,9 @@ function LoginForm() {
       </form>
 
       <div className="text-center pt-2">
-        <p className="text-xs text-gray-400">
+        <p className="text-xs text-slate-500 dark:text-gray-400">
           Don't have an account?{' '}
-          <Link href="/register" className="text-brand-400 font-bold hover:underline">
+          <Link href="/register" className="text-brand-600 dark:text-brand-400 font-bold hover:underline">
             Create an Account
           </Link>
         </p>

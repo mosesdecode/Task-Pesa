@@ -616,11 +616,11 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 my-8 max-h-[90vh] overflow-y-auto">
+      <div className="relative w-full max-w-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700/80 rounded-3xl shadow-2xl p-6 sm:p-8 space-y-6 my-8 max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-start justify-between border-b border-slate-800 pb-4">
+        <div className="flex items-start justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
           <div className="space-y-1">
-            <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-400 border border-brand-500/20">
+            <span className="text-xs font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20">
               {type === 'TASK'
                 ? isQuiz
                   ? 'Digital Skills Exam (MCQ)'
@@ -633,54 +633,54 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                 ? 'Sponsored Video Ad'
                 : 'WhatsApp Status Campaign'}
             </span>
-            <h3 className="text-xl font-extrabold text-white">{item.title || item.campaignName}</h3>
+            <h3 className="text-xl font-extrabold text-slate-900 dark:text-white">{item.title || item.campaignName}</h3>
           </div>
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-gray-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-2 rounded-xl text-slate-400 dark:text-gray-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {error && (
-          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-3 text-rose-300 text-sm">
-            <AlertTriangle className="w-5 h-5 text-rose-400 shrink-0" />
+          <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center gap-3 text-rose-600 dark:text-rose-300 text-sm">
+            <AlertTriangle className="w-5 h-5 text-rose-500 dark:text-rose-400 shrink-0" />
             <span>{error}</span>
           </div>
         )}
 
         {successMsg && (
-          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-emerald-300 text-sm">
-            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+          <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-3 text-emerald-700 dark:text-emerald-300 text-sm">
+            <CheckCircle2 className="w-5 h-5 text-emerald-500 dark:text-emerald-400 shrink-0" />
             <span>{successMsg}</span>
           </div>
         )}
 
         {isSubmissionRejected ? (
           <div className="p-6 rounded-3xl bg-rose-500/10 border border-rose-500/30 text-center space-y-4 animate-in fade-in">
-            <div className="w-14 h-14 rounded-2xl bg-rose-500/20 text-rose-400 mx-auto flex items-center justify-center">
+            <div className="w-14 h-14 rounded-2xl bg-rose-500/20 text-rose-500 dark:text-rose-400 mx-auto flex items-center justify-center">
               <XCircle className="w-8 h-8" />
             </div>
             <div>
-              <h4 className="text-base font-bold text-white">Submission Rejected</h4>
-              <p className="text-xs text-rose-300 mt-1 max-w-md mx-auto">
+              <h4 className="text-base font-bold text-slate-900 dark:text-white">Submission Rejected</h4>
+              <p className="text-xs text-rose-600 dark:text-rose-300 mt-1 max-w-md mx-auto">
                 This submission was evaluated and rejected by the quality review team. Per platform policy, rejected tasks cannot be resubmitted.
               </p>
             </div>
             {rejectionFeedback && (
-              <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-rose-500/25 text-xs text-slate-300 max-w-md mx-auto text-left space-y-1">
-                <span className="text-[10px] uppercase font-bold text-rose-400 block tracking-wider">
+              <div className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-rose-500/25 text-xs text-slate-700 dark:text-slate-300 max-w-md mx-auto text-left space-y-1">
+                <span className="text-[10px] uppercase font-bold text-rose-500 dark:text-rose-400 block tracking-wider">
                   Admin Feedback:
                 </span>
-                <p className="italic text-rose-200">"{rejectionFeedback}"</p>
+                <p className="italic text-rose-700 dark:text-rose-200">"{rejectionFeedback}"</p>
               </div>
             )}
             <div className="pt-2">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-6 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors cursor-pointer"
+                className="px-6 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs border border-slate-200 dark:border-transparent transition-colors cursor-pointer"
               >
                 Close Window
               </button>
@@ -693,7 +693,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
             ══════════════════════════════════════════════════════════ */}
             {type === 'AD' && (
           <div className="space-y-6">
-            <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center group">
+            <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center group">
               <img
                 src={item.mediaUrl}
                 alt={item.title}
@@ -715,10 +715,10 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
               )}
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50">
+            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50">
               <div>
-                <p className="text-xs text-gray-400 font-medium">Verified Reward</p>
-                <p className="text-lg font-black text-brand-400">KES {item.reward?.toFixed(2)}</p>
+                <p className="text-xs text-slate-500 dark:text-gray-400 font-medium">Verified Reward</p>
+                <p className="text-lg font-black text-brand-600 dark:text-brand-400">KES {item.reward?.toFixed(2)}</p>
               </div>
               <button
                 disabled={!adCompleted || loading}
@@ -726,7 +726,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                 className={`px-6 py-3 rounded-xl font-bold text-sm transition-all cursor-pointer ${
                   adCompleted
                     ? 'bg-gradient-to-r from-brand-600 to-emerald-500 text-white hover:scale-105 shadow-lg shadow-brand-500/20'
-                    : 'bg-slate-800 text-gray-500 cursor-not-allowed border border-slate-700'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-gray-500 cursor-not-allowed border border-slate-200 dark:border-slate-700'
                 }`}
               >
                 {loading ? 'Claiming...' : adCompleted ? 'Claim Reward KES ' + item.reward : 'Watch Required Duration First'}
@@ -742,7 +742,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
           <div className="space-y-6">
             {taskDetailLoading ? (
               <div className="p-12 text-center text-slate-400 space-y-2">
-                <Clock className="w-8 h-8 text-brand-400 animate-spin mx-auto" />
+                <Clock className="w-8 h-8 text-brand-500 dark:text-brand-400 animate-spin mx-auto" />
                 <p className="text-xs">Loading exam parameters...</p>
               </div>
             ) : quizFinished ? (
@@ -758,17 +758,17 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                   <div
                     className={`w-14 h-14 rounded-2xl mx-auto flex items-center justify-center font-black text-xl ${
                       quizPassed
-                        ? 'bg-emerald-500/20 text-emerald-400'
-                        : 'bg-rose-500/20 text-rose-400'
+                        ? 'bg-emerald-500/20 text-emerald-600 dark:text-emerald-400'
+                        : 'bg-rose-500/20 text-rose-600 dark:text-rose-400'
                     }`}
                   >
                     {quizScore !== null ? `${quizScore}%` : quizPassed ? 'PASS' : 'FAIL'}
                   </div>
                   <div>
-                    <h4 className="text-lg font-extrabold text-white">
+                    <h4 className="text-lg font-extrabold text-slate-900 dark:text-white">
                       {quizPassed ? 'Congratulations! You Passed! 🎉' : 'Quiz Not Passed'}
                     </h4>
-                    <p className="text-xs text-slate-300 mt-1 max-w-md mx-auto">
+                    <p className="text-xs text-slate-600 dark:text-slate-300 mt-1 max-w-md mx-auto">
                       {quizPassed
                         ? `You achieved ${quizScore}%, exceeding the 80% passing mark. Your submission has entered the admin review queue. KES ${item.reward?.toFixed(2)} will be credited upon approval.`
                         : `You scored ${quizScore}%. The passing threshold is 80%. This quiz had one attempt and cannot be retaken.`}
@@ -778,7 +778,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
 
                 {/* Per-Question Right/Wrong Breakdown (Zero Answer Key Leak) */}
                 <div className="space-y-3">
-                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                  <h5 className="text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
                     Question Results Summary:
                   </h5>
                   <div className="space-y-2">
@@ -789,23 +789,23 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                       return (
                         <div
                           key={q.id || idx}
-                          className="p-3.5 rounded-2xl bg-slate-950/80 border border-slate-800 flex items-center justify-between text-xs"
+                          className="p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs"
                         >
                           <div className="space-y-0.5">
-                            <span className="font-bold text-white block">
+                            <span className="font-bold text-slate-900 dark:text-white block">
                               Question #{idx + 1}: {q.prompt}
                             </span>
-                            <span className="text-slate-400 text-[11px]">
-                              Your Selection: <strong className="text-slate-200">{userChoice || 'None'}</strong>
+                            <span className="text-slate-500 dark:text-slate-400 text-[11px]">
+                              Your Selection: <strong className="text-slate-700 dark:text-slate-200">{userChoice || 'None'}</strong>
                             </span>
                           </div>
                           <div>
                             {isCorrect === true ? (
-                              <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1 text-[11px]">
+                              <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold flex items-center gap-1 text-[11px]">
                                 <CheckCircle2 className="w-3.5 h-3.5" /> Correct
                               </span>
                             ) : isCorrect === false ? (
-                              <span className="px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-400 border border-rose-500/30 font-bold flex items-center gap-1 text-[11px]">
+                              <span className="px-2.5 py-1 rounded-full bg-rose-500/15 text-rose-600 dark:text-rose-400 border border-rose-500/30 font-bold flex items-center gap-1 text-[11px]">
                                 <XCircle className="w-3.5 h-3.5" /> Incorrect
                               </span>
                             ) : null}
@@ -819,7 +819,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                 <div className="pt-2">
                   <button
                     onClick={onClose}
-                    className="w-full py-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs transition-colors cursor-pointer"
+                    className="w-full py-3 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white font-bold text-xs border border-slate-200 dark:border-transparent transition-colors cursor-pointer"
                   >
                     Close Exam Screen
                   </button>
@@ -828,36 +828,36 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
             ) : !quizStarted ? (
               /* State 1: Pre-Start Confirmation Screen */
               <div className="space-y-6">
-                <div className="p-6 rounded-3xl bg-slate-800/40 border border-slate-700/60 space-y-4">
+                <div className="p-6 rounded-3xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 space-y-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl bg-brand-500/20 text-brand-400 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-2xl bg-brand-500/20 text-brand-600 dark:text-brand-400 flex items-center justify-center">
                       <BrainCircuit className="w-6 h-6" />
                     </div>
                     <div>
-                      <h4 className="text-base font-extrabold text-white">Quiz Instructions & Rules</h4>
-                      <p className="text-xs text-slate-400">Please review before launching the exam timer.</p>
+                      <h4 className="text-base font-extrabold text-slate-900 dark:text-white">Quiz Instructions & Rules</h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Please review before launching the exam timer.</p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-3 gap-3 pt-2">
-                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
                       <span className="text-[10px] uppercase font-bold text-slate-500 block">Questions</span>
-                      <span className="text-base font-black text-white">{quizQuestions.length}</span>
+                      <span className="text-base font-black text-slate-900 dark:text-white">{quizQuestions.length}</span>
                     </div>
-                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
                       <span className="text-[10px] uppercase font-bold text-slate-500 block">Time Limit</span>
-                      <span className="text-base font-black text-amber-400">
+                      <span className="text-base font-black text-amber-500 dark:text-amber-400">
                         {Math.ceil((taskDetail?.durationSeconds || item.durationSeconds || 300) / 60)} Mins
                       </span>
                     </div>
-                    <div className="p-3 rounded-2xl bg-slate-900 border border-slate-800 text-center">
+                    <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-center">
                       <span className="text-[10px] uppercase font-bold text-slate-500 block">Pass Mark</span>
-                      <span className="text-base font-black text-emerald-400">80%</span>
+                      <span className="text-base font-black text-emerald-500 dark:text-emerald-400">80%</span>
                     </div>
                   </div>
 
-                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-300 space-y-1.5 leading-relaxed">
-                    <div className="font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-amber-400">
+                  <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-700 dark:text-amber-300 space-y-1.5 leading-relaxed">
+                    <div className="font-bold uppercase tracking-wider text-[11px] flex items-center gap-1.5 text-amber-600 dark:text-amber-400">
                       <Clock className="w-4 h-4" /> Exam Clock Policy
                     </div>
                     <p>• The exam clock is strictly unpausable and synchronized to the server.</p>
@@ -869,8 +869,8 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
 
                 <div className="flex items-center justify-between pt-2">
                   <div>
-                    <span className="text-[10px] text-slate-400 block">Passing Reward</span>
-                    <span className="text-xl font-black text-brand-400">KES {item.reward?.toFixed(2)}</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Passing Reward</span>
+                    <span className="text-xl font-black text-brand-600 dark:text-brand-400">KES {item.reward?.toFixed(2)}</span>
                   </div>
                   <button
                     disabled={loading}
@@ -885,27 +885,27 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
               /* State 2: Active Exam in Progress */
               <div className="space-y-6">
                 {/* Floating Timer & Autosave Bar */}
-                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-950 border border-slate-800">
+                <div className="flex items-center justify-between p-3.5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
                   <div className="flex items-center gap-2">
                     <Clock
-                      className={`w-4 h-4 ${quizTimer < 60 ? 'text-rose-400 animate-spin' : 'text-amber-400'}`}
+                      className={`w-4 h-4 ${quizTimer < 60 ? 'text-rose-500 dark:text-rose-400 animate-spin' : 'text-amber-500 dark:text-amber-400'}`}
                     />
-                    <span className="text-xs text-slate-400">Time Remaining:</span>
+                    <span className="text-xs text-slate-500 dark:text-slate-400">Time Remaining:</span>
                     <span
                       className={`font-mono text-sm font-black ${
-                        quizTimer < 60 ? 'text-rose-400 animate-pulse' : 'text-amber-400'
+                        quizTimer < 60 ? 'text-rose-500 dark:text-rose-400 animate-pulse' : 'text-amber-500 dark:text-amber-400'
                       }`}
                     >
                       {Math.floor(quizTimer / 60)}:{(quizTimer % 60).toString().padStart(2, '0')}
                     </span>
                   </div>
-                  <div className="text-[11px] font-mono text-slate-400 flex items-center gap-1.5">
+                  <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
                     {autosaving ? (
-                      <span className="text-amber-400 animate-pulse flex items-center gap-1">
+                      <span className="text-amber-600 dark:text-amber-400 animate-pulse flex items-center gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400" /> Autosaving...
                       </span>
                     ) : (
-                      <span className="text-emerald-400 flex items-center gap-1">
+                      <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                         <Check className="w-3.5 h-3.5" /> Answers saved
                       </span>
                     )}
@@ -920,18 +920,18 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                     return (
                       <div
                         key={q.id || qIdx}
-                        className="p-5 rounded-3xl bg-slate-950/80 border border-slate-800 space-y-4 shadow-md"
+                        className="p-5 rounded-3xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-4 shadow-md"
                       >
                         <div className="flex items-start justify-between gap-3">
-                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/10 text-brand-400 border border-brand-500/20 shrink-0">
+                          <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-brand-500/10 text-brand-600 dark:text-brand-400 border border-brand-500/20 shrink-0">
                             Question #{qIdx + 1}
                           </span>
-                          <span className="text-[10px] text-slate-500 font-mono">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
                             {selected ? 'Answered' : 'Pending'}
                           </span>
                         </div>
 
-                        <h4 className="text-sm font-bold text-white leading-relaxed">{q.prompt}</h4>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white leading-relaxed">{q.prompt}</h4>
 
                         {/* Options A, B, C, D */}
                         <div className="space-y-2 pt-1">
@@ -946,15 +946,15 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                                 onClick={() => handleSelectQuizOption(q.id, opt)}
                                 className={`w-full p-3.5 rounded-2xl border text-left text-xs font-semibold transition-all flex items-center gap-3 cursor-pointer ${
                                   isChosen
-                                    ? 'bg-brand-500/20 border-brand-500 text-brand-200 shadow-md shadow-brand-500/10'
-                                    : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800 hover:border-slate-700'
+                                    ? 'bg-brand-500/20 border-brand-500 text-brand-800 dark:text-brand-200 shadow-md shadow-brand-500/10'
+                                    : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                                 }`}
                               >
                                 <span
                                   className={`w-6 h-6 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${
                                     isChosen
                                       ? 'bg-brand-500 text-slate-950'
-                                      : 'bg-slate-800 text-slate-400'
+                                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
                                   }`}
                                 >
                                   {optionLetter}
@@ -970,9 +970,9 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                 </div>
 
                 {/* Submit Quiz Bar */}
-                <div className="pt-4 border-t border-slate-800 flex items-center justify-between gap-4">
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
                   <div>
-                    <span className="text-[10px] text-slate-400 block">Target Reward</span>
+                    <span className="text-[10px] text-slate-500 dark:text-slate-400 block">Target Reward</span>
                     <span className="text-lg font-black text-brand-400">KES {item.reward?.toFixed(2)}</span>
                   </div>
                   <button
@@ -994,21 +994,21 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
         {type === 'TASK' && isMedia && (
           <div className="space-y-6">
             {/* Instructions Box */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-800/40 border border-slate-700/50 space-y-3">
+            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 space-y-3">
               <div className="flex justify-between items-center">
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-brand-400" /> Instructions
+                <h4 className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-brand-600 dark:text-brand-400" /> Instructions
                 </h4>
-                <span className="text-xs font-mono text-slate-400">
+                <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
                   {mediaPayload?.mediaType === 'VIDEO'
                     ? `Min. Watch: ${mediaPayload?.minWatchSeconds || 60}s`
                     : 'Photo Review'}
                 </span>
               </div>
-              <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{item.instructions}</p>
+              <p className="text-sm text-slate-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">{item.instructions}</p>
               {item.rules && (
-                <div className="pt-2 border-t border-slate-700/50 text-xs text-amber-300/90 space-y-1">
-                  <strong className="text-amber-400 uppercase tracking-wider text-[10px] block">Task Rules:</strong>
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 text-xs text-amber-700 dark:text-amber-300/90 space-y-1">
+                  <strong className="text-amber-600 dark:text-amber-400 uppercase tracking-wider text-[10px] block">Task Rules:</strong>
                   <p>{item.rules}</p>
                 </div>
               )}
@@ -1017,7 +1017,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
             {/* Media Player / Viewer */}
             {mediaPayload?.mediaType === 'VIDEO' ? (
               <div className="space-y-4">
-                <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 shadow-2xl">
+                <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 shadow-2xl">
                   {(() => {
                     const embed = getEmbedInfo(mediaPayload?.mediaUrl || item.externalUrl);
                     if (!mediaWatchStarted) {
@@ -1083,23 +1083,23 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
 
                 {/* Real-time Watch Progress Bar & Anti-cheat feedback */}
                 {mediaWatchStarted && (
-                  <div className="p-4 rounded-2xl bg-slate-950 border border-slate-800 space-y-2.5">
+                  <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-2.5">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                        <Clock className="w-3.5 h-3.5 text-brand-400" />
+                      <span className="font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 text-brand-600 dark:text-brand-400" />
                         Watch Progress:
                       </span>
                       {!mediaLoaded ? (
-                        <span className="font-mono text-xs text-cyan-300 flex items-center gap-1.5 animate-pulse">
-                          <Loader2 className="w-3 h-3 animate-spin text-cyan-400" />
+                        <span className="font-mono text-xs text-cyan-600 dark:text-cyan-300 flex items-center gap-1.5 animate-pulse">
+                          <Loader2 className="w-3 h-3 animate-spin text-cyan-500 dark:text-cyan-400" />
                           Buffering stream... timer starts on ready
                         </span>
                       ) : (
                         <span
                           className={`font-mono font-bold ${
                             mediaWatchSeconds >= (parseInt(mediaPayload?.minWatchSeconds) || 60)
-                              ? 'text-emerald-400'
-                              : 'text-amber-400'
+                              ? 'text-emerald-600 dark:text-emerald-400'
+                              : 'text-amber-600 dark:text-amber-400'
                           }`}
                         >
                           {mediaWatchSeconds}s / {mediaPayload?.minWatchSeconds || 60}s (
@@ -1114,7 +1114,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                       )}
                     </div>
 
-                    <div className="w-full h-2.5 rounded-full bg-slate-900 overflow-hidden border border-slate-800">
+                    <div className="w-full h-2.5 rounded-full bg-slate-200 dark:bg-slate-900 overflow-hidden border border-slate-300 dark:border-slate-800">
                       <div
                         className={`h-full transition-all duration-300 ${
                           mediaWatchSeconds >= (parseInt(mediaPayload?.minWatchSeconds) || 60)
@@ -1131,14 +1131,14 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                     </div>
 
                     {!mediaTabActive && mediaWatchSeconds < (parseInt(mediaPayload?.minWatchSeconds) || 60) && (
-                      <p className="text-[11px] text-amber-400 flex items-center gap-1.5 font-medium animate-pulse">
+                      <p className="text-[11px] text-amber-600 dark:text-amber-400 flex items-center gap-1.5 font-medium animate-pulse">
                         <AlertTriangle className="w-3.5 h-3.5" />
                         Video paused — keep this screen active on your device to count your watch time.
                       </p>
                     )}
 
                     {mediaWatchSeconds >= (parseInt(mediaPayload?.minWatchSeconds) || 60) && (
-                      <p className="text-[11px] text-emerald-400 font-bold flex items-center gap-1.5">
+                      <p className="text-[11px] text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1.5">
                         <CheckCircle2 className="w-3.5 h-3.5" />
                         Watch time verified! You can now submit your task below.
                       </p>
@@ -1149,7 +1149,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
             ) : (
               /* Image / Photo Task Viewer */
               <div className="space-y-3">
-                <div className="relative rounded-2xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center p-3 group">
+                <div className="relative rounded-2xl overflow-hidden bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-center p-3 group">
                   <img
                     src={mediaPayload?.mediaUrl || item.externalUrl}
                     alt={item.title}
@@ -1182,11 +1182,11 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
 
             {/* Comprehension Check (if configured) */}
             {mediaPayload?.comprehension?.question && (
-              <div className="p-4 sm:p-5 rounded-2xl bg-slate-950 border border-brand-500/30 space-y-3">
-                <span className="text-[10px] uppercase font-bold text-brand-400 block tracking-wider">
+              <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-brand-500/30 space-y-3">
+                <span className="text-[10px] uppercase font-bold text-brand-600 dark:text-brand-400 block tracking-wider">
                   Comprehension Check:
                 </span>
-                <p className="text-xs font-bold text-white">{mediaPayload.comprehension.question}</p>
+                <p className="text-xs font-bold text-slate-900 dark:text-white">{mediaPayload.comprehension.question}</p>
                 <div className="space-y-2 pt-1">
                   {(mediaPayload.comprehension.options || []).map((opt: string, optIdx: number) => {
                     const isSelected = mediaComprehensionAnswer === opt;
@@ -1196,8 +1196,8 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                         key={optIdx}
                         className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${
                           isSelected
-                            ? 'bg-brand-500/15 border-brand-500 text-brand-200'
-                            : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                            ? 'bg-brand-500/15 border-brand-500 text-brand-800 dark:text-brand-200'
+                            : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-brand-500/50'
                         }`}
                       >
                         <input
@@ -1207,7 +1207,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                           onChange={() => setMediaComprehensionAnswer(opt)}
                           className="w-4 h-4 text-brand-500 focus:ring-brand-500 accent-brand-500 cursor-pointer"
                         />
-                        <span className="text-xs font-mono font-bold text-slate-400">{letter}.</span>
+                        <span className="text-xs font-mono font-bold text-slate-500 dark:text-slate-400">{letter}.</span>
                         <span className="text-xs">{opt}</span>
                       </label>
                     );
@@ -1217,9 +1217,9 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
             )}
 
             {/* Submission Section */}
-            <div className="space-y-4 border-t border-slate-800 pt-4">
+            <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-300">
+                <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">
                   Worker Notes / Feedback (Optional)
                 </label>
                 <textarea
@@ -1227,7 +1227,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                   placeholder="Optional notes or summary of what was reviewed..."
                   value={proofText}
                   onChange={(e) => setProofText(e.target.value)}
-                  className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs focus:outline-none focus:border-brand-500"
+                  className="w-full px-4 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-brand-500"
                 />
               </div>
 
@@ -1246,7 +1246,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                     className={`w-full py-3.5 rounded-2xl font-black text-xs transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg ${
                       canSubmit
                         ? 'bg-brand-500 hover:bg-brand-400 text-slate-950 shadow-brand-500/25'
-                        : 'bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed opacity-60'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-400 dark:text-slate-500 border border-slate-200 dark:border-slate-700/50 cursor-not-allowed opacity-60'
                     }`}
                   >
                     {mediaSubmitting ? (
@@ -1274,20 +1274,20 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
         {type === 'TASK' && !isQuiz && !isMedia && (
           <div className="space-y-6">
             {/* Instructions Box */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-slate-800/40 border border-slate-700/50 space-y-3">
+            <div className="p-4 sm:p-5 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 space-y-3">
               <div className="flex justify-between items-center">
-                <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <FileText className="w-4 h-4 text-brand-400" /> Instructions
+                <h4 className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <FileText className="w-4 h-4 text-brand-600 dark:text-brand-400" /> Instructions
                 </h4>
-                <span className="text-xs font-mono text-slate-400">
+                <span className="text-xs font-mono text-slate-500 dark:text-slate-400">
                   Est. {item.durationSeconds || 120}s
                 </span>
               </div>
-              <p className="text-sm text-gray-200 leading-relaxed whitespace-pre-wrap">{item.instructions}</p>
+              <p className="text-sm text-slate-700 dark:text-gray-200 leading-relaxed whitespace-pre-wrap">{item.instructions}</p>
 
               {item.rules && (
-                <div className="pt-2 border-t border-slate-700/50 text-xs text-amber-300/90 space-y-1">
-                  <strong className="text-amber-400 uppercase tracking-wider text-[10px] block">Task Rules:</strong>
+                <div className="pt-2 border-t border-slate-200 dark:border-slate-700/50 text-xs text-amber-700 dark:text-amber-300/90 space-y-1">
+                  <strong className="text-amber-600 dark:text-amber-400 uppercase tracking-wider text-[10px] block">Task Rules:</strong>
                   <p>{item.rules}</p>
                 </div>
               )}
@@ -1298,7 +1298,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                     href={item.externalUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-300 border border-brand-500/30 text-xs font-semibold transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-brand-500/10 hover:bg-brand-500/20 text-brand-700 dark:text-brand-300 border border-brand-500/30 text-xs font-semibold transition-colors"
                   >
                     <span>Open Task Resource / External Form</span>
                     <ExternalLink className="w-3.5 h-3.5" />
@@ -1308,20 +1308,20 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
             </div>
 
             {/* Proof of Work Submission Section */}
-            <div className="space-y-4 border-t border-slate-800 pt-4">
+            <div className="space-y-4 border-t border-slate-200 dark:border-slate-800 pt-4">
               <div>
-                <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
                   Submit Your Proof of Work
                 </h4>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                   Requirement: {item.proofRequired || 'Submit text response, completion link, or screenshot proof.'}
                 </p>
               </div>
 
               {/* Text Proof Response */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-300">
+                <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">
                   Written Response / Proof Summary
                 </label>
                 <textarea
@@ -1329,13 +1329,13 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                   placeholder="Summarize your work or enter any required text answers..."
                   value={proofText}
                   onChange={(e) => setProofText(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500 transition-colors"
+                  className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500 transition-colors"
                 />
               </div>
 
               {/* Link / URL Proof */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-300">
+                <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">
                   Proof Link or Shared URL (Optional)
                 </label>
                 <div className="relative">
@@ -1344,15 +1344,15 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                     placeholder="https://..."
                     value={proofUrl}
                     onChange={(e) => setProofUrl(e.target.value)}
-                    className="w-full px-4 py-2.5 pl-10 rounded-xl bg-slate-950 border border-slate-800 text-white text-sm focus:outline-none focus:border-brand-500 font-mono"
+                    className="w-full px-4 py-2.5 pl-10 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-800 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500 font-mono"
                   />
-                  <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                  <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                 </div>
               </div>
 
               {/* Screenshot Upload */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-gray-300">
+                <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">
                   Upload Screenshot Proof (Optional, max 5MB)
                 </label>
                 <div className="flex flex-col gap-2">
@@ -1361,9 +1361,9 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                       type="button"
                       onClick={() => fileInputRef.current?.click()}
                       disabled={uploadingImage}
-                      className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 border border-slate-700 flex items-center gap-2 cursor-pointer transition-all"
+                      className="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-bold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 flex items-center gap-2 cursor-pointer transition-all"
                     >
-                      <Upload className="w-3.5 h-3.5 text-brand-400" />
+                      <Upload className="w-3.5 h-3.5 text-brand-500 dark:text-brand-400" />
                       {uploadingImage ? 'Uploading Image...' : 'Choose Screenshot Image'}
                     </button>
                     <input
@@ -1377,7 +1377,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                       <button
                         type="button"
                         onClick={() => setProofUrl('')}
-                        className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 font-semibold"
+                        className="text-xs text-rose-500 hover:text-rose-600 dark:text-rose-400 dark:hover:text-rose-300 flex items-center gap-1 font-semibold"
                       >
                         <Trash2 className="w-3.5 h-3.5" /> Remove
                       </button>
@@ -1385,21 +1385,21 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                   </div>
 
                   {proofUrl && (
-                    <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800 flex items-center gap-3">
+                    <div className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center gap-3">
                       {proofUrl.startsWith('data:image') || proofUrl.match(/\.(jpg|jpeg|png|webp)($|\?)/i) ? (
-                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-900 border border-slate-700 shrink-0">
+                        <div className="w-12 h-12 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shrink-0">
                           <img src={proofUrl} alt="Attached Proof" className="w-full h-full object-cover" />
                         </div>
                       ) : (
-                        <div className="w-12 h-12 rounded-lg bg-slate-900 border border-slate-700 shrink-0 flex items-center justify-center text-brand-400">
+                        <div className="w-12 h-12 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shrink-0 flex items-center justify-center text-brand-500 dark:text-brand-400">
                           <LinkIcon className="w-5 h-5" />
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
-                        <p className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                        <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                           <Check className="w-3.5 h-3.5" /> Proof Attached
                         </p>
-                        <p className="text-[11px] text-slate-400 truncate font-mono mt-0.5">{proofUrl}</p>
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate font-mono mt-0.5">{proofUrl}</p>
                       </div>
                     </div>
                   )}
@@ -1408,10 +1408,10 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
             </div>
 
             {/* Bottom Reward and Submit Bar */}
-            <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
               <div>
-                <p className="text-xs text-gray-400">Approval Reward</p>
-                <p className="text-xl font-extrabold text-brand-400">KES {item.reward?.toFixed(2)}</p>
+                <p className="text-xs text-slate-500 dark:text-gray-400">Approval Reward</p>
+                <p className="text-xl font-extrabold text-brand-600 dark:text-brand-400">KES {item.reward?.toFixed(2)}</p>
               </div>
               <button
                 disabled={loading || uploadingImage}
@@ -1429,9 +1429,9 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
         ══════════════════════════════════════════════════════════ */}
         {type === 'WHATSAPP' && (
           <div className="space-y-6">
-            <div className="p-4 rounded-2xl bg-slate-800/40 border border-slate-700/50 space-y-3">
-              <h4 className="text-xs font-semibold text-gray-400 uppercase tracking-wider">Campaign Steps</h4>
-              <ol className="list-decimal list-inside text-xs text-gray-300 space-y-1.5 leading-relaxed">
+            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/50 space-y-3">
+              <h4 className="text-xs font-semibold text-slate-500 dark:text-gray-400 uppercase tracking-wider">Campaign Steps</h4>
+              <ol className="list-decimal list-inside text-xs text-slate-600 dark:text-gray-300 space-y-1.5 leading-relaxed">
                 <li>Download the approved poster media asset below.</li>
                 <li>Copy the official promotional caption.</li>
                 <li>Post it to your WhatsApp Status for at least 12 hours.</li>
@@ -1441,8 +1441,8 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
 
             {/* Poster Preview */}
             <div className="space-y-2">
-              <label className="text-xs font-semibold text-gray-400">Promotional Poster</label>
-              <div className="relative rounded-2xl overflow-hidden border border-slate-700 h-48 bg-slate-950">
+              <label className="text-xs font-semibold text-slate-500 dark:text-gray-400">Promotional Poster</label>
+              <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 h-48 bg-slate-100 dark:bg-slate-950">
                 <img src={item.mediaUrl} alt="Poster" className="w-full h-full object-cover" />
                 <a
                   href={item.mediaUrl}
@@ -1459,17 +1459,17 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
             {/* Caption Box */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-gray-400">Caption Text</label>
+                <label className="text-xs font-semibold text-slate-500 dark:text-gray-400">Caption Text</label>
                 <button
                   type="button"
                   onClick={() => copyToClipboard(item.caption)}
-                  className="flex items-center gap-1.5 text-xs text-brand-400 hover:text-brand-300 font-semibold cursor-pointer"
+                  className="flex items-center gap-1.5 text-xs text-brand-600 dark:text-brand-400 hover:text-brand-700 dark:hover:text-brand-300 font-semibold cursor-pointer"
                 >
                   <Copy className="w-3.5 h-3.5" />
                   {copiedCaption ? 'Copied!' : 'Copy Caption'}
                 </button>
               </div>
-              <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs text-gray-300 font-mono select-all">
+              <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-gray-300 font-mono select-all">
                 {item.caption}
               </div>
             </div>
@@ -1477,17 +1477,17 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
             {/* Proof Attachment Section (Upload or URL) */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-gray-300">
+                <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">
                   Screenshot Proof of Status & Views *
                 </label>
-                <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-[11px]">
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950 p-1 rounded-lg border border-slate-200 dark:border-slate-800 text-[11px]">
                   <button
                     type="button"
                     onClick={() => setWhatsappProofMethod('upload')}
                     className={`px-2.5 py-1 rounded font-bold transition-all ${
                       whatsappProofMethod === 'upload'
                         ? 'bg-brand-600 text-white shadow'
-                        : 'text-slate-400 hover:text-white'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     Upload Screenshot
@@ -1498,7 +1498,7 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                     className={`px-2.5 py-1 rounded font-bold transition-all ${
                       whatsappProofMethod === 'url'
                         ? 'bg-brand-600 text-white shadow'
-                        : 'text-slate-400 hover:text-white'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
                     }`}
                   >
                     Paste Link / URL
@@ -1517,9 +1517,9 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                   />
 
                   {whatsappProofUrl ? (
-                    <div className="p-3 rounded-2xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-3">
+                    <div className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-900 border border-slate-700 shrink-0">
+                        <div className="w-14 h-14 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 shrink-0">
                           <img
                             src={whatsappProofUrl}
                             alt="Screenshot Preview"
@@ -1527,10 +1527,10 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                           />
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-bold text-emerald-400 flex items-center gap-1">
+                          <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
                             <Check className="w-3.5 h-3.5" /> Screenshot Ready
                           </p>
-                          <p className="text-[11px] text-slate-400 mt-0.5">Ready to submit for verification</p>
+                          <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Ready to submit for verification</p>
                         </div>
                       </div>
 
@@ -1539,14 +1539,14 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                           type="button"
                           onClick={() => whatsappFileInputRef.current?.click()}
                           disabled={uploadingWhatsappImage}
-                          className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-bold"
+                          className="px-3 py-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-900 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 text-xs font-bold"
                         >
                           Change
                         </button>
                         <button
                           type="button"
                           onClick={() => setWhatsappProofUrl('')}
-                          className="p-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-400 text-xs font-bold"
+                          className="p-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-500 dark:text-rose-400 text-xs font-bold"
                           title="Remove screenshot"
                         >
                           <Trash2 className="w-4 h-4" />
@@ -1556,20 +1556,20 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                   ) : (
                     <div
                       onClick={() => !uploadingWhatsappImage && whatsappFileInputRef.current?.click()}
-                      className="border-2 border-dashed border-slate-700 hover:border-brand-500/80 bg-slate-950/60 hover:bg-slate-950 rounded-2xl p-6 text-center cursor-pointer transition-all space-y-2 group"
+                      className="border-2 border-dashed border-slate-300 hover:border-brand-500/80 dark:border-slate-700 dark:hover:border-brand-500/80 bg-slate-50/60 hover:bg-slate-50 dark:bg-slate-950/60 dark:hover:bg-slate-950 rounded-2xl p-6 text-center cursor-pointer transition-all space-y-2 group"
                     >
-                      <div className="w-12 h-12 rounded-2xl bg-slate-900 border border-slate-800 text-brand-400 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
+                      <div className="w-12 h-12 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-brand-500 dark:text-brand-400 flex items-center justify-center mx-auto group-hover:scale-110 transition-transform">
                         {uploadingWhatsappImage ? (
-                          <div className="w-5 h-5 border-2 border-brand-400 border-t-transparent rounded-full animate-spin" />
+                          <div className="w-5 h-5 border-2 border-brand-500 dark:border-brand-400 border-t-transparent rounded-full animate-spin" />
                         ) : (
                           <Camera className="w-6 h-6" />
                         )}
                       </div>
                       <div>
-                        <p className="text-xs font-bold text-white">
+                        <p className="text-xs font-bold text-slate-900 dark:text-white">
                           {uploadingWhatsappImage ? 'Uploading Screenshot...' : 'Tap to select screenshot from gallery / camera'}
                         </p>
-                        <p className="text-[11px] text-slate-400 mt-0.5">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
                           Supports JPG, PNG, WEBP (Max 5MB)
                         </p>
                       </div>
@@ -1584,21 +1584,21 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
                       placeholder="https://drive.google.com/... or https://imgur.com/..."
                       value={whatsappProofUrl}
                       onChange={(e) => setWhatsappProofUrl(e.target.value)}
-                      className="w-full px-4 py-2.5 pl-10 rounded-xl bg-slate-950 border border-slate-700 text-white text-xs focus:outline-none focus:border-brand-500 font-mono"
+                      className="w-full px-4 py-2.5 pl-10 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-brand-500 font-mono"
                     />
-                    <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 dark:text-slate-500" />
                   </div>
-                  <p className="text-[10px] text-slate-400">
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400">
                     Paste a direct image or share link (Google Drive, Dropbox, Imgur, Postimages, iCloud).
                   </p>
                 </div>
               )}
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-slate-800">
+            <div className="flex items-center justify-between pt-4 border-t border-slate-200 dark:border-slate-800">
               <div>
-                <p className="text-xs text-gray-400">Campaign Reward</p>
-                <p className="text-lg font-extrabold text-brand-400">KES {item.reward?.toFixed(2)}</p>
+                <p className="text-xs text-slate-500 dark:text-gray-400">Campaign Reward</p>
+                <p className="text-lg font-extrabold text-brand-600 dark:text-brand-400">KES {item.reward?.toFixed(2)}</p>
               </div>
               <button
                 disabled={loading || uploadingWhatsappImage}

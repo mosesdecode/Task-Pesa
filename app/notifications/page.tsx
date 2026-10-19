@@ -48,7 +48,7 @@ export default function NotificationsPage() {
       case 'WARNING':
         return <AlertTriangle className="w-5 h-5 text-amber-400" />;
       default:
-        return <Info className="w-5 h-5 text-brand-400" />;
+        return <Info className="w-5 h-5 text-brand-500 dark:text-brand-400" />;
     }
   };
 
@@ -59,15 +59,15 @@ export default function NotificationsPage() {
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard"
-            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-gray-300 hover:text-white transition-colors"
+            className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white border border-slate-200 dark:border-transparent transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-black text-white flex items-center gap-2">
-              <Bell className="w-6 h-6 text-brand-400" /> Notifications
+            <h1 className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+              <Bell className="w-6 h-6 text-brand-500 dark:text-brand-400" /> Notifications
             </h1>
-            <p className="text-xs text-gray-400">Activity alerts, payment confirmations, and system updates</p>
+            <p className="text-xs text-slate-500 dark:text-gray-400">Activity alerts, payment confirmations, and system updates</p>
           </div>
         </div>
 
@@ -75,7 +75,7 @@ export default function NotificationsPage() {
           <button
             onClick={handleMarkAllAsRead}
             disabled={marking}
-            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-brand-400 border border-slate-700 flex items-center gap-1.5 transition-colors disabled:opacity-50"
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-brand-600 dark:text-brand-400 border border-slate-300 dark:border-slate-700 flex items-center gap-1.5 transition-colors disabled:opacity-50"
           >
             <CheckCheck className="w-3.5 h-3.5" />
             Mark all read
@@ -88,12 +88,12 @@ export default function NotificationsPage() {
           <Loader2 className="w-7 h-7 text-brand-500 animate-spin" />
         </div>
       ) : notifications.length === 0 ? (
-        <div className="p-12 rounded-3xl glass-card text-center space-y-3 border border-slate-800">
-          <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center mx-auto text-gray-400">
+        <div className="p-12 rounded-3xl glass-card text-center space-y-3 border border-slate-200 dark:border-slate-800">
+          <div className="w-12 h-12 rounded-2xl bg-slate-100 dark:bg-slate-800 flex items-center justify-center mx-auto text-slate-400 dark:text-gray-400">
             <Bell className="w-6 h-6" />
           </div>
-          <h3 className="text-base font-bold text-white">No notifications yet</h3>
-          <p className="text-xs text-gray-400 max-w-sm mx-auto">
+          <h3 className="text-base font-bold text-slate-900 dark:text-white">No notifications yet</h3>
+          <p className="text-xs text-slate-500 dark:text-gray-400 max-w-sm mx-auto">
             You are all caught up! New account alerts, task updates, and referral bonuses will appear here.
           </p>
         </div>
@@ -103,16 +103,18 @@ export default function NotificationsPage() {
             <div
               key={n.id}
               className={`p-4 sm:p-5 rounded-2xl glass-card border transition-all flex items-start gap-4 ${
-                n.isRead ? 'border-slate-800/80 bg-slate-900/40 opacity-80' : 'border-brand-500/40 bg-slate-800/50'
+                n.isRead
+                  ? 'border-slate-200 dark:border-slate-800/80 bg-white/60 dark:bg-slate-900/40 opacity-80'
+                  : 'border-brand-500/40 bg-brand-500/5 dark:bg-slate-800/50'
               }`}
             >
-              <div className="p-2 rounded-xl bg-slate-800/90 shrink-0 mt-0.5">
+              <div className="p-2 rounded-xl bg-slate-100 dark:bg-slate-800/90 shrink-0 mt-0.5">
                 {getIcon(n.type)}
               </div>
               <div className="flex-1 min-w-0 space-y-1">
                 <div className="flex items-center justify-between gap-2">
-                  <h4 className="text-sm font-bold text-white truncate">{n.title}</h4>
-                  <span className="text-[10px] text-gray-400 shrink-0">
+                  <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">{n.title}</h4>
+                  <span className="text-[10px] text-slate-400 dark:text-gray-400 shrink-0">
                     {new Date(n.createdAt).toLocaleDateString('en-KE', {
                       month: 'short',
                       day: 'numeric',
@@ -121,7 +123,7 @@ export default function NotificationsPage() {
                     })}
                   </span>
                 </div>
-                <p className="text-xs text-gray-300 leading-relaxed">{n.message}</p>
+                <p className="text-xs text-slate-600 dark:text-gray-300 leading-relaxed">{n.message}</p>
               </div>
             </div>
           ))}

@@ -59,8 +59,8 @@ export default function SupportPage() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
       <div className="space-y-2 text-center sm:text-left">
-        <h1 className="text-3xl sm:text-4xl font-black text-white">Help & Support Desk</h1>
-        <p className="text-xs sm:text-sm text-gray-400">
+        <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white">Help & Support Desk</h1>
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400">
           Get assistance with payments, M-Pesa withdrawals, task verification, or account settings.
         </p>
       </div>
@@ -68,24 +68,24 @@ export default function SupportPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Create Ticket Form */}
         <div className="p-6 sm:p-8 rounded-3xl glass-card space-y-6">
-          <h3 className="text-xl font-black text-white flex items-center gap-2">
-            <MessageSquare className="w-5 h-5 text-brand-400" />
+          <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <MessageSquare className="w-5 h-5 text-brand-500 dark:text-brand-400" />
             Submit Support Ticket
           </h3>
 
           {notice && (
-            <div className="p-4 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-300 text-xs">
+            <div className="p-4 rounded-2xl bg-brand-500/10 border border-brand-500/20 text-brand-700 dark:text-brand-300 text-xs">
               {notice}
             </div>
           )}
 
           <form onSubmit={handleCreateTicket} className="space-y-4">
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-300">Category</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">Category</label>
               <select
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500"
               >
                 <option value="PAYMENT">M-Pesa / Activation Issue</option>
                 <option value="WITHDRAWAL">Withdrawal Issue</option>
@@ -96,26 +96,26 @@ export default function SupportPage() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-300">Subject</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">Subject</label>
               <input
                 type="text"
                 required
                 placeholder="Brief summary of your request"
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-semibold text-gray-300">Detailed Message</label>
+              <label className="text-xs font-semibold text-slate-700 dark:text-gray-300">Detailed Message</label>
               <textarea
                 rows={4}
                 required
                 placeholder="Provide M-Pesa reference or task details..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
-                className="w-full px-4 py-3 rounded-xl bg-slate-900 border border-slate-700 text-white text-sm focus:outline-none focus:border-brand-500"
+                className="w-full px-4 py-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-sm focus:outline-none focus:border-brand-500"
               />
             </div>
 
@@ -132,32 +132,32 @@ export default function SupportPage() {
 
         {/* Existing Tickets List */}
         <div className="lg:col-span-2 space-y-4">
-          <h3 className="text-xl font-black text-white flex items-center gap-2">
-            <HelpCircle className="w-5 h-5 text-brand-400" />
+          <h3 className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <HelpCircle className="w-5 h-5 text-brand-500 dark:text-brand-400" />
             Your Open Support Tickets
           </h3>
 
           <div className="space-y-4">
             {tickets.length === 0 ? (
-              <div className="p-8 rounded-3xl glass-card text-center text-gray-500 text-sm">
+              <div className="p-8 rounded-3xl glass-card text-center text-slate-400 dark:text-gray-500 text-sm">
                 No active support tickets found.
               </div>
             ) : (
               tickets.map((t) => (
                 <div key={t.id} className="p-6 rounded-3xl glass-card space-y-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-800 text-brand-400 border border-slate-700">
+                    <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-brand-600 dark:text-brand-400 border border-slate-200 dark:border-slate-700">
                       {t.category}
                     </span>
-                    <span className="px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-300 text-[10px] font-bold">
+                    <span className="px-2.5 py-1 rounded-full bg-brand-500/10 text-brand-700 dark:text-brand-300 text-[10px] font-bold">
                       {t.status}
                     </span>
                   </div>
-                  <h4 className="font-bold text-white text-base">{t.subject}</h4>
-                  <div className="space-y-2 pt-2 border-t border-slate-800">
+                  <h4 className="font-bold text-slate-900 dark:text-white text-base">{t.subject}</h4>
+                  <div className="space-y-2 pt-2 border-t border-slate-200 dark:border-slate-800">
                     {t.messages?.map((m: any) => (
-                      <div key={m.id} className="p-3 rounded-xl bg-slate-900 text-xs text-gray-300 space-y-1">
-                        <p className="font-bold text-brand-400">{m.sender?.fullName}</p>
+                      <div key={m.id} className="p-3 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-xs text-slate-700 dark:text-gray-300 space-y-1">
+                        <p className="font-bold text-brand-600 dark:text-brand-400">{m.sender?.fullName}</p>
                         <p>{m.message}</p>
                       </div>
                     ))}
@@ -170,47 +170,47 @@ export default function SupportPage() {
       </div>
 
       {/* 5 FAQs SECTION */}
-      <div className="pt-8 border-t border-slate-800 space-y-6">
+      <div className="pt-8 border-t border-slate-200 dark:border-slate-800 space-y-6">
         <div className="text-center sm:text-left space-y-1">
-          <h3 className="text-2xl font-black text-white flex items-center gap-2">
-            <HelpCircle className="w-6 h-6 text-brand-400" /> Frequently Asked Questions (FAQs)
+          <h3 className="text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+            <HelpCircle className="w-6 h-6 text-brand-500 dark:text-brand-400" /> Frequently Asked Questions (FAQs)
           </h3>
-          <p className="text-xs text-gray-400">Quick answers to common questions about TaskMint platform usage.</p>
+          <p className="text-xs text-slate-500 dark:text-gray-400">Quick answers to common questions about TaskMint platform usage.</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-5 rounded-2xl glass-card space-y-2">
-            <h4 className="font-bold text-white text-sm">1. How do I get started and why is there a KES 200 access fee?</h4>
-            <p className="text-xs text-gray-300 leading-relaxed">
+            <h4 className="font-bold text-slate-900 dark:text-white text-sm">1. How do I get started and why is there a KES 200 access fee?</h4>
+            <p className="text-xs text-slate-600 dark:text-gray-300 leading-relaxed">
               Create an account and complete verification via Paystack. The KES 200 fee serves as an anti-spam identity check to maintain genuine worker campaign access.
             </p>
           </div>
 
           <div className="p-5 rounded-2xl glass-card space-y-2">
-            <h4 className="font-bold text-white text-sm">2. How do I earn money on TaskMint?</h4>
-            <p className="text-xs text-gray-300 leading-relaxed">
+            <h4 className="font-bold text-slate-900 dark:text-white text-sm">2. How do I earn money on TaskMint?</h4>
+            <p className="text-xs text-slate-600 dark:text-gray-300 leading-relaxed">
               Earn through AI data annotation (image labeling, Swahili voice transcription), watching brand advertisements, posting WhatsApp status campaigns, and referral bonuses.
             </p>
           </div>
 
           <div className="p-5 rounded-2xl glass-card space-y-2">
-            <h4 className="font-bold text-white text-sm">3. What are the withdrawal rules and minimum threshold?</h4>
-            <p className="text-xs text-gray-300 leading-relaxed">
+            <h4 className="font-bold text-slate-900 dark:text-white text-sm">3. What are the withdrawal rules and minimum threshold?</h4>
+            <p className="text-xs text-slate-600 dark:text-gray-300 leading-relaxed">
               The minimum withdrawable balance is KES 500. Request direct Safaricom M-Pesa payouts once reached. Processed within 48 hours of review.
             </p>
           </div>
 
           <div className="p-5 rounded-2xl glass-card space-y-2">
-            <h4 className="font-bold text-white text-sm">4. How do membership packages work?</h4>
-            <p className="text-xs text-gray-300 leading-relaxed">
+            <h4 className="font-bold text-slate-900 dark:text-white text-sm">4. How do membership packages work?</h4>
+            <p className="text-xs text-slate-600 dark:text-gray-300 leading-relaxed">
               Task packages set your daily task submission capacity, ad limits, and referral rates. They define task capacity, not financial investments.
             </p>
           </div>
 
           <div className="p-5 rounded-2xl glass-card space-y-2 md:col-span-2">
-            <h4 className="font-bold text-white text-sm">5. How do users change their login password?</h4>
-            <p className="text-xs text-gray-300 leading-relaxed">
-              Click your avatar/name in the navigation menu, select "Account & Verification" (or go to /profile), and fill in your current and new password.".
+            <h4 className="font-bold text-slate-900 dark:text-white text-sm">5. How do users change their login password?</h4>
+            <p className="text-xs text-slate-600 dark:text-gray-300 leading-relaxed">
+              Click your avatar/name in the navigation menu, select "Account & Verification" (or go to /profile), and fill in your current and new password.
             </p>
           </div>
         </div>

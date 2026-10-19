@@ -36,14 +36,14 @@ export default async function AdminLayout({
         timeoutMinutes={15}
         redirectUrl="/admin/login"
       />
-      <div className="admin-shell min-h-screen bg-dark-950 text-slate-100 flex items-start font-sans">
-      <Suspense fallback={
-        <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-64 bg-dark-950 border-r border-dark-800/90 z-30 p-5"></aside>
-      }>
-        <AdminSidebarClient adminEmail={adminPayload.email} />
-      </Suspense>
-      {children}
-    </div>
+      <div className="admin-shell min-h-screen bg-slate-50 dark:bg-dark-950 text-slate-800 dark:text-slate-100 flex items-start font-sans transition-colors duration-200">
+        <Suspense fallback={
+          <aside className="hidden lg:flex flex-col fixed inset-y-0 left-0 w-64 bg-white dark:bg-dark-950 border-r border-slate-200 dark:border-dark-800/90 z-30 p-5"></aside>
+        }>
+          <AdminSidebarClient adminEmail={adminPayload.email} />
+        </Suspense>
+        {children}
+      </div>
     </>
   );
 }

@@ -37,7 +37,9 @@ html.light body {
   color: #0f172a;
 }
 
-/* Glassmorphism Card Utilities */
+/* ──────────────────────────────────────────
+   Glassmorphism Card Utilities
+   ────────────────────────────────────────── */
 .glass-card {
   background: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(12px);
@@ -46,8 +48,9 @@ html.light body {
 }
 
 html.light .glass-card {
-  background: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.9);
   border: 1px solid rgba(15, 23, 42, 0.08);
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
 }
 
 .glass-card-hover {
@@ -76,8 +79,9 @@ html.light .glass-card-hover:hover {
 }
 
 html.light .glass-nav {
-  background: rgba(255, 255, 255, 0.88);
-  border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 1px solid rgba(15, 23, 42, 0.1);
+  box-shadow: 0 1px 8px rgba(15, 23, 42, 0.06);
 }
 
 .glow-emerald {
@@ -88,7 +92,9 @@ html.light .glass-nav {
   box-shadow: 0 0 20px rgba(245, 158, 11, 0.35);
 }
 
-/* Custom Scrollbar */
+/* ──────────────────────────────────────────
+   Light-mode scrollbar
+   ────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -101,6 +107,16 @@ html.light .glass-nav {
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
+  background: #00C853;
+}
+
+html.light ::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+html.light ::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+}
+html.light ::-webkit-scrollbar-thumb:hover {
   background: #00C853;
 }
 

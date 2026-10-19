@@ -3,6 +3,7 @@
 import React, { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Shield, Lock, User, Eye, EyeOff, Zap, AlertCircle, Loader2 } from 'lucide-react';
+import ThemeToggle from '@/components/ThemeToggle';
 
 function AdminLoginForm() {
   const searchParams = useSearchParams();
@@ -95,33 +96,36 @@ function AdminLoginForm() {
   };
 
   return (
-    <div className="w-full max-w-md p-8 rounded-3xl bg-slate-900/90 border border-slate-800 shadow-2xl shadow-black/50 backdrop-blur-xl">
+    <div className="w-full max-w-md p-8 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 shadow-2xl shadow-slate-200/50 dark:shadow-black/50 backdrop-blur-xl transition-colors">
+      <div className="flex justify-end mb-2">
+        <ThemeToggle />
+      </div>
       <div className="flex flex-col items-center text-center mb-8">
         <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-brand-500 to-emerald-400 p-0.5 shadow-xl shadow-amber-500/10 mb-4">
-          <div className="w-full h-full bg-dark-900 rounded-[14px] flex items-center justify-center">
-            <Shield className="w-7 h-7 text-amber-400 fill-amber-400/20" />
+          <div className="w-full h-full bg-slate-100 dark:bg-dark-900 rounded-[14px] flex items-center justify-center">
+            <Shield className="w-7 h-7 text-amber-500 dark:text-amber-400 fill-amber-400/20" />
           </div>
         </div>
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold mb-2">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-600 dark:text-amber-400 text-xs font-bold mb-2">
           <Zap className="w-3.5 h-3.5" />
           TaskMint KE — Admin Portal
         </div>
-        <h1 className="text-2xl font-extrabold text-white tracking-tight">Admin Authentication</h1>
-        <p className="text-xs text-slate-400 mt-1">
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">Admin Authentication</h1>
+        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
           Sign in to access system control &amp; financial operations
         </p>
       </div>
 
       {error && (
-        <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-medium flex items-center gap-3 animate-in fade-in duration-200">
-          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+        <div className="mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-600 dark:text-rose-300 text-xs font-medium flex items-center gap-3 animate-in fade-in duration-200">
+          <AlertCircle className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0" />
           <span>{error}</span>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
             Email, Username, or Phone
           </label>
           <div className="relative">
@@ -133,13 +137,13 @@ function AdminLoginForm() {
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
               placeholder="Enter email, username, or phone"
-              className="w-full pl-10 pr-4 py-3 bg-slate-950/60 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/60 transition-all"
+              className="w-full pl-10 pr-4 py-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-300 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/60 transition-all"
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider mb-2">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 uppercase tracking-wider mb-2">
             Password
           </label>
           <div className="relative">
@@ -151,12 +155,12 @@ function AdminLoginForm() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter admin password"
-              className="w-full pl-10 pr-10 py-3 bg-slate-950/60 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/60 transition-all"
+              className="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-950/60 border border-slate-300 dark:border-slate-800 rounded-xl text-sm text-slate-900 dark:text-white placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-amber-500/60 focus:ring-1 focus:ring-amber-500/60 transition-all"
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3.5 top-3.5 text-slate-400 hover:text-white transition-colors"
+              className="absolute right-3.5 top-3.5 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-colors"
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -184,10 +188,10 @@ function AdminLoginForm() {
 
 export default function AdminLoginPage() {
   return (
-    <main className="min-h-screen bg-dark-900 flex items-center justify-center p-4 selection:bg-amber-500 selection:text-dark-900">
+    <main className="min-h-screen bg-slate-50 dark:bg-dark-900 flex items-center justify-center p-4 selection:bg-amber-500 selection:text-dark-900 transition-colors duration-200">
       <Suspense fallback={
-        <div className="flex items-center gap-2 text-slate-400 text-sm">
-          <Loader2 className="w-5 h-5 animate-spin text-amber-400" />
+        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
+          <Loader2 className="w-5 h-5 animate-spin text-amber-500 dark:text-amber-400" />
           Loading authentication...
         </div>
       }>

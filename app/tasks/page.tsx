@@ -177,15 +177,15 @@ export default function TasksPage() {
   return (
     <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 min-h-[85vh]">
       {/* ── Page Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200 dark:border-slate-800/80 pb-6">
         <div>
-          <h1 className="text-3xl sm:text-4xl font-black text-white tracking-tight flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-400">
+          <h1 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-brand-500/10 border border-brand-500/30 flex items-center justify-center text-brand-500 dark:text-brand-400">
               <CheckSquare className="w-6 h-6" />
             </div>
             Tasks Hub
           </h1>
-          <p className="text-xs sm:text-sm text-gray-400 mt-1">
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-gray-400 mt-1">
             Browse available tasks by category, track submitted proof, and monitor quality review payouts.
           </p>
         </div>
@@ -197,21 +197,21 @@ export default function TasksPage() {
             placeholder="Search tasks..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2.5 pl-10 rounded-xl bg-slate-900 border border-slate-700/80 text-white text-xs focus:outline-none focus:border-brand-500 transition-colors"
+            className="w-full px-4 py-2.5 pl-10 rounded-xl bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-700/80 text-slate-900 dark:text-white text-xs focus:outline-none focus:border-brand-500 transition-colors placeholder-slate-400"
           />
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
         </div>
       </div>
 
       {/* ── Top Lifecycle Navigation Tabs ── */}
-      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-800">
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none border-b border-slate-200 dark:border-slate-800">
         {/* Tab 1: Available Tasks */}
         <button
           onClick={() => setLifecycleTab('AVAILABLE')}
           className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
             lifecycleTab === 'AVAILABLE'
               ? 'bg-brand-500 text-slate-950 shadow-md shadow-brand-500/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+              : 'bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
           }`}
         >
           <Zap className="w-4 h-4" />
@@ -233,7 +233,7 @@ export default function TasksPage() {
           className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
             lifecycleTab === 'PENDING'
               ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+              : 'bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
           }`}
         >
           <Clock className="w-4 h-4" />
@@ -257,7 +257,7 @@ export default function TasksPage() {
           className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
             lifecycleTab === 'APPROVED'
               ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+              : 'bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
           }`}
         >
           <CheckCircle2 className="w-4 h-4" />
@@ -281,7 +281,7 @@ export default function TasksPage() {
           className={`flex items-center gap-2.5 px-5 py-2.5 rounded-xl text-xs font-black whitespace-nowrap transition-all cursor-pointer ${
             lifecycleTab === 'REJECTED'
               ? 'bg-rose-500 text-slate-950 shadow-md shadow-rose-500/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800'
+              : 'bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200 dark:hover:bg-slate-800'
           }`}
         >
           <XCircle className="w-4 h-4" />
@@ -316,7 +316,7 @@ export default function TasksPage() {
               {Array.from({ length: 12 }).map((_, i) => (
                 <div
                   key={i}
-                  className="p-4 rounded-2xl border border-slate-800 bg-slate-900/80 flex flex-col justify-between space-y-3"
+                  className="p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/80 flex flex-col justify-between space-y-3"
                 >
                   <div className="flex items-center justify-between w-full">
                     <Skeleton className="w-8 h-8 rounded-xl" />
@@ -336,7 +336,7 @@ export default function TasksPage() {
             {Array.from({ length: 6 }).map((_, i) => (
               <div
                 key={i}
-                className="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-5 shadow-lg"
+                className="bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-5 shadow-lg"
               >
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
@@ -349,7 +349,7 @@ export default function TasksPage() {
                     <Skeleton className="w-5/6 h-3 rounded-md" />
                   </div>
                 </div>
-                <div className="pt-4 border-t border-slate-800/80 flex items-center justify-between">
+                <div className="pt-4 border-t border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
                   <div className="space-y-1">
                     <Skeleton className="w-12 h-3 rounded-md" />
                     <Skeleton className="w-20 h-6 rounded-md" />
@@ -370,7 +370,7 @@ export default function TasksPage() {
               {/* Category Overview Boxes Grid */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                  <h2 className="text-sm font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-2">
                     <FolderOpen className="w-4 h-4 text-brand-400" />
                     <span>Task Categories</span>
                   </h2>
@@ -391,7 +391,7 @@ export default function TasksPage() {
                     className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-3 transition-all cursor-pointer ${
                       selectedCategory === 'all'
                         ? 'bg-brand-500/15 border-brand-500 shadow-md shadow-brand-500/10'
-                        : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+                        : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900'
                     }`}
                   >
                     <div className="flex items-center justify-between w-full">
@@ -403,8 +403,8 @@ export default function TasksPage() {
                       </span>
                     </div>
                     <div>
-                      <div className="text-xs font-black text-white">All Categories</div>
-                      <div className="text-[10px] text-slate-400 mt-0.5">Explore full catalog</div>
+                      <div className="text-xs font-black text-slate-900 dark:text-white">All Categories</div>
+                      <div className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Explore full catalog</div>
                     </div>
                   </button>
 
@@ -423,7 +423,7 @@ export default function TasksPage() {
                         className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-3 transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-brand-500/15 border-brand-500 shadow-md shadow-brand-500/10'
-                            : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+                            : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900'
                         }`}
                       >
                         <div className="flex items-center justify-between w-full">
@@ -451,7 +451,7 @@ export default function TasksPage() {
                       className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-3 transition-all cursor-pointer ${
                         selectedCategory === 'watch-ads'
                           ? 'bg-blue-500/20 border-blue-500 shadow-md shadow-blue-500/10'
-                          : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+                          : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900'
                       }`}
                     >
                       <div className="flex items-center justify-between w-full">
@@ -463,7 +463,7 @@ export default function TasksPage() {
                         </span>
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-white line-clamp-1">Sponsored Ads</div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">Sponsored Ads</div>
                         <div className="text-[10px] text-blue-400 mt-0.5 font-mono">
                           {ads.length} video ads
                         </div>
@@ -478,7 +478,7 @@ export default function TasksPage() {
                       className={`p-4 rounded-2xl border text-left flex flex-col justify-between space-y-3 transition-all cursor-pointer ${
                         selectedCategory === 'whatsapp-promotions'
                           ? 'bg-emerald-500/20 border-emerald-500 shadow-md shadow-emerald-500/10'
-                          : 'bg-slate-900/80 border-slate-800 hover:border-slate-700 hover:bg-slate-900'
+                          : 'bg-white dark:bg-slate-900/80 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-900'
                       }`}
                     >
                       <div className="flex items-center justify-between w-full">
@@ -490,7 +490,7 @@ export default function TasksPage() {
                         </span>
                       </div>
                       <div>
-                        <div className="text-xs font-bold text-white line-clamp-1">WhatsApp Promo</div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white line-clamp-1">WhatsApp Promo</div>
                         <div className="text-[10px] text-emerald-400 mt-0.5 font-mono">
                           {whatsappCampaigns.length} campaigns
                         </div>
@@ -529,7 +529,7 @@ export default function TasksPage() {
                             return (
                               <div
                                 key={task.id}
-                                className="bg-slate-900/90 border-2 border-amber-500/40 hover:border-amber-400 rounded-3xl p-6 flex flex-col justify-between space-y-5 transition-all shadow-lg shadow-amber-500/5 group backdrop-blur-md"
+                                className="bg-white dark:bg-slate-900/90 border-2 border-amber-500/40 hover:border-amber-400 rounded-3xl p-6 flex flex-col justify-between space-y-5 transition-all shadow-lg shadow-amber-500/5 group backdrop-blur-md"
                               >
                                 <div className="space-y-3">
                                   {/* Top Category Badge & Slots */}
@@ -559,7 +559,7 @@ export default function TasksPage() {
 
                                   {/* Title & Instructions */}
                                   <div>
-                                    <h3 className="text-base font-bold text-white group-hover:text-amber-300 transition-colors">
+                                    <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-amber-300 transition-colors">
                                       {task.title}
                                     </h3>
                                     <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
@@ -616,17 +616,17 @@ export default function TasksPage() {
                       )}
 
                       {filteredTasks.length === 0 ? (
-                        <div className="p-12 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-3">
-                          <div className="w-12 h-12 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 mx-auto">
+                        <div className="p-12 text-center rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-3">
+                          <div className="w-12 h-12 rounded-2xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400 mx-auto">
                             <CheckSquare className="w-6 h-6" />
                           </div>
-                          <h3 className="text-base font-bold text-white">No Tasks Available in this Selection</h3>
-                          <p className="text-xs text-slate-400 max-w-md mx-auto">
+                          <h3 className="text-base font-bold text-slate-900 dark:text-white">No Tasks Available in this Selection</h3>
+                          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-md mx-auto">
                             New microtasks and annotation jobs are published regularly. Select another category box above.
                           </p>
                         </div>
                       ) : filteredUnstarted.length === 0 ? (
-                        <div className="p-6 text-center rounded-2xl bg-slate-900/40 border border-slate-800 text-xs text-slate-400">
+                        <div className="p-6 text-center rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-800 text-xs text-slate-500 dark:text-slate-400">
                           All available tasks in this selection are currently in progress above.
                         </div>
                       ) : (
@@ -638,7 +638,7 @@ export default function TasksPage() {
                             return (
                               <div
                                 key={task.id}
-                                className="bg-slate-900/80 border border-slate-800 hover:border-slate-700 rounded-3xl p-6 flex flex-col justify-between space-y-5 transition-all shadow-lg group backdrop-blur-md"
+                                className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 rounded-3xl p-6 flex flex-col justify-between space-y-5 transition-all shadow-lg group backdrop-blur-md"
                               >
                                 <div className="space-y-3">
                                   {/* Top Category Badge & Slots */}
@@ -667,7 +667,7 @@ export default function TasksPage() {
 
                                   {/* Title & Instructions */}
                                   <div>
-                                    <h3 className="text-base font-bold text-white group-hover:text-brand-300 transition-colors">
+                                    <h3 className="text-base font-bold text-slate-900 dark:text-white group-hover:text-brand-300 transition-colors">
                                       {task.title}
                                     </h3>
                                     <p className="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">
@@ -753,14 +753,14 @@ export default function TasksPage() {
                 {selectedCategory === 'watch-ads' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {ads.length === 0 ? (
-                      <div className="col-span-full p-12 text-center text-slate-400 rounded-3xl bg-slate-900/60 border border-slate-800">
+                      <div className="col-span-full p-12 text-center text-slate-500 dark:text-slate-400 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
                         No video advertisements currently available. Please check back later.
                       </div>
                     ) : (
                       ads.map((ad) => (
                         <div
                           key={ad.id}
-                          className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-lg flex flex-col justify-between"
+                          className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-4 shadow-lg flex flex-col justify-between"
                         >
                           <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
                             <img
@@ -808,14 +808,14 @@ export default function TasksPage() {
                 {selectedCategory === 'whatsapp-promotions' && (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {whatsappCampaigns.length === 0 ? (
-                      <div className="col-span-full p-12 text-center text-slate-400 rounded-3xl bg-slate-900/60 border border-slate-800">
+                      <div className="col-span-full p-12 text-center text-slate-500 dark:text-slate-400 rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800">
                         No WhatsApp campaigns currently active. Please check back later.
                       </div>
                     ) : (
                       whatsappCampaigns.map((camp) => (
                         <div
                           key={camp.id}
-                          className="bg-slate-900/80 border border-slate-800 rounded-3xl p-5 space-y-4 shadow-lg flex flex-col justify-between"
+                          className="bg-white dark:bg-slate-900/80 border border-slate-200 dark:border-slate-800 rounded-3xl p-5 space-y-4 shadow-lg flex flex-col justify-between"
                         >
                           <div className="relative aspect-video rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
                             <img
@@ -867,13 +867,13 @@ export default function TasksPage() {
               </div>
 
               {totalPending === 0 ? (
-                <div className="p-16 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 mx-auto">
+                <div className="p-16 text-center rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400 mx-auto">
                     <Clock className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">No Pending Submissions</h3>
-                    <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">No Pending Submissions</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
                       You do not have any tasks currently awaiting review. Go to the "Available Tasks" tab to complete tasks and earn instant cash!
                     </p>
                   </div>
@@ -890,7 +890,7 @@ export default function TasksPage() {
                   {pendingTasks.map((task) => (
                     <div
                       key={task.id}
-                      className="bg-slate-900/90 border border-amber-500/30 rounded-3xl p-6 flex flex-col justify-between space-y-5 shadow-lg"
+                      className="bg-white dark:bg-slate-900/90 border border-amber-500/30 rounded-3xl p-6 flex flex-col justify-between space-y-5 shadow-lg"
                     >
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -1013,13 +1013,13 @@ export default function TasksPage() {
               </div>
 
               {totalApproved === 0 ? (
-                <div className="p-16 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-800 flex items-center justify-center text-slate-400 mx-auto">
+                <div className="p-16 text-center rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-slate-400 mx-auto">
                     <CheckCircle2 className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">No Approved Tasks Yet</h3>
-                    <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">No Approved Tasks Yet</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
                       Complete tasks and submit proof to receive rewards. Approved earnings will be tracked here.
                     </p>
                   </div>
@@ -1036,7 +1036,7 @@ export default function TasksPage() {
                   {approvedTasks.map((task) => (
                     <div
                       key={task.id}
-                      className="bg-slate-900/90 border border-emerald-500/30 rounded-3xl p-6 flex flex-col justify-between space-y-5 shadow-lg"
+                      className="bg-white dark:bg-slate-900/90 border border-emerald-500/30 rounded-3xl p-6 flex flex-col justify-between space-y-5 shadow-lg"
                     >
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -1127,13 +1127,13 @@ export default function TasksPage() {
               </div>
 
               {totalRejected === 0 ? (
-                <div className="p-16 text-center rounded-3xl bg-slate-900/60 border border-slate-800 space-y-4">
-                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center mx-auto">
+                <div className="p-16 text-center rounded-3xl bg-slate-50 dark:bg-slate-900/60 border border-slate-200 dark:border-slate-800 space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center mx-auto">
                     <Check className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-white">No Rejected Submissions</h3>
-                    <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+                    <h3 className="text-base font-bold text-slate-900 dark:text-white">No Rejected Submissions</h3>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-md mx-auto">
                       All your submissions meet quality verification standards. Keep up the great work!
                     </p>
                   </div>
@@ -1144,7 +1144,7 @@ export default function TasksPage() {
                   {rejectedTasks.map((task) => (
                     <div
                       key={task.id}
-                      className="bg-slate-900/90 border border-rose-500/30 rounded-3xl p-6 flex flex-col justify-between space-y-5 shadow-lg"
+                      className="bg-white dark:bg-slate-900/90 border border-rose-500/30 rounded-3xl p-6 flex flex-col justify-between space-y-5 shadow-lg"
                     >
                       <div className="space-y-3">
                         <div className="flex items-center justify-between">
