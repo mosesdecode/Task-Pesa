@@ -1,9 +1,11 @@
 // TaskMint Progressive Web App Service Worker
-const CACHE_NAME = 'taskmint-cache-v1';
+const CACHE_NAME = 'taskmint-cache-v2';
 const PRECACHE_ASSETS = [
   '/',
   '/offline.html',
   '/manifest.json',
+  '/favicon.ico',
+  '/icons/favicon-32x32.png',
   '/icons/icon.svg',
   '/icons/icon-192x192.png',
   '/icons/icon-512x512.png',
