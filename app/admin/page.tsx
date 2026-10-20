@@ -59,6 +59,7 @@ import {
 import { formatKenyanPhoneDisplay } from '@/lib/phone';
 import { Skeleton } from '@/components/Skeleton';
 import { EmptyState } from '@/components/EmptyState';
+import { compressImage, parseApiResponse } from '@/lib/imageCompress';
 
 type AdminTab =
   | 'overview'
@@ -952,25 +953,26 @@ function AdminDashboardInner() {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Vercel serverless functions enforce a 4.5MB request limit
-    if (file.size > 4 * 1024 * 1024) {
-      setError('Image file is too large for serverless upload. Max size is 4MB. For larger images, paste an image link.');
+    if (file.size > 15 * 1024 * 1024) {
+      setError('Selected image exceeds 15MB. Please choose a smaller image.');
       return;
     }
 
     setMediaUploading(true);
     setError('');
     try {
+      // Compress the image client-side before upload to prevent exceeding Vercel 4.5MB limits
+      const compressedFile = await compressImage(file, 1600, 0.85);
+
       const formData = new FormData();
-      formData.append('avatar', file);
+      formData.append('avatar', compressedFile);
 
       const res = await fetch('/api/profile/avatar?type=proof', {
         method: 'POST',
         body: formData,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to upload photo');
+      const data = await parseApiResponse(res, 'Failed to upload photo');
 
       setTaskForm((prev) => ({
         ...prev,
@@ -980,7 +982,7 @@ function AdminDashboardInner() {
           mediaUrl: data.profilePhoto,
         },
       }));
-      setSuccessMsg('Photo uploaded and loaded successfully!');
+      setSuccessMsg('Photo uploaded and compressed successfully!');
     } catch (err: any) {
       setError(err.message || 'Image upload failed');
     } finally {
@@ -1086,8 +1088,10 @@ function AdminDashboardInner() {
           ? validateMediaTask() 
           : null;
 
+      // Avoid duplicating multi-megabyte base64 strings in root payload and dataPayloadJson
+      const { mediaSettings, quizQuestions, ...cleanTaskForm } = taskForm;
       const payload = {
-        ...taskForm,
+        ...cleanTaskForm,
         dataPayloadJson,
       };
 
@@ -1097,8 +1101,7 @@ function AdminDashboardInner() {
         body: JSON.stringify(payload),
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to create task');
+      const data = await parseApiResponse(res, 'Failed to create task');
 
       const isDraft = taskForm.status === 'DRAFT';
       setSuccessMsg(isDraft ? 'Task saved as draft. Publish it from Task Management when ready.' : 'Task published to marketplace!');
@@ -1195,9 +1198,11 @@ function AdminDashboardInner() {
           ? validateMediaTask() 
           : null;
 
+      // Avoid duplicating multi-megabyte base64 strings in root payload and dataPayloadJson
+      const { mediaSettings, quizQuestions, ...cleanTaskForm } = taskForm;
       const payload = {
         id: editingTask.id,
-        ...taskForm,
+        ...cleanTaskForm,
         dataPayloadJson,
       };
 
@@ -1206,8 +1211,7 @@ function AdminDashboardInner() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to update task');
+      const data = await parseApiResponse(res, 'Failed to update task');
       setSuccessMsg('Task updated successfully!');
       resetTaskForm();
       fetchTasks();

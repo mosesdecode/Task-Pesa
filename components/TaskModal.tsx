@@ -26,6 +26,7 @@ import {
   Video,
   Loader2,
 } from 'lucide-react';
+import { compressImage, parseApiResponse } from '@/lib/imageCompress';
 
 function getEmbedInfo(url?: string | null) {
   if (!url) return null;
@@ -226,8 +227,8 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File exceeds 5MB size limit.');
+    if (file.size > 15 * 1024 * 1024) {
+      setError('File exceeds 15MB limit. Please choose a smaller photo.');
       return;
     }
 
@@ -235,16 +236,18 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
     setError(null);
 
     try {
+      // Compress the screenshot proof client-side to ensure it stays well under Vercel payload limits
+      const compressedFile = await compressImage(file, 1600, 0.82);
+
       const formData = new FormData();
-      formData.append('avatar', file);
+      formData.append('avatar', compressedFile);
 
       const res = await fetch('/api/profile/avatar?type=proof', {
         method: 'POST',
         body: formData,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to upload screenshot proof');
+      const data = await parseApiResponse(res, 'Failed to upload screenshot proof');
 
       setWhatsappProofUrl(data.profilePhoto);
       setSuccessMsg('Screenshot uploaded successfully!');
@@ -260,8 +263,8 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError('File exceeds 5MB size limit.');
+    if (file.size > 15 * 1024 * 1024) {
+      setError('File exceeds 15MB limit. Please choose a smaller photo.');
       return;
     }
 
@@ -269,16 +272,18 @@ export default function TaskModal({ item, type, onClose, onSuccess }: TaskModalP
     setError(null);
 
     try {
+      // Compress the screenshot proof client-side to ensure it stays well under Vercel payload limits
+      const compressedFile = await compressImage(file, 1600, 0.82);
+
       const formData = new FormData();
-      formData.append('avatar', file);
+      formData.append('avatar', compressedFile);
 
       const res = await fetch('/api/profile/avatar?type=proof', {
         method: 'POST',
         body: formData,
       });
 
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to upload screenshot proof');
+      const data = await parseApiResponse(res, 'Failed to upload screenshot proof');
 
       setProofUrl(data.profilePhoto);
       setSuccessMsg('Screenshot uploaded successfully!');
