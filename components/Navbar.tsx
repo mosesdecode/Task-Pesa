@@ -92,7 +92,7 @@ export default function Navbar() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo */}
-          <Link href={user ? '/dashboard' : '/'} className="flex items-center gap-2.5 group">
+          <Link href={user ? '/dashboard' : '/'} prefetch={false} className="flex items-center gap-2.5 group">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-brand-600 via-brand-500 to-emerald-400 p-0.5 shadow-lg shadow-brand-500/20 group-hover:scale-105 transition-transform">
               <div className="w-full h-full bg-dark-900 dark:bg-dark-900 rounded-[10px] flex items-center justify-center">
                 <Zap className="w-5 h-5 text-brand-400 fill-brand-400/20" />
@@ -121,6 +121,7 @@ export default function Navbar() {
                   <Link
                     key={link.name}
                     href={link.href}
+                    prefetch={false}
                     className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${
                       isActive
                         ? 'bg-brand-500/10 text-brand-500 dark:text-brand-400 border border-brand-500/20'
@@ -136,6 +137,7 @@ export default function Navbar() {
               {user.role === 'ADMIN' && (
                 <Link
                   href="/admin"
+                  prefetch={false}
                   className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-semibold transition-all ${
                     pathname === '/admin'
                       ? 'bg-amber-500/10 text-amber-500 dark:text-amber-400 border border-amber-500/20'
@@ -160,6 +162,7 @@ export default function Navbar() {
                 {/* Notifications Bell */}
                 <Link
                   href="/notifications"
+                  prefetch={false}
                   className="relative p-2 rounded-xl text-slate-500 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60 transition-colors"
                   title="Notifications"
                 >
@@ -208,8 +211,9 @@ export default function Navbar() {
 
                       <Link
                         href="/profile"
+                        prefetch={false}
                         onClick={() => setProfileDropdownOpen(false)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/70 rounded-xl transition-colors"
+                        className="flex items-center gap-2 px-3.5 py-2 text-sm text-slate-700 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-800/70 rounded-xl transition-colors"
                       >
                         <UserIcon className="w-4 h-4 text-brand-500 dark:text-brand-400" />
                         Profile & Security
@@ -250,12 +254,14 @@ export default function Navbar() {
               <div className="flex items-center gap-2">
                 <Link
                   href="/login"
+                  prefetch={false}
                   className="px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 dark:text-gray-300 hover:text-slate-900 dark:hover:text-white transition-colors"
                 >
                   Log In
                 </Link>
                 <Link
                   href="/register"
+                  prefetch={false}
                   className="px-4 py-2 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-brand-600 to-emerald-500 hover:from-brand-500 hover:to-emerald-400 shadow-lg shadow-brand-500/20 transition-all hover:scale-105"
                 >
                   Get Started

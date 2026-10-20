@@ -81,8 +81,6 @@ export async function GET(req: NextRequest) {
                   id: true,
                   status: true,
                   rejectionReason: true,
-                  proofUrl: true,
-                  proofText: true,
                   startedAt: true,
                   submittedAt: true,
                   reviewedAt: true,
@@ -150,7 +148,7 @@ export async function GET(req: NextRequest) {
                 where: { userId },
                 orderBy: { submittedAt: 'desc' },
                 take: 1,
-                select: { id: true, status: true, proofUrl: true, adminNotes: true, submittedAt: true },
+                select: { id: true, status: true, adminNotes: true, submittedAt: true },
               }
             : false,
         },
