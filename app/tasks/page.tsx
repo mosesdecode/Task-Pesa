@@ -46,15 +46,24 @@ const getCategoryIcon = (slug?: string, name?: string) => {
   return Sparkles;
 };
 
+// In-memory cache for instant 0ms task rendering across tab navigation
+let tasksMemoryCache: {
+  tasks: any[];
+  categories: any[];
+  ads: any[];
+  campaigns: any[];
+  timestamp: number;
+} | null = null;
+
 export default function TasksPage() {
   const [lifecycleTab, setLifecycleTab] = useState<LifecycleTab>('AVAILABLE');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [tasks, setTasks] = useState<any[]>([]);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [ads, setAds] = useState<any[]>([]);
-  const [whatsappCampaigns, setWhatsappCampaigns] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [tasks, setTasks] = useState<any[]>(() => tasksMemoryCache?.tasks || []);
+  const [categories, setCategories] = useState<any[]>(() => tasksMemoryCache?.categories || []);
+  const [ads, setAds] = useState<any[]>(() => tasksMemoryCache?.ads || []);
+  const [whatsappCampaigns, setWhatsappCampaigns] = useState<any[]>(() => tasksMemoryCache?.campaigns || []);
+  const [loading, setLoading] = useState(() => !tasksMemoryCache);
   const [startingTaskId, setStartingTaskId] = useState<string | null>(null);
 
   // Selected item for TaskModal
@@ -63,27 +72,43 @@ export default function TasksPage() {
 
   const [user, setUser] = useState<any>(null);
 
-  const fetchData = async () => {
-    setLoading(true);
+  const fetchData = async (isBackground = false) => {
+    if (!isBackground && !tasksMemoryCache) {
+      setLoading(true);
+    }
     try {
-      // Parallelize auth check and dashboard queries — cuts initial page load time in half
       const [u, dashRes] = await Promise.all([
         getMe(),
         fetch('/api/dashboard'),
       ]);
 
-      if (!u) {
-        window.location.href = '/login?redirect=/tasks';
-        return;
+      if (u) {
+        setUser(u);
       }
-      setUser(u);
 
       if (dashRes.ok) {
         const dashData = await dashRes.json();
-        if (dashData.tasks) setTasks(dashData.tasks);
-        if (dashData.categories) setCategories(dashData.categories);
-        if (dashData.ads) setAds(dashData.ads);
-        if (dashData.campaigns) setWhatsappCampaigns(dashData.campaigns);
+        const newTasks = dashData.tasks || [];
+        const newCategories = dashData.categories || [];
+        const newAds = dashData.ads || [];
+        const newCampaigns = dashData.campaigns || [];
+
+        setTasks(newTasks);
+        setCategories(newCategories);
+        setAds(newAds);
+        setWhatsappCampaigns(newCampaigns);
+
+        tasksMemoryCache = {
+          tasks: newTasks,
+          categories: newCategories,
+          ads: newAds,
+          campaigns: newCampaigns,
+          timestamp: Date.now(),
+        };
+
+        try {
+          sessionStorage.setItem('taskmint_tasks_cache', JSON.stringify(tasksMemoryCache));
+        } catch {}
       }
     } catch (e) {
       console.error('Tasks page fetch error:', e);
@@ -93,7 +118,26 @@ export default function TasksPage() {
   };
 
   useEffect(() => {
-    fetchData();
+    // If in-memory cache is empty, check sessionStorage for immediate instant render
+    if (!tasksMemoryCache) {
+      try {
+        const stored = sessionStorage.getItem('taskmint_tasks_cache');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Array.isArray(parsed.tasks)) {
+            tasksMemoryCache = parsed;
+            setTasks(parsed.tasks);
+            setCategories(parsed.categories || []);
+            setAds(parsed.ads || []);
+            setWhatsappCampaigns(parsed.campaigns || []);
+            setLoading(false);
+          }
+        }
+      } catch {}
+    }
+
+    // Always revalidate in background
+    fetchData(!!tasksMemoryCache);
   }, []);
 
   const handleStartTask = async (task: any) => {

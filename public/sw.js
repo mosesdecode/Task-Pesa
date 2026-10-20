@@ -1,5 +1,5 @@
 // TaskMint Progressive Web App Service Worker
-const CACHE_NAME = 'taskmint-cache-v2';
+const CACHE_NAME = 'taskmint-cache-v3';
 const PRECACHE_ASSETS = [
   '/',
   '/offline.html',
@@ -38,7 +38,7 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Fetch: Network-first for pages with offline fallback, Cache-first / SWR for static assets
+// Fetch handler: ONLY intercepts static assets and full-page HTML navigation for offline fallback
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
@@ -48,17 +48,22 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(request.url);
 
-  // Skip dynamic API calls and dev server HMR
-  if (url.pathname.startsWith('/api/') || url.pathname.includes('webpack-hmr')) {
+  // NEVER intercept API calls, dev HMR, or Next.js RSC prefetch requests
+  if (
+    url.pathname.startsWith('/api/') ||
+    url.pathname.includes('webpack-hmr') ||
+    url.searchParams.has('_rsc') ||
+    request.headers.get('RSC') === '1' ||
+    request.headers.get('Next-Router-Prefetch') === '1'
+  ) {
     return;
   }
 
-  // Navigation requests (HTML pages)
+  // Navigation requests (Full HTML pages for offline support)
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
         .then((networkResponse) => {
-          // If valid response, clone and update cache
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
@@ -82,11 +87,13 @@ self.addEventListener('fetch', (event) => {
   if (
     url.pathname.startsWith('/icons/') ||
     url.pathname.startsWith('/_next/static/') ||
-    url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|woff2|woff|ttf|css|js)$/)
+    url.pathname.match(/\.(png|jpg|jpeg|svg|gif|webp|ico|woff2|woff|ttf|css|js)$/)
   ) {
     event.respondWith(
       caches.match(request).then((cachedResponse) => {
-        const fetchPromise = fetch(request).then((networkResponse) => {
+        if (cachedResponse) return cachedResponse;
+
+        return fetch(request).then((networkResponse) => {
           if (networkResponse && networkResponse.status === 200) {
             const responseClone = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
@@ -95,15 +102,11 @@ self.addEventListener('fetch', (event) => {
           }
           return networkResponse;
         }).catch(() => {/* ignore static fetch failures when offline */});
-
-        return cachedResponse || fetchPromise;
       })
     );
     return;
   }
 
-  // Default: Network with cache fallback
-  event.respondWith(
-    fetch(request).catch(() => caches.match(request))
-  );
+  // For all other requests, do NOT call event.respondWith — let browser handle natively!
 });
+

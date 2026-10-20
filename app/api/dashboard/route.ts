@@ -189,7 +189,10 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json({ tasks: mappedTasks, categories, ads, campaigns });
+    return NextResponse.json(
+      { tasks: mappedTasks, categories, ads, campaigns },
+      { headers: { 'Cache-Control': 'private, no-cache, no-store, max-age=0' } }
+    );
   } catch (error: any) {
     console.error('Dashboard fetch error:', error);
     return NextResponse.json({ error: 'Failed to load dashboard data' }, { status: 500 });

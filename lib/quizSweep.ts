@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma';
 
+let lastGlobalSweepTime = 0;
+
 /**
  * Idempotent lazy finalization sweep for expired IN_PROGRESS quiz attempts.
  *
@@ -11,6 +13,15 @@ import { prisma } from '@/lib/prisma';
  */
 export async function sweepExpiredQuizAttempts(taskId?: string) {
   try {
+    // Throttle global sweeps to at most once every 60 seconds to avoid DB connection exhaustion
+    if (!taskId) {
+      const nowMs = Date.now();
+      if (nowMs - lastGlobalSweepTime < 60000) {
+        return;
+      }
+      lastGlobalSweepTime = nowMs;
+    }
+
     const now = new Date();
 
     const where: any = {
